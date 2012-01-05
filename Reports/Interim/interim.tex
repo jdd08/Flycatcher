@@ -1,6 +1,6 @@
 \documentclass[a4paper,11pt,titlepage]{report}
 \usepackage{graphicx}
-\usepackage[margin=2.3cm]{geometry}
+%\usepackage[margin=2.3cm]{geometry}
 \begin{document}
 	
 	\title
@@ -13,16 +13,16 @@
 		\end{figure}
 	}
 	\author
-	{	\vspace{1cm}
-		{\textbf{MEng Computing Individual Project Interim Report}}\\[0.3cm]
-		{\large Jerome \textsc{de Lafargue}}	\\
-		\texttt{\scriptsize jdd08@ic.ac.uk}\\[3cm]
-		\emph{\small Supervisor:}
+	{	
+		{\large Jerome \textsc{de Lafargue}}\\
+		\texttt{\scriptsize jdd08@ic.ac.uk}\\[4cm]
+		{\emph{MEng Computing Individual Project Interim Report}}\\[1.2cm]
+		\textbf{\small Supervisor:}
 		{\small Susan \textsc{Eisenbach}}\\
-		\emph{\small Second Marker:}
+		\textbf{\small Second Marker:}
 		{\small John \textsc{Smith}}\\
-		\emph{\small Technical Supervisor:}
-		{\small Tristan \textsc{Allwood}}\\[3cm]
+		\textbf{\small Technical Supervisor:}
+		{\small Tristan \textsc{Allwood}}\\[0.5cm]
 		\textsc{\scriptsize Department of Computing}\\
 		\textsc{\small Imperial College London}
 	}
@@ -31,4 +31,77 @@
 	\date{}
 	\maketitle
 
+\tableofcontents
+
+\chapter{Introduction}
+Notes on \cite{mcminn2004search}
+\begin{itemize}
+\item testing major part of the development process, crucial for quality and accounts for 50\% or more of the development effort
+\item manual process is tedious, costly and difficult and the testing is often biased
+\item exhaustive enumeration of inputs is infeasible for a reasonable program, coverage gives a good indication of test quality but full coverage is often infeasible too therefore ideally ATDG should achieve the best possible coverage
+\item random methods are easy to implement but unreliable and unlikely to discover deep errors
+\item size and complexity of real software means a lot of the research deals with toy examples/language subsets. ATDG `undecidable' problem.
+\item metaheuristic search techniques use an \emph{objective function} that estimates the value of a solution
+\item the execution tree of most programs is infinite \cite{king1976symbolic}
+
+\end{itemize}
+
+\section{Motivation}
+%\section{Context}
+\section{Aim}
+%\section{Contributions}
+%\section{Report Structure}
+
+\chapter{Background}
+In this section we will start by giving an overview of software testing, with particular emphasis on aspects of it that are relevant to this project. We will then take a look at the state of the art in automatic test generation in order to understand the approach that will be used for Flycatcher. Finally we will explain why we chose JavaScript as our target language and describe features of it that are of interest to us for this project.
+
+\section{Dynamic testing}
+
+\subsection{Overview}
+
+We can define the activity of dynamic testing as testing that requires execution of the software with test data as input \cite{mahmood2007systematic} and characterise it with respect to three parameters namely the point of view taken by the tester, the target of the tests and the stage of development at which they are executed. The point of view taken concerns the knowledge of the software under test and can be divided into three categories, structural (white-box testing) testing, functional (black-box testing) and a hybrid of the two (grey-box testing). The target of the tests refers to their granularity, from testing specific units of code (unit testing) to an entire integrated system (system testing). The stage at which the tests are undertaken determines whether they are regression tests, alpha-tests, beta-tests, acceptance tests \emph{etc}. With Flycatcher we hope to generate suites of structural tests, focused at the unit level of object-oriented classes, most likely to perform incremental regression testing. Hence, structural testing (our point of view), unit testing (our target level) and regression testing (our development stage) will be described in more detail in this section.
+
+\subsection{Structural testing}
+
+The goal of structural testing is to test the internal workings \cite{mcminn2004search} of an application in order to verify that it does not contain errors. While functional testing determines whether the software provides the required functionality, structural testing ensures that it will not crash under any circumstances, regardless of how it is called. It concerns \emph{how} the software operates, rather than \emph{what} it can do. As a result, the measure to determine good structural testing is code coverage --- the amount of code that we cover during the testing process. In practice, guaranteeing that all possible executions of a piece of software are error-free is an undecidable problem, but coverage gives us a good estimate of the quality of our tests.
+
+\subsubsection{Test coverage}
+\subsubsection{Test oracles}
+
+There are many different ways to gage the amount of software covered during the testing process. Predicate or branch coverage evaluates the percentage of control flow branches covered where a branch exists wherever the software has the possibility to go down a different path such as upon \texttt{if} statements, loops \emph{etc.}
+
+\subsection{Unit testing}
+\subsection{Regression testing}
+
+\section{Automatic test case generation}
+In this project, we are concerned with generating structural unit tests, as defined earlier, for an object-oriented, dynamic language. At the core of any automatic test case generation task is the generation of input data for the tests, which we will refer to from now on as ATDG (Automatic Test Data Generation). For object-oriented tests other considerations are the construction of objects and the ordering of statements in test cases. However, first and foremost we will look at techniques for generating the input data itself, as would be done for tests in a purely procedural language. Then we will look at methods for generating object-oriented tests and the specific challenges posed by dynamic languages for ATDG.
+
+\subsection{Overview}
+Edvardssvon's classification \cite{edvardsson1999survey} is based on the idea that there are three approaches to automatic test data generation. The idea is that paths are successively selected from the control flow graph\footnote{see Appendix A for an explanation} to yield the best coverage for the chosen coverage criterion. Once a path is chosen it can be traversed by three methods: \emph{random}, (randomly explore the search space) \emph{goal-oriented} (target specific goals such as assertions) and \emph{path-oriented} (traverse an exact path). 
+
+\subsection{Static approach}
+Static structural test data generation is based on information available from the static analysis of the program, without requiring that the program is actually executed \cite{mcminn2004search}. Static program analysis produces control flow information that can be used to generate execution paths that can be used for static test data generation. Every time control flow branches, e.g. at \texttt{if} statements, there is a corresponding predicate or branch condition. These predicates can be collected along a path and conjoined to form the path predicate. By solving the path predicate in terms of the input variables, we can obtain test data that executes that path. However, in order to rewrite the path predicate in terms of the input variables we need to take into account the execution of the program. This can  
+
+% Challenges of static analysis
+% - arrays and pointers
+% - procedure calls to external modules
+
+\subsection{Dynamic ATDG}
+\subsubsection{Random approach}
+\subsubsection{Search-based approach}
+
+\subsection{Hybrid ATDG}
+
+\subsection{Object-oriented test case generation}
+\subsection{Challenges of dynamic languages}
+
+\section{JavaScript}
+\subsection{Prominence}
+\subsection{Idiosyncratic features}
+\subsection{Object-oriented programming}
+
+This is DART \cite{godefroid2005dart}. This is RuTeG \cite{mairhofer2008search}.
+\bibliographystyle{acm}
+\bibliography{interim}
 \end{document}
+
