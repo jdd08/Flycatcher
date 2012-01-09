@@ -19,10 +19,10 @@
 		{\emph{MEng Computing Individual Project Interim Report}}\\[1.2cm]
 		\textbf{\small Supervisor:}
 		{\small Susan \textsc{Eisenbach}}\\
-		\textbf{\small Second Marker:}
-		{\small John \textsc{Smith}}\\
 		\textbf{\small Technical Supervisor:}
-		{\small Tristan \textsc{Allwood}}\\[0.5cm]
+		{\small Tristan \textsc{Allwood}}\\\\[0.5cm]
+		%\textbf{\small Second Marker:}
+		%{\small John \textsc{Smith}}\\
 		\textsc{\scriptsize Department of Computing}\\
 		\textsc{\small Imperial College London}
 	}
@@ -43,6 +43,7 @@ Notes on \cite{mcminn2004search}
 \item size and complexity of real software means a lot of the research deals with toy examples/language subsets. ATDG `undecidable' problem.
 \item metaheuristic search techniques use an \emph{objective function} that estimates the value of a solution
 \item the execution tree of most programs is infinite \cite{king1976symbolic}
+\item as more and more people rely on software it will be required to be of greater quality
 
 \end{itemize}
 
@@ -53,34 +54,56 @@ Notes on \cite{mcminn2004search}
 %\section{Report Structure}
 
 \chapter{Background}
-In this section we will start by giving an overview of software testing, with particular emphasis on aspects of it that are relevant to this project. We will then take a look at the state of the art in automatic test generation in order to understand the approach that will be used for Flycatcher. Finally we will explain why we chose JavaScript as our target language and describe features of it that are of interest to us for this project.
+In this chapter we will start by giving an overview of software testing, with particular emphasis on aspects of it that are relevant to this project. We will then take a look at the state of the art in automatic test data generation (ATDG) in order to understand the approach that will be used for Flycatcher. Because the tests will be object-oriented, method call sequences need to be generated and we will look at the state of the art for doing that too. Finally we will explain why we chose JavaScript as our target language and describe features of it that are of interest to us for this project.
 
 \section{Dynamic testing}
 
 \subsection{Overview}
 
-We can define the activity of dynamic testing as testing that requires execution of the software with test data as input \cite{mahmood2007systematic} and characterise it with respect to three parameters namely the point of view taken by the tester, the target of the tests and the stage of development at which they are executed. The point of view taken concerns the knowledge of the software under test and can be divided into three categories, structural (white-box testing) testing, functional (black-box testing) and a hybrid of the two (grey-box testing). The target of the tests refers to their granularity, from testing specific units of code (unit testing) to an entire integrated system (system testing). The stage at which the tests are undertaken determines whether they are regression tests, alpha-tests, beta-tests, acceptance tests \emph{etc}. With Flycatcher we hope to generate suites of structural tests, focused at the unit level of object-oriented classes, most likely to perform incremental regression testing. Hence, structural testing (our point of view), unit testing (our target level) and regression testing (our development stage) will be described in more detail in this section.
+We can define the activity of dynamic testing as testing that requires execution of the software with test data as input \cite{mahmood2007systematic} and characterise it with respect to three parameters namely the amount of knowledge assumed by the tester, the target of the tests and the stage of development at which they are executed. The amount of knowledge of the software under test can be divided into three categories, structural (white-box testing) testing, functional (black-box testing) and a hybrid of the two (grey-box testing). The target of the tests refers to their granularity, from testing specific units of code (unit testing) to an entire integrated system (system testing). The stage at which the tests are undertaken determines whether they are regression tests, alpha-tests, beta-tests, acceptance tests \emph{etc}. With Flycatcher we hope to generate suites of structural tests, focused at the unit level of object-oriented classes, most likely to perform incremental regression testing. Hence, structural testing, unit testing and regression testing will be described in more detail in this section.
 
 \subsection{Structural testing}
 
-The goal of structural testing is to test the internal workings \cite{mcminn2004search} of an application in order to verify that it does not contain errors. While functional testing determines whether the software provides the required functionality, structural testing ensures that it will not crash under any circumstances, regardless of how it is called. It concerns \emph{how} the software operates, rather than \emph{what} it can do. As a result, the measure to determine good structural testing is code coverage --- the amount of code that we cover during the testing process. In practice, guaranteeing that all possible executions of a piece of software are error-free is an undecidable problem, but coverage gives us a good estimate of the quality of our tests.
+The goal of structural testing is to test the internal workings \cite{mcminn2004search} of an application in order to verify that it does not contain errors. While functional testing determines whether the software provides the required functionality, structural testing tries to ensure that it does not crash under any circumstances, regardless of how it is called. It concerns \emph{how} well the software operates, its structure, rather than \emph{what} it can do, its function. As a result, the measure to determine good structural testing is the code covered during the testing process --- code coverage. It gives us an idea of the amount of code that should be bug free. However, there are various types of code coverage criteria and the confidence that our code is bug free varies depending on which one is chosen.
 
 \subsubsection{Test coverage}
-\subsubsection{Test oracles}
+Edvardsson lists the most cited criteria \cite{edvardsson1999survey}, from weakest to strongest:
+\begin{itemize}
+	\item \textbf{Statement Coverage} Each statement must be executed at least once.
+ 	\item \textbf{Branch\footnote{For an explanation of program analysis terminology such as branch, path and control flow graph see Appendix A.}/Decision Coverage} Each branch condition must evaluate to true and false.
+ 	\item \textbf{Condition/Predicate Coverage} Each clause within each branch condition must evaluate to true and false.
+ 	\item \textbf{Multiple-condition Coverage} Each combination of truth values of each clause of each condition must be executed.
+ 	\item \textbf{Path\footnotemark[\value{footnote}] Coverage} Each path in the control flow graph\footnotemark[\value{footnote}] must be traversed.
 
-There are many different ways to gage the amount of software covered during the testing process. Predicate or branch coverage evaluates the percentage of control flow branches covered where a branch exists wherever the software has the possibility to go down a different path such as upon \texttt{if} statements, loops \emph{etc.}
+The stronger criteria of condition, multiple-condition and path coverage are often infeasible to achieve for programs of more than moderate complexity, and thus branch coverage has been recognised as a basic measure for testing \cite{edvardsson1999survey}.
+\end{itemize}
 
 \subsection{Unit testing}
+
+Unit testing consists in testing individual and independently testable units of source code \cite{myers2011art}. Therefore, unit testing is made easier if the code is designed in a modular way. The nature of the units depends on the programming language and environment but is often a class or a function. As opposed to system tests which can be aimed at the client, unit tests are usually white-box tests. Although they do not guarantee that the overall software works as required, they give confidence in specific units of code and narrow down errors, helping the development process. In Flycatcher, the target unit will be a JavaScript prototype, which will be introduced later in this chapter.
+
 \subsection{Regression testing}
+Automatically generating structural unit tests can be of great use for regression testing. Regression testing aims to ensure that enhancing a piece of software does not introduce new faults \cite{myers2011art}. The difficulty in testing this is that programmers do not always appreciate the extent of their changes. Hence, having a suite of unit tests with good structural coverage can reduce this problem by verifying the software in a systematic, unbiased way.
 
-\section{Automatic test case generation}
-In this project, we are concerned with generating structural unit tests, as defined earlier, for an object-oriented, dynamic language. At the core of any automatic test case generation task is the generation of input data for the tests, which we will refer to from now on as ATDG (Automatic Test Data Generation). For object-oriented tests other considerations are the construction of objects and the ordering of statements in test cases. However, first and foremost we will look at techniques for generating the input data itself, as would be done for tests in a purely procedural language. Then we will look at methods for generating object-oriented tests and the specific challenges posed by dynamic languages for ATDG.
-
+\section{Automatic test data generation}
 \subsection{Overview}
-Edvardssvon's classification \cite{edvardsson1999survey} is based on the idea that there are three approaches to automatic test data generation. The idea is that paths are successively selected from the control flow graph\footnote{see Appendix A for an explanation} to yield the best coverage for the chosen coverage criterion. Once a path is chosen it can be traversed by three methods: \emph{random}, (randomly explore the search space) \emph{goal-oriented} (target specific goals such as assertions) and \emph{path-oriented} (traverse an exact path). 
 
-\subsection{Static approach}
-Static structural test data generation is based on information available from the static analysis of the program, without requiring that the program is actually executed \cite{mcminn2004search}. Static program analysis produces control flow information that can be used to generate execution paths that can be used for static test data generation. Every time control flow branches, e.g. at \texttt{if} statements, there is a corresponding predicate or branch condition. These predicates can be collected along a path and conjoined to form the path predicate. By solving the path predicate in terms of the input variables, we can obtain test data that executes that path. However, in order to rewrite the path predicate in terms of the input variables we need to take into account the execution of the program. This can  
+As can be seen in Mahmood's systematic review of ATDG techniques \cite{mahmood2007systematic}, many classifications exist for ATDG techniques. For our purposes, the first distinction that we need to make is between white-box, black-box and grey-box ATDG techniques, as for Flycatcher we are only interested in white-box testing. In the literature we found that white-box ATDG techniques are usually classified in two ways \cite{mahmood2007systematic, edvardsson1999survey, tahbildar2automated}. The first distinguishes whether the data is generated randomly, to cover a specific statement or to cover a specific path\footnote{this involves a path selection step, where paths are successively selected from the control flow graph to yield the best coverage for the chosen coverage criterion} --- respectively \emph{random}, \emph{goal-oriented} and \emph{path-oriented} ATDG \cite{edvardsson1999survey}. The other classification of white-box ATDG focuses on the type of implementation: \emph{static}, \emph{dynamic} or a \emph{hybrid} of the two \cite{han2008empirical, mcminn2004search}. We will focus on the latter classification of structural testing as it is crucial to our choice of implementation for Flycatcher. Moreover, the former concerns the path selection stage of ATDG --- whether data should be generated for a specific (path-oriented), unspecific (goal-oriented) or random path and this step is ignored in many recent ATDG techniques \cite{tahbildar2automated}. Figure 123 summarises what we believe is the most intuitive characterisation of ATDG techniques to date and the one which will guide our choice of implementation for Flycatcher. Many techniques can be found under each of the static, dynamic and hybrid implementation categories and we will only list the most noteworthy to us.
+
+The choice of implementation for Flycatcher is dynamic random ATDG for our benchmark and dynamic search-based ATDG using genetic algorithms for our solution. The rest of the section will present in further detail the structural ATDG implementation categories we have chosen and the difficulties of ATDG for a dynamic language, so that we can understand the rationale behind this choice.
+
+%We feel that the latter is more intuitive as specific ATDG techniques usually fall under one of these categories. Figure 123 summarises what we believe is the most intuitive characterisation of ATDG techniques to date and the one which will guide our choice of implementation for Flycatcher.
+
+%Edvardssvon's classification \cite{edvardsson1999survey} is based on the idea that there are three approaches to automatic test data generation. The idea is that . Once a path is chosen it can be traversed by three methods: \emph{random}, (randomly explore the search space) \emph{goal-oriented} (target specific goals such as assertions) and \emph{path-oriented} (traverse an exact path).
+
+\subsection{Static ATDG}
+Static structural test data generation is based on information available from the static analysis of the program, without requiring that the program is actually executed \cite{mcminn2004search}. Static program analysis produces control flow information that can be used to select execution paths in order to try and achieve good coverage. The goal of ATDG is then to generate data that executes these paths.
+
+Every time control flow branches, \emph{e.g.} at \texttt{if} statements, there is a corresponding predicate or branch condition. These predicates can be collected along a path and conjoined to form the path predicate. By solving the path predicate in terms of the input variables, we can obtain test data that executes that path. However, in order to rewrite the path predicate in terms of the input variables we need to take into account the execution of the program. Hence, for generation of test data statically a technique called symbolic execution \cite{king1976symbolic} is used.
+
+Symbolic execution gathers constraints along a simulated execution of a program path, where symbolic variables are used instead of actual values, such that the final path predicate can be rewritten in terms of the input variables. Solving the resulting system of constraints then yields the data necessary for the traversal of the given path \cite{king1976symbolic}. %ramamoorthy
+However, this is easier said than done. Edvardsson outlines some difficulties such as a potentially unbounded number of execution paths in the presence of loops or dynamic structures such as pointers, arrays or objects %cite ramamoorthy and pasareanu
+  \cite{edvardsson1999survey} have been tackled The main difficulty of symbolic execution is solving non-linear constraints \cite{tahbildar2automated}
 
 % Challenges of static analysis
 % - arrays and pointers
@@ -92,8 +115,9 @@ Static structural test data generation is based on information available from th
 
 \subsection{Hybrid ATDG}
 
-\subsection{Object-oriented test case generation}
 \subsection{Challenges of dynamic languages}
+
+\section{Object-oriented test case generation}
 
 \section{JavaScript}
 \subsection{Prominence}
