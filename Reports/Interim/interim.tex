@@ -5,8 +5,8 @@
 	
 	\title
 	{
-		{\Huge \textbf{Flycatcher} \\[0.2cm]}
-		{Automatic unit test generation for JavaScript\\[0.5cm]}
+		{\Huge \textsf{Flycatcher} \\[0.2cm]}
+		{\normalsize Automatic unit test generation for JavaScript\\[0.5cm]}
 		\begin{figure}[h]
 			\centering
 			\includegraphics[scale=0.4]{flycatcher.jpg}
@@ -14,9 +14,13 @@
 	}
 	\author
 	{	
-		{\large Jerome \textsc{de Lafargue}}\\
-		\texttt{\scriptsize jdd08@ic.ac.uk}\\[4cm]
-		{\emph{MEng Computing Individual Project Interim Report}}\\[1.2cm]
+		{\emph{Interim Report}}\\[5.7cm]
+		%{\large Jerome \textsc{de Lafargue}}\\
+		%\texttt{\scriptsize jdd08@ic.ac.uk}\\[2cm]
+		%{MEng Computing Individual Project}\\
+		%{\emph{Interim Report}}\\[2.2cm]
+		\textbf{\small Author:}
+		{\small Jerome \textsc{de Lafargue}}\\
 		\textbf{\small Supervisor:}
 		{\small Susan \textsc{Eisenbach}}\\
 		\textbf{\small Technical Supervisor:}
@@ -42,7 +46,7 @@ Notes on \cite{mcminn2004search}
 \item random methods are easy to implement but unreliable and unlikely to discover deep errors
 \item size and complexity of real software means a lot of the research deals with toy examples/language subsets. ATDG `undecidable' problem.
 \item metaheuristic search techniques use an \emph{objective function} that estimates the value of a solution
-\item the execution tree of most programs is infinite \cite{king1976symbolic}
+%\item the execution tree of most programs is infinite \cite{king1976symbolic}
 \item as more and more people rely on software it will be required to be of greater quality
 
 \end{itemize}
@@ -54,7 +58,7 @@ Notes on \cite{mcminn2004search}
 %\section{Report Structure}
 
 \chapter{Background}
-In this chapter we will start by giving an overview of software testing, with particular emphasis on aspects of it that are relevant to this project. We will then take a look at the state of the art in automatic test data generation (ATDG) in order to understand the approach that will be used for Flycatcher. Because the tests will be object-oriented, method call sequences need to be generated and we will look at the state of the art for doing that too. Finally we will explain why we chose JavaScript as our target language and describe features of it that are of interest to us for this project.
+In this chapter we will start by giving an overview of software testing, with particular emphasis on aspects of it that are relevant to this project. We will then take a look at the state of the art in automatic test data generation (ATDG) in order to understand the approach that will be used for Flycatcher. Because the tests will be object-oriented, method call sequences also need to be generated for the test cases and we will look at the state of the art for doing that too. Finally we will explain why we chose JavaScript as our target language and describe features of it that are of interest to us for this project.
 
 \section{Dynamic software testing}
 
@@ -88,9 +92,9 @@ Automatically generating structural unit tests can be of great use for regressio
 \section{Automatic test data generation}
 \subsection{Overview}
 
-As can be seen in Mahmood's systematic review of ATDG techniques \cite{mahmood2007systematic}, many classifications exist for ATDG techniques. For our purposes, the first distinction that we need to make is between white-box, black-box and grey-box ATDG techniques, as for Flycatcher we are only interested in white-box testing. In the literature we found that white-box ATDG techniques are usually classified in two ways \cite{mahmood2007systematic, edvardsson1999survey, tahbildar2automated}. The first distinguishes whether the data is generated randomly, to cover a specific statement or to cover a specific path\footnote{this involves a path selection step, where paths are successively selected from the control flow graph to yield the best coverage for the chosen coverage criterion} --- respectively \emph{random}, \emph{goal-oriented} and \emph{path-oriented} ATDG \cite{edvardsson1999survey}. The other classification of white-box ATDG focuses on the type of implementation: \emph{static}, \emph{dynamic} or a \emph{hybrid} of the two \cite{han2008empirical, mcminn2004search}. We will focus on the latter classification of structural testing as it is crucial to our choice of implementation for Flycatcher. Moreover, the former concerns the path selection stage of ATDG --- whether data should be generated for a specific (path-oriented), unspecific (goal-oriented) or random path and this step is ignored in many recent ATDG techniques \cite{tahbildar2automated}. Figure 123 summarises what we believe is the most intuitive characterisation of ATDG techniques to date and the one which will guide our choice of implementation for Flycatcher. Many techniques can be found under each of the static, dynamic and hybrid implementation categories and we will only list the most noteworthy to us.
+As can be seen in Mahmood's systematic review of ATDG techniques \cite{mahmood2007systematic}, many classifications exist for ATDG techniques. For our purposes, the first distinction that we need to make is between white-box, black-box and grey-box ATDG techniques, as for Flycatcher we are only interested in white-box testing. In the literature we found that white-box ATDG techniques are usually classified in two ways \cite{mahmood2007systematic, edvardsson1999survey, tahbildar2automated}. The first distinguishes whether the data is generated randomly, to cover a specific statement or to cover a specific path\footnote{this involves a path selection step, where paths are successively selected from the control flow graph to yield the best coverage for the chosen coverage criterion} --- respectively \emph{random}, \emph{goal-oriented} and \emph{path-oriented} ATDG \cite{edvardsson1999survey}. The other classification of white-box ATDG concerns the type of implementation: \emph{static}, \emph{dynamic} or a \emph{hybrid} of the two \cite{han2008empirical, mcminn2004search}. We will focus on the latter classification of structural testing as it is crucial to our choice of implementation for Flycatcher. Moreover, the former concerns the path selection stage of ATDG --- whether data should be generated for a specific (path-oriented), unspecific (goal-oriented) or random path and this step is ignored in many recent ATDG techniques \cite{tahbildar2automated}. Figure 123 summarises what we believe is the most intuitive characterisation of ATDG techniques to date and the one which will guide our choice of implementation for Flycatcher. Many techniques can be found under each of the static, dynamic and hybrid implementation categories and we will only list the most noteworthy to us.
 
-The choice of implementation for Flycatcher is dynamic random ATDG for our benchmark and dynamic search-based ATDG using genetic algorithms for our solution. The rest of the section will present in further detail the structural ATDG implementation categories we have chosen and the difficulties of ATDG for a dynamic language, so that we can understand the rationale behind this choice.
+The choice of implementation for Flycatcher is dynamic random ATDG for our benchmark and dynamic search-based ATDG using genetic algorithms for our solution. The rest of this section will present in further detail the structural ATDG implementation categories we have chosen and the difficulties of ATDG for a dynamic language, so that we can understand the rationale behind this choice.
 
 %We feel that the latter is more intuitive as specific ATDG techniques usually fall under one of these categories. Figure 123 summarises what we believe is the most intuitive characterisation of ATDG techniques to date and the one which will guide our choice of implementation for Flycatcher.
 
@@ -103,7 +107,7 @@ Every time control flow branches, \emph{e.g.} at \texttt{if} statements, there i
 
 Symbolic execution gathers constraints along a simulated execution of a program path, where symbolic variables are used instead of actual values, such that the final path predicate can be rewritten in terms of the input variables. Solving the resulting system of constraints then yields the data necessary for the traversal of the given path \cite{king1975new, king1976symbolic}. There are a lot of technical difficulties associated with symbolic execution \cite{edvardsson1999survey,meudec2001atgen,mcminn2004search}:
 \begin{itemize}
-	\item the presence of input variable dependent loops can lead to infinite execution trees as they can be executed any number of times
+	\item the presence of input variable dependent loops can lead to infinite execution trees\footnote{the execution paths followed during the symbolic execution of a procedure \cite{king1976symbolic}} as the loops can be executed any number of times
 	\item array references become problematic if the indexes are not constants but variables, as is typically the case
 	\item features such as pointers and dynamically-allocated objects that rely on execution are hard to analyse statically
 	\item static analysis is not possible for function calls to precompiled modules or libraries
@@ -111,9 +115,12 @@ Symbolic execution gathers constraints along a simulated execution of a program 
 	\item even if the path constraint is linear, solving it can lead to very high complexity
 \end{itemize}
 
-Although various static solutions have been proposed for these issues \cite{ramamoorthy1976automated,goldberg1994applications,offutt1999dynamic}, they often dramatically increase the complexity of the ATDG process. As a result, tools purely based on symbolic execution can typically handle only subsets of programming languages and are not applicable in industry. A better trend that has developed in the past decade, is the combination of concrete and symbolic execution, which tackles most of the aforementioned issues \cite{păsăreanu2009survey} --- we will cover this type of ATDG implementation in the subsection on hybrid ATDG. Due to the numerous problems posed by purely static ATDG, its weakness with dynamic types and constructs \cite{edvardsson1999survey,tahbildar2automated} and the complexity of building a fully-fledged symbolic executor for a language, we chose not to use static ATDG for the implementation of Flycatcher.
+Although various static solutions have been proposed for these issues \cite{ramamoorthy1976automated,goldberg1994applications,offutt1999dynamic}, they often dramatically increase the complexity of the ATDG process. As a result, tools purely based on symbolic execution can typically handle only subsets of programming languages and are not applicable in industry. A better trend that has developed in the past decade, is the combination of concrete and symbolic execution, which tackles most of the aforementioned issues \cite{păsăreanu2009survey} --- we will cover this type of ATDG implementation in the subsection on hybrid ATDG. Due to the numerous problems posed by purely static ATDG, its weakness with dynamic types and constructs \cite{edvardsson1999survey,tahbildar2automated} and the complexity of building a fully-fledged symbolic executor for a language \cite{edvardsson1999survey,han2008empirical}, we chose not to use static ATDG for the implementation of Flycatcher.
 
 \subsection{Dynamic ATDG}
+
+Dynamic structural test data generation is based on actual execution of the software. The program under test is run with, possibly randomly, selected input and feedback is collected at runtime regarding the chosen coverage objective \cite{edvardsson1999survey}. The feedback is usually obtained through some form of instrumentation of the program that monitors the program flow. Inputs can be continually generated randomly, relying on probability to achieve the coverage objective --- this is known as \emph{random} test data generation and does not perform well in general \cite{edvardsson1999survey}. On the other hand, inputs can be incrementally tuned based on the feedback (using different kinds of search methods) in order to satisfy the coverage objective --- this is known as \emph{search-based} test data generation \cite{mcminn2004search}, where the search-space is the control flow graph of a program. The main drawback of dynamic ATDG is that it is reliant on the speed of execution of a program and as the number of required executions to achieve satisfactory coverage may be high, this leads to an overall expensive process. Below we will present the random and search-based approaches in more detail, in order to understand which would be more suitable for Flycatcher.
+
 \subsubsection{Random approach}
 \subsubsection{Search-based approach}
 
