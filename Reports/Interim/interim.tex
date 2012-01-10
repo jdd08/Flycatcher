@@ -56,7 +56,7 @@ Notes on \cite{mcminn2004search}
 \chapter{Background}
 In this chapter we will start by giving an overview of software testing, with particular emphasis on aspects of it that are relevant to this project. We will then take a look at the state of the art in automatic test data generation (ATDG) in order to understand the approach that will be used for Flycatcher. Because the tests will be object-oriented, method call sequences need to be generated and we will look at the state of the art for doing that too. Finally we will explain why we chose JavaScript as our target language and describe features of it that are of interest to us for this project.
 
-\section{Dynamic testing}
+\section{Dynamic software testing}
 
 \subsection{Overview}
 
@@ -101,19 +101,26 @@ Static structural test data generation is based on information available from th
 
 Every time control flow branches, \emph{e.g.} at \texttt{if} statements, there is a corresponding predicate or branch condition. These predicates can be collected along a path and conjoined to form the path predicate. By solving the path predicate in terms of the input variables, we can obtain test data that executes that path. However, in order to rewrite the path predicate in terms of the input variables we need to take into account the execution of the program. Hence, for generation of test data statically a technique called symbolic execution \cite{king1976symbolic} is used.
 
-Symbolic execution gathers constraints along a simulated execution of a program path, where symbolic variables are used instead of actual values, such that the final path predicate can be rewritten in terms of the input variables. Solving the resulting system of constraints then yields the data necessary for the traversal of the given path \cite{king1976symbolic}. %ramamoorthy
-However, this is easier said than done. Edvardsson outlines some difficulties such as a potentially unbounded number of execution paths in the presence of loops or dynamic structures such as pointers, arrays or objects %cite ramamoorthy and pasareanu
-  \cite{edvardsson1999survey} have been tackled The main difficulty of symbolic execution is solving non-linear constraints \cite{tahbildar2automated}
+Symbolic execution gathers constraints along a simulated execution of a program path, where symbolic variables are used instead of actual values, such that the final path predicate can be rewritten in terms of the input variables. Solving the resulting system of constraints then yields the data necessary for the traversal of the given path \cite{king1975new, king1976symbolic}. There are a lot of technical difficulties associated with symbolic execution \cite{edvardsson1999survey,meudec2001atgen,mcminn2004search}:
+\begin{itemize}
+	\item the presence of input variable dependent loops can lead to infinite execution trees as they can be executed any number of times
+	\item array references become problematic if the indexes are not constants but variables, as is typically the case
+	\item features such as pointers and dynamically-allocated objects that rely on execution are hard to analyse statically
+	\item static analysis is not possible for function calls to precompiled modules or libraries
+	\item if the path constraint is non-linear, solving it becomes an undecidable problem
+	\item even if the path constraint is linear, solving it can lead to very high complexity
+\end{itemize}
 
-% Challenges of static analysis
-% - arrays and pointers
-% - procedure calls to external modules
+Although various static solutions have been proposed for these issues \cite{ramamoorthy1976automated,goldberg1994applications,offutt1999dynamic}, they often dramatically increase the complexity of the ATDG process. As a result, tools purely based on symbolic execution can typically handle only subsets of programming languages and are not applicable in industry. A better trend that has developed in the past decade, is the combination of concrete and symbolic execution, which tackles most of the aforementioned issues \cite{păsăreanu2009survey} --- we will cover this type of ATDG implementation in the subsection on hybrid ATDG. Due to the numerous problems posed by purely static ATDG, its weakness with dynamic types and constructs \cite{edvardsson1999survey,tahbildar2automated} and the complexity of building a fully-fledged symbolic executor for a language, we chose not to use static ATDG for the implementation of Flycatcher.
 
 \subsection{Dynamic ATDG}
 \subsubsection{Random approach}
 \subsubsection{Search-based approach}
 
 \subsection{Hybrid ATDG}
+DART \cite{godefroid2005dart}. CUTE \cite{sen2005cute}. PEX \cite{tillmann2008pex}. EXE \cite{cadar2008exe}.
+
+Although the hybrid approach to ATDG seems to offer the best of both worlds, dynamic ATDG is more suited to dynamic languages.
 
 \subsection{Challenges of dynamic languages}
 
@@ -124,7 +131,6 @@ However, this is easier said than done. Edvardsson outlines some difficulties su
 \subsection{Idiosyncratic features}
 \subsection{Object-oriented programming}
 
-This is DART \cite{godefroid2005dart}. This is RuTeG \cite{mairhofer2008search}.
 \bibliographystyle{acm}
 \bibliography{interim}
 \end{document}
