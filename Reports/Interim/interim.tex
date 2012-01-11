@@ -51,9 +51,9 @@ Notes on \cite{mcminn2004search}
 
 \end{itemize}
 
-\section{Motivation}
+%\section{Motivation}
 %\section{Context}
-\section{Aim}
+%\section{Aim}
 %\section{Contributions}
 %\section{Report Structure}
 
@@ -122,7 +122,26 @@ Although various static solutions have been proposed for these issues \cite{rama
 Dynamic structural test data generation is based on actual execution of the software. The program under test is run with, possibly randomly, selected input and feedback is collected at runtime regarding the chosen coverage objective \cite{edvardsson1999survey}. The feedback is usually obtained through some form of instrumentation of the program that monitors the program flow. Inputs can be continually generated randomly, relying on probability to achieve the coverage objective --- this is known as \emph{random} test data generation and does not perform well in general \cite{edvardsson1999survey}. On the other hand, inputs can be incrementally tuned based on the feedback (using different kinds of search methods) in order to satisfy the coverage objective --- this is known as \emph{search-based} test data generation \cite{mcminn2004search}, where the search-space is the control flow graph of a program. The main drawback of dynamic ATDG is that it is reliant on the speed of execution of a program and as the number of required executions to achieve satisfactory coverage may be high, this leads to an overall expensive process. Below we will present the random and search-based approaches in more detail, in order to understand which would be more suitable for Flycatcher.
 
 \subsubsection{Random approach}
+
+Random test data generation consists in producing inputs at random in the hope of achieving the chosen coverage criterion through probability. Although random test data generation is relatively simple to implement, it does not perform well in terms of coverage, as the chances of finding faults that are revealed by only a small percentage of program inputs are low \cite{edvardsson1999survey}. In other words, it is difficult for it to exercise `deep' features of a program that are exercised only through specific and unlikely paths. As a result, random ATDG only works well for straightforward programs. However, because it is the simplest ATDG technique and is considered to have the lowest acceptance rate \cite{edvardsson1999survey}, it is often used as a benchmark and is a suitable candidate for us to benchmark our Flycatcher application.
+
 \subsubsection{Search-based approach}
+
+Search-based test data generation uses heuristics to guide the generation of input data so that the inputs execute paths that contribute to the overall test coverage objective. This often involves \emph{objective functions}, that evaluate the fitness of a chosen set of inputs with respect to a coverage objective. Based on those fitness values, many search techniques exist to find optimal inputs in order to achieve the desired coverage. Some of the well-known ones are alternating variable (local search optimisation) \cite{korel1990automated, gallagher1997adtest}, simulated annealing \cite{tracey1998automated,tracey1998way}, iterative relaxation \cite{gupta1998automated} and genetic algorithms \cite{michael1998automated,michael2001generating}.
+	
+In 2008, Han and Kwon \cite{han2008empirical} conducted a robust empirical evaluation of search-based test data generation techniques, comparing iterative-relaxation, local search optimisation and genetic algorithms. Genetic algorithms came out on top of the other techniques regarding the rate of coverage and generality, both essential characteristics when considering ATDG techniques. However, GA methods proved expensive both in time and resources, but this can be improved upon \cite{han2008empirical}.
+Although simulated annealing is not part of this empirical evaluation, we can see from \cite{michael1998automated} that it performs as well as GA and is more efficient.
+
+\subparagraph{Genetic algorithms} Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+%We believe that obtaining the best coverage for possibly complex programs is worth using GA. GA does not 
+
+% tends to be as effective in terms of coverage, the simulated annealing method requires more executions than the GA method and is therefore less desirable. Additionally -> less work for GA implementation = no static analysis information needed? no instrumentation needed? 
+
+%The iterative-relaxation method is part of the hybrid approach and we will look at this type of approach later in the next section. Regarding the search-based methods which are part of the dynamic approach to ATDG,
+
+%through the program execution search-space in order to achieve the chosen test coverage criteria.
+
 
 \subsection{Hybrid ATDG}
 DART \cite{godefroid2005dart}. CUTE \cite{sen2005cute}. PEX \cite{tillmann2008pex}. EXE \cite{cadar2008exe}.
@@ -132,11 +151,15 @@ Although the hybrid approach to ATDG seems to offer the best of both worlds, dyn
 \subsection{Challenges of dynamic languages}
 
 \section{Object-oriented test case generation}
+\subsection{Complex input generation} 
 
 \section{JavaScript}
 \subsection{Prominence}
 \subsection{Idiosyncratic features}
 \subsection{Object-oriented programming}
+
+\chapter{Project plan}
+\chapter{Evaluation strategy}
 
 \bibliographystyle{acm}
 \bibliography{interim}
