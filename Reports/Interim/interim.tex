@@ -1,6 +1,47 @@
 \documentclass[a4paper,11pt,titlepage]{report}
 \usepackage{graphicx}
+\usepackage{amssymb}
 %\usepackage[margin=2.3cm]{geometry}
+
+
+\usepackage{tikz}					% figure drawing library
+\usetikzlibrary{calendar,snakes,calc,trees,positioning,arrows,chains,shapes.geometric,%
+    decorations.pathreplacing,decorations.pathmorphing,shapes,%
+    matrix,shapes.symbols}
+
+\tikzset{
+>=stealth',
+  value/.style={
+    text width=10em, 
+    minimum height=3em, 
+    text centered, 
+    on chain},
+  component/.style={
+    rectangle, 
+    rounded corners,
+    draw=black, very thick,
+    text width=10em, 
+    minimum height=3em, 
+    text centered, 
+    on chain},
+  line/.style={draw, thick, <-},
+  element/.style={
+    tape,
+    top color=white,
+    bottom color=blue!50!black!60!,
+    minimum width=8em,
+    draw=blue!40!black!90, very thick,
+    text width=10em, 
+    minimum height=3.5em, 
+    text centered, 
+    on chain},
+  every join/.style={->, thick,shorten >=1pt},
+  decoration={brace},
+  category/.style={decorate},
+  catlabel/.style={midway, right=2pt},
+}
+
+
 \begin{document}
 	
 	\title
@@ -92,34 +133,89 @@ Automatically generating structural unit tests can be of great use for regressio
 \section{Automatic test data generation}
 \subsection{Overview}
 
-As can be seen in Mahmood's systematic review of ATDG techniques \cite{mahmood2007systematic}, many classifications exist for ATDG techniques. For our purposes, the first distinction that we need to make is between white-box, black-box and grey-box ATDG techniques, as for Flycatcher we are only interested in white-box testing. In the literature we found that white-box ATDG techniques are usually classified in two ways \cite{mahmood2007systematic, edvardsson1999survey, tahbildar2automated}. The first distinguishes whether the data is generated randomly, to cover a specific statement or to cover a specific path\footnote{this involves a path selection step, where paths are successively selected from the control flow graph to yield the best coverage for the chosen coverage criterion} --- respectively \emph{random}, \emph{goal-oriented} and \emph{path-oriented} ATDG \cite{edvardsson1999survey}. The other classification of white-box ATDG concerns the type of implementation: \emph{static}, \emph{dynamic} or a \emph{hybrid} of the two \cite{han2008empirical, mcminn2004search}. We will focus on the latter classification of structural testing as it is crucial to our choice of implementation for Flycatcher. Moreover, the former concerns the path selection stage of ATDG --- whether data should be generated for a specific (path-oriented), unspecific (goal-oriented) or random path and this step is ignored in many recent ATDG techniques \cite{tahbildar2automated}. Figure 123 summarises what we believe is the most intuitive characterisation of ATDG techniques to date and the one which will guide our choice of implementation for Flycatcher. Many techniques can be found under each of the static, dynamic and hybrid implementation categories and we will only list the most noteworthy to us.
+As can be seen in Mahmood's systematic review of ATDG techniques \cite{mahmood2007systematic}, many classifications exist for ATDG techniques. For our purposes, the first distinction that we need to make is between white-box, black-box and grey-box ATDG techniques, as for Flycatcher we are only interested in white-box testing. In the literature we found that white-box ATDG techniques are usually classified in two ways \cite{mahmood2007systematic, edvardsson1999survey, tahbildar2automated}.
+
+The first concerns the target selection stage of ATDG techniques: where either paths or individual nodes that contribute to the overall coverage criterion are successively selected from the control flow graph, so that test data that respectively traverses the path or reaches the node can be generated. When specific paths are targeted, the ATDG technique is known as \emph{path-oriented} \cite{edvardsson1999survey} whereas if a node is targeted then it is \emph{goal-oriented}. When data is generated purely randomly \emph{i.e.} there is no specific target, then as part of this classification the ATDG technique is simply \emph{random}.
+
+The other classification of white-box ATDG concerns the type of implementation: \emph{static}, \emph{dynamic} or a \emph{hybrid} of the two \cite{han2008empirical, mcminn2004search}. We will focus on the latter classification of structural testing as it governs our choice of implementation for Flycatcher. Moreover, the former concerns the path selection stage of ATDG and this step will be ignored in Flycatcher as it is in many recent ATDG techniques \cite{tahbildar2automated}. Figure ~\ref{atdg_overview} summarises what we believe is an intuitive characterisation of ATDG techniques with respect to this project and the one which will guide our choice of implementation. Many techniques can be found under each of the static, dynamic and hybrid implementation categories and we will only list the most noteworthy to us.
 
 The choice of implementation for Flycatcher is dynamic random ATDG for our benchmark and dynamic search-based ATDG using genetic algorithms for our solution. The rest of this section will present in further detail the structural ATDG implementation categories we have chosen and the difficulties of ATDG for a dynamic language, so that we can understand the rationale behind this choice.
+
+\begin{figure}
+\hspace*{-1cm}
+\begin{tikzpicture}[
+  	event/.style={text width=2.3cm,text centered,font=\rmfamily,anchor=north},
+  	edge from parent/.style={draw=black!50},
+   % 	edge from parent path={(\tikzparentnode.south) -- ++(0,-0.5cm)
+	%		-| (\tikzchildnode.north)},
+	level 1/.style={sibling distance=4cm,level distance=1cm,
+		growth parent anchor=south,nodes=event},
+	level 2/.style={sibling distance=4cm},
+	level 3/.style={sibling distance=4cm},
+	level 4/.style={sibling distance=4cm}]
+
+	\node {\textbf{ATDG techniques}}
+		child [yshift=1cm] {
+			child {node [level 1] {Functional (black-box)}
+				child {node [level 2, xshift=-0.5cm] {Specification based}}
+				child {node [level 2, xshift=-2cm] {Model-based}}
+			}
+			child {node [level 1,xshift=0.4cm] {Structural (white-box)}
+				child {node [level 2,xshift=2cm] {Static}
+		     	       child {node [level 3] {Symbolic execution}}}
+				child {node [level 2,xshift=0.06cm] {Hybrid}
+						 child {node [level 3] {Concolic execution}}}
+				child {node [level 2] {Dynamic}
+	    	 	      child {node [level 3,text width=2.5cm,xshift=1cm,yshift=-1cm] {Search-based}
+			      		child { node [level 4,xshift=1.6cm] {Genetic algorithms}}
+			      		child { node [level 4,xshift=0.4cm] {Simulated annealing}}
+			      		child { node [level 4,xshift=-1.2cm] {Iterative relaxation}}
+							child { node [level 4,xshift=-2.4cm] {Alternating variable}}
+							child { node [level 4,xshift=-4cm] {...}}
+			      }
+		     	      child {node [level 3,text width=2.5cm,xshift=-0.4cm] {Random}}
+				}
+			}
+		};
+\end{tikzpicture}
+\caption{Overview of ATDG techniques}
+\label{atdg_overview}
+\end{figure}
+
 
 %We feel that the latter is more intuitive as specific ATDG techniques usually fall under one of these categories. Figure 123 summarises what we believe is the most intuitive characterisation of ATDG techniques to date and the one which will guide our choice of implementation for Flycatcher.
 
 %Edvardssvon's classification \cite{edvardsson1999survey} is based on the idea that there are three approaches to automatic test data generation. The idea is that . Once a path is chosen it can be traversed by three methods: \emph{random}, (randomly explore the search space) \emph{goal-oriented} (target specific goals such as assertions) and \emph{path-oriented} (traverse an exact path).
 
-\subsection{Static ATDG}
+\subsection{Static test data generation}
 Static structural test data generation is based on information available from the static analysis of the program, without requiring that the program is actually executed \cite{mcminn2004search}. Static program analysis produces control flow information that can be used to select execution paths in order to try and achieve good coverage. The goal of ATDG is then to generate data that executes these paths.
 
 Every time control flow branches, \emph{e.g.} at \texttt{if} statements, there is a corresponding predicate or branch condition. These predicates can be collected along a path and conjoined to form the path predicate. By solving the path predicate in terms of the input variables, we can obtain test data that executes that path. However, in order to rewrite the path predicate in terms of the input variables we need to take into account the execution of the program. Hence, for generation of test data statically a technique called symbolic execution \cite{king1976symbolic} is used.
 
 Symbolic execution gathers constraints along a simulated execution of a program path, where symbolic variables are used instead of actual values, such that the final path predicate can be rewritten in terms of the input variables. Solving the resulting system of constraints then yields the data necessary for the traversal of the given path \cite{king1975new, king1976symbolic}. There are a lot of technical difficulties associated with symbolic execution \cite{edvardsson1999survey,meudec2001atgen,mcminn2004search}:
+
+\renewcommand{\labelitemi}{\tiny$\blacksquare$}
+
 \begin{itemize}
 	\item the presence of input variable dependent loops can lead to infinite execution trees\footnote{the execution paths followed during the symbolic execution of a procedure \cite{king1976symbolic}} as the loops can be executed any number of times
 	\item array references become problematic if the indexes are not constants but variables, as is typically the case
 	\item features such as pointers and dynamically-allocated objects that rely on execution are hard to analyse statically
 	\item static analysis is not possible for function calls to precompiled modules or libraries
-	\item if the path constraint is non-linear, solving it becomes an undecidable problem
+	\item if the path constraint is non-linear, solving it is an undecidable problem
 	\item even if the path constraint is linear, solving it can lead to very high complexity
 \end{itemize}
 
 Although various static solutions have been proposed for these issues \cite{ramamoorthy1976automated,goldberg1994applications,offutt1999dynamic}, they often dramatically increase the complexity of the ATDG process. As a result, tools purely based on symbolic execution can typically handle only subsets of programming languages and are not applicable in industry. A better trend that has developed in the past decade, is the combination of concrete and symbolic execution, which tackles most of the aforementioned issues \cite{păsăreanu2009survey} --- we will cover this type of ATDG implementation in the subsection on hybrid ATDG. Due to the numerous problems posed by purely static ATDG, its weakness with dynamic types and constructs \cite{edvardsson1999survey,tahbildar2automated} and the complexity of building a fully-fledged symbolic executor for a language \cite{edvardsson1999survey,han2008empirical}, we chose not to use static ATDG for the implementation of Flycatcher.
 
-\subsection{Dynamic ATDG}
+\subsection{Hybrid test data generation}
 
-Dynamic structural test data generation is based on actual execution of the software. The program under test is run with, possibly randomly, selected input and feedback is collected at runtime regarding the chosen coverage objective \cite{edvardsson1999survey}. The feedback is usually obtained through some form of instrumentation of the program that monitors the program flow. Inputs can be continually generated randomly, relying on probability to achieve the coverage objective --- this is known as \emph{random} test data generation and does not perform well in general \cite{edvardsson1999survey}. On the other hand, inputs can be incrementally tuned based on the feedback (using different kinds of search methods) in order to satisfy the coverage objective --- this is known as \emph{search-based} test data generation \cite{mcminn2004search}, where the search-space is the control flow graph of a program. The main drawback of dynamic ATDG is that it is reliant on the speed of execution of a program and as the number of required executions to achieve satisfactory coverage may be high, this leads to an overall expensive process. Below we will present the random and search-based approaches in more detail, in order to understand which would be more suitable for Flycatcher.
+The hybrid approach to ATDG consists in combining symbolic and concrete execution, which is known as \emph{concolic execution} \cite{păsăreanu2009survey}. In other words, hybrid analysis tools run programs on actual inputs, while collecting symbolic constraints in order to direct the search for new inputs. In doing so, they avoid the main weaknesses of the static approach, such as solving non-linear constraints or dealing with dynamic structures. This type of technique has been popular in recent years, mainly because it overcame the limitations that prevented static ATDG techniques from being applied to industry software. Notable tools that implement it are DART \cite{godefroid2005dart}, CUTE \cite{sen2005cute}, JPF-SE \cite{anand2007jpf}, PEX \cite{tillmann2008pex}, EXE \cite{cadar2008exe} and KLEE \cite{cadar2008klee}.
+
+Yet, although it deals with some limitations of static ATDG, hybrid ATDG still requires static analysis of the source code under test, which is unfeasible for Flycatcher, given the dynamically typed, object-oriented nature of JavaScript.
+
+\subsection{Dynamic test data generation}
+
+Dynamic structural test data generation is purely based on actual execution of the software. The program under test is run with, possibly randomly, selected input and feedback is collected at runtime regarding the chosen coverage objective \cite{edvardsson1999survey}. The feedback is usually obtained through some form of instrumentation of the program that monitors the program flow. Inputs can be continually generated randomly, relying on probability to achieve the coverage objective --- this is known as \emph{random} test data generation and does not perform well in general \cite{edvardsson1999survey}. On the other hand, inputs can be incrementally tuned based on the feedback (using different kinds of search methods) in order to satisfy the coverage objective --- this is known as \emph{search-based} test data generation \cite{mcminn2004search}, where the search-space is the control flow graph of a program. The main drawback of dynamic ATDG is that it is reliant on the speed of execution of a program and as the number of required executions to achieve satisfactory coverage may be high, this leads to an overall expensive process. Below we will present the random and search-based approaches in more detail, in order to understand which would be more suitable for Flycatcher.
 
 \subsubsection{Random approach}
 
@@ -127,12 +223,31 @@ Random test data generation consists in producing inputs at random in the hope o
 
 \subsubsection{Search-based approach}
 
-Search-based test data generation uses heuristics to guide the generation of input data so that the inputs execute paths that contribute to the overall test coverage objective. This often involves \emph{objective functions}, that evaluate the fitness of a chosen set of inputs with respect to a coverage objective. Based on those fitness values, many search techniques exist to find optimal inputs in order to achieve the desired coverage. Some of the well-known ones are alternating variable (local search optimisation) \cite{korel1990automated, gallagher1997adtest}, simulated annealing \cite{tracey1998automated,tracey1998way}, iterative relaxation \cite{gupta1998automated} and genetic algorithms \cite{michael1998automated,michael2001generating}.
+Search-based test data generation uses heuristics to guide the generation of input data so that the inputs execute paths that contribute to the overall test coverage objective. This involves modelling the test coverage objective as a heuristic function or \emph{objective function}, that evaluates the fitness of a chosen set of inputs with respect to a coverage objective. Based on those fitness values, many search techniques exist to find optimal inputs in order to achieve the desired coverage. Various objective functions exist and they are dependent on the ATDG method used. Some of the well-known search-based ATDG techniques are \emph{alternating variable} (local search optimisation) \cite{korel1990automated, gallagher1997adtest}, \emph{simulated annealing} \cite{tracey1998automated,tracey1998way}, \emph{iterative relaxation} \cite{gupta1998automated} and \emph{genetic algorithms} \cite{michael1998automated,michael2001generating}.
 	
-In 2008, Han and Kwon \cite{han2008empirical} conducted a robust empirical evaluation of search-based test data generation techniques, comparing iterative-relaxation, local search optimisation and genetic algorithms. Genetic algorithms came out on top of the other techniques regarding the rate of coverage and generality, both essential characteristics when considering ATDG techniques. However, GA methods proved expensive both in time and resources, but this can be improved upon \cite{han2008empirical}.
-Although simulated annealing is not part of this empirical evaluation, we can see from \cite{michael1998automated} that it performs as well as GA and is more efficient.
+In 2008, Han and Kwon \cite{han2008empirical} conducted a robust empirical evaluation of search-based test data generation techniques, comparing iterative-relaxation, local search optimisation and genetic algorithms. Genetic algorithms came out on top of the other techniques regarding the rate of coverage and generality, both essential characteristics when considering ATDG techniques. However, genetic algorithms proved expensive both in time and resources, but this can be improved upon \cite{han2008empirical}.
+Although simulated annealing is not part of this empirical evaluation, we can see from \cite{michael1998automated} that although it performs as well as genetic algorithms, it appears to be less efficient.
 
-\subparagraph{Genetic algorithms} Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+Additionally, genetic algorithms offer another advantage: as opposed to most other ATDG techniques, they do not require static analysis of the program under test \cite{han2008empirical}. This advantage is especially significant in our case, as to the best of our knowledge, tools that produce control and data flow analysis information for JavaScript source code are not available. However, this is not surprising since the dynamic, object-oriented nature of JavaScript makes this task very laborious.
+
+Consequently, due to their effectiveness in terms of coverage and the advantages they possess with regard to dynamic languages, genetic algorithms appear to be the most suitable for our implementation of ATDG for Flycatcher. We will therefore go on to explain what genetic algorithms are and how they can be applied to test data generation.
+
+\subsection{Genetic algorithms}
+
+\subsubsection{Overview}
+Genetic algorithms attempt to model the robustness and flexibility of natural selection in order to guide a search\cite{michael2001generating}. They start with a randomly initialised \emph{population} of potential candidate solutions, called \emph{individuals} or \emph{chromosomes}. The population is iteratively recombined and mutated to evolve successive populations, known as \emph{generations}. The recombination takes the `fittest' parent solutions and `breeds' them to produce new offspring. Their fitness is determined by a \emph{fitness function} that evaluates how good a candidate solution is for a particular problem.
+
+This process favours evolution towards fitter individuals, mimicking natural selection. The `breeding' of two individuals usually involves a crossover operation which swaps their information at a randomly selected position. In the interest of maintaining diversification, a \emph{mutation} phase usually occurs after the crossover, to introduce new genetic material into the search and avoid premature convergence on one area of the search space. The mutation operation randomly modifies some information of a selected individual, The process of iterative recombination and mutation, illustrated in Figure 123, is repeated until a specific termination criterion is fulfilled.
+
+\subsubsection{Application to test data generation}
+
+For the purposes of ATDG, the population is one of test cases. The test cases are evolved according to the genetic algorithm in order to satisfy the chosen coverage criteria \cite{michael2001generating}. In other words, the \emph{fitness function} is based on the \emph{objective function}, the function that evaluates test data according to a certain coverage criterion --- the more a candidate test case contributes to coverage, the fitter it is. Instead of using search heuristics to minimise our objective function, we use it to guide our natural selection process towards the test cases that will achieve the best coverage.
+
+Regarding the objective function used in the context of genetic algorithms, different variants exist \cite{mcminn2004search}. The \emph{coverage-oriented approach} rewards individuals on the basis of \emph{all} covered program structures. This type of objective function rewards coverage with respect to the overall goal \emph{i.e.} the system is not required to pick a specific path or node and attempt to execute it. The other approaches are \emph{structure-oriented} where, similarly to most other search-based ATDG methods, a path or node is selected from the data flow analysis and a separate search is undertaken for each selected structure. Once more, seeing that the former does not require static analysis of the program under test, it is the most attractive to us for the implementation of Flycatcher.
+
+Finally, the population, individual representation, fitness evaluation and methods of crossover, mutation and selection are all highly dependent on the test data generation problem at hand, hence we will discuss them with regard to Flycatcher when we come to the implementation.
+
+%For a simple procedural language the evolution process will deal with test data whereas for object-oriented tests, the recombination and mutation could concern call sequences and types.
 
 %We believe that obtaining the best coverage for possibly complex programs is worth using GA. GA does not 
 
@@ -141,12 +256,6 @@ Although simulated annealing is not part of this empirical evaluation, we can se
 %The iterative-relaxation method is part of the hybrid approach and we will look at this type of approach later in the next section. Regarding the search-based methods which are part of the dynamic approach to ATDG,
 
 %through the program execution search-space in order to achieve the chosen test coverage criteria.
-
-
-\subsection{Hybrid ATDG}
-DART \cite{godefroid2005dart}. CUTE \cite{sen2005cute}. PEX \cite{tillmann2008pex}. EXE \cite{cadar2008exe}.
-
-Although the hybrid approach to ATDG seems to offer the best of both worlds, dynamic ATDG is more suited to dynamic languages.
 
 \subsection{Challenges of dynamic languages}
 
