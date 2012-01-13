@@ -79,18 +79,33 @@
 \tableofcontents
 
 \chapter{Introduction}
-Notes on \cite{mcminn2004search}
-\begin{itemize}
-\item testing major part of the development process, crucial for quality and accounts for 50\% or more of the development effort
-\item manual process is tedious, costly and difficult and the testing is often biased
-\item exhaustive enumeration of inputs is infeasible for a reasonable program, coverage gives a good indication of test quality but full coverage is often infeasible too therefore ideally ATDG should achieve the best possible coverage
-\item random methods are easy to implement but unreliable and unlikely to discover deep errors
-\item size and complexity of real software means a lot of the research deals with toy examples/language subsets. ATDG `undecidable' problem.
-\item metaheuristic search techniques use an \emph{objective function} that estimates the value of a solution
-%\item the execution tree of most programs is infinite \cite{king1976symbolic}
-\item as more and more people rely on software it will be required to be of greater quality
 
-\end{itemize}
+
+
+With the fast-paced growth of the software industry, comes the need to test larger and more complex software on an unprecedented scale. Software testing is a cornerstone of the software development process --- an effort that accounts for at least 50\% of the development time. As a result, many attempts have been made to automate this effort, so that programs can be systematically and seamlessly tested, without requiring laborious and costly manual input from software developers and testers. Due to the intrinsic complexities of automatic test generation, this area of research has taken time to develop, but has now reached a stage where it can start to make a meaningful impact on software testing practice.
+
+
+% have been left on the side line  s/ out of the equation ?
+Decades of research have been devoted to automatic test generation for static languages and a multitude of tools have been developed. As the research area matures, it is arriving to a point where its techniques are no longer simply applicable to restricted programming language subsets or limited programs. Indeed, companies such as Microsoft employ automatic test generation tools on a regular basis to verify their software. Nevertheless, until very recently, dynamic programming languages have been left on the side line, but their increasing popularity and renewed interest prompts the need to start including them in the automatic testing research effort.
+
+One such programming language receiving much attention these days is JavaScript, with new frameworks and libraries being released for it frequently. It appears that the nodeJS web-server framework confirmed its transition from client-side browser language to server-side all-purpose language. In recent studies (cite reference), JavaScript appears amongst the most used programming languages in the world. In other words, it seems that JavaScript is here to stay, at least for some time, and it makes sense to devote time to it.
+
+Various test data generation methods exist from the simple and imprecise test generation that uses random test data generation to hugely complex and elaborate systems that combine static and dynamic analysis to provide strong software verification. Since much of the literature on automatic test generation focuses on static languages and numerical data types, many of the techniques found are not feasible or applicable to automatic test generation for JavaScript. However, some are more appropriate or feasible than others for our objective --- to generate unit test suites for JavaScript objects --- and it is those methods that we will explore during the course of this project.
+
+The major contribution that this project hopes to make to the field is to extend the limited amount of work done regarding dynamic languages by proposing a tool for automatic unit test generation in JavaScript. As well as offering a potential tool for JavaScript developers, we hope that our work will be able to offer new insights into automatic test generation for a dynamic language and benefit future research in that direction.
+
+
+%Notes on \cite{mcminn2004search}
+%\begin{itemize}
+%\item testing major part of the development process, crucial for quality and accounts for 50\% or more of the development effort
+%\item manual process is tedious, costly and difficult and the testing is often biased
+%\item exhaustive enumeration of inputs is infeasible for a reasonable program, coverage gives a good indication of test quality but full coverage is often infeasible too therefore ideally ATDG should achieve the best possible coverage
+%\item random methods are easy to implement but unreliable and unlikely to discover deep errors
+%\item size and complexity of real software means a lot of the research deals with toy examples/language subsets. ATDG `undecidable' problem.
+%\item metaheuristic search techniques use an \emph{objective function} that estimates the value of a solution
+%\item the execution tree of most programs is infinite \cite{king1976symbolic}
+%\item as more and more people rely on software it will be required to be of greater quality
+%\end{itemize}
 
 %\section{Motivation}
 %\section{Context}
@@ -222,6 +237,7 @@ Dynamic structural test data generation is purely based on actual execution of t
 Random test data generation consists in producing inputs at random in the hope of achieving the chosen coverage criterion through probability. Although random test data generation is relatively simple to implement, it does not perform well in terms of coverage, as the chances of finding faults that are revealed by only a small percentage of program inputs are low \cite{edvardsson1999survey}. In other words, it is difficult for it to exercise `deep' features of a program that are exercised only through specific and unlikely paths. As a result, random ATDG only works well for straightforward programs. However, because it is the simplest ATDG technique and is considered to have the lowest acceptance rate \cite{edvardsson1999survey}, it is often used as a benchmark and is a suitable candidate for us to benchmark our Flycatcher application.
 
 \subsubsection{Search-based approach}
+% more on search-based approach using mairhofer's stuff?
 
 Search-based test data generation uses heuristics to guide the generation of input data so that the inputs execute paths that contribute to the overall test coverage objective. This involves modelling the test coverage objective as a heuristic function or \emph{objective function}, that evaluates the fitness of a chosen set of inputs with respect to a coverage objective. Based on those fitness values, many search techniques exist to find optimal inputs in order to achieve the desired coverage. Various objective functions exist and they are dependent on the ATDG method used. Some of the well-known search-based ATDG techniques are \emph{alternating variable} (local search optimisation) \cite{korel1990automated, gallagher1997adtest}, \emph{simulated annealing} \cite{tracey1998automated,tracey1998way}, \emph{iterative relaxation} \cite{gupta1998automated} and \emph{genetic algorithms} \cite{michael1998automated,michael2001generating}.
 	
@@ -257,7 +273,7 @@ Finally, the population, individual representation, fitness evaluation and metho
 
 %through the program execution search-space in order to achieve the chosen test coverage criteria.
 
-\subsection{Challenges of dynamic languages}
+\subsection{Challenges of dynamic object-oriented languages}
 
 Most of the research on ATDG concerns static programming languages \cite{mahmood2007systematic} and it is only in the past few years that dynamic programming languages have sparked some interest in that field. A possible reason for this is that dynamic programming languages make ATDG harder by enabling features that allow programs to significantly change at runtime. These features can include modifying the type system, extending objects or adding new code during program execution. The challenges this type of behaviour introduces, and that Flycatcher will try and overcome, are listed below \cite{ducasse2011challenges}.
 
@@ -275,7 +291,7 @@ In dynamic languages such as JavaScript, the function signatures bear no type in
 
 \subsubsection{Dealing with dynamically generated code}
 
-
+Dynamic languages sometimes offer features that parse and evaluate a string at runtime and execute it as code, such as JavaScript's \texttt{eval} function. However, not only are these features potentially insecure, they make any analysis for test data generation much harder. As the general use of \texttt{eval} in JavaScript is prohibited anyway, we can safely ignore it for the purpose of Flycatcher.
 
 \section{Object-oriented test case generation}
 
