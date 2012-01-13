@@ -259,8 +259,25 @@ Finally, the population, individual representation, fitness evaluation and metho
 
 \subsection{Challenges of dynamic languages}
 
+Most of the research on ATDG concerns static programming languages \cite{mahmood2007systematic} and it is only in the past few years that dynamic programming languages have sparked some interest in that field. A possible reason for this is that dynamic programming languages make ATDG harder by enabling features that allow programs to significantly change at runtime. These features can include modifying the type system, extending objects or adding new code during program execution. The challenges this type of behaviour introduces, and that Flycatcher will try and overcome, are listed below \cite{ducasse2011challenges}.
+
+\subsubsection{Generating test data of the required type}
+Given that method parameters do not have static types in dynamically typed languages, we do not know what arguments to pass to them. A potential solution to this is to use a method called \emph{type inference} \cite{pluquet2009fast}, which tries to infer the type of arguments from the way they are used inside the program. Although this method does not guarantee 100\% precision, it is a good starting point for generating accurately typed test data. Mairhofer uses this technique for \textsc{\small RuTeG} \cite{mairhofer2008search}, his search-based ATDG tool for Ruby, where the search for test data refines the initially inferred type, by discarding poor candidates.
+
+\subsubsection{Generating object instances}
+Sometimes the type of an object constructor or method parameters will be a complex type and this complicates the test data generation task even further. Generating well-formed object instances to use as arguments inside tests for a dynamically typed object-oriented language is problematic because there isn't a blueprint to construct them from. There is previous work on input data generation for dynamic data structures \cite{korel1990automated, visvanathan2002generating, sai2005address, zhao2007automatic}, but all these approaches focus on statically typed languages (C/C++), require static program analysis and mostly lack generality.
+
+Another approach uses something called needed-narrowing \cite{antoy1994needed} or lazy instantiation \cite{lindblad2007property} --- where instances are only created when they are actually put to use by the program. This enables test data generators to adjust object instances during execution, when attempts are made to use them, so that they always have the required type. This technique is used by \textsc{Irulan} \cite{allwood2011high} for generating tests in Haskell, which has lazy evaluation by default. For the purpose of complex type test data generation in Flycatcher, we will investigate whether we can mimic lazy evaluation for JavaScript objects in order to build test data with the appropriate complex type.
+
+\subsubsection{Identifying bugs}
+
+In dynamic languages such as JavaScript, the function signatures bear no type information and this makes it difficult to know whether an exception is raised due to a wrongly typed test argument or a true program bug. In the case where the exception is not a bug it could be due to two things: manipulating a badly initialised object or breaking a program precondition. The bad initialisation problem might be prevented through the use of lazy evaluation to initialise objects. The breaking of preconditions could be avoided by giving the tester the ability to impose restrictions on the test data generator, so that preconditions for the program are respected. Being able to identify real program bugs during test data generation is an issue that will need further attention during the implementation of Flycatcher.
+
+\subsubsection{Dealing with dynamically generated code}
+
+
+
 \section{Object-oriented test case generation}
-\subsection{Complex input generation} 
 
 \section{JavaScript}
 \subsection{Prominence}
