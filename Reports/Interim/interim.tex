@@ -90,9 +90,12 @@ Decades of research have been devoted to automatic test generation for static la
 
 One such programming language receiving much attention these days is JavaScript, with new frameworks and libraries being released for it frequently. It appears that the nodeJS web-server framework confirmed its transition from client-side browser language to server-side all-purpose language. In recent studies (cite reference), JavaScript appears amongst the most used programming languages in the world. In other words, it seems that JavaScript is here to stay, at least for some time, and it makes sense to devote time to it.
 
-Various test data generation methods exist from the simple and imprecise test generation that uses random test data generation to hugely complex and elaborate systems that combine static and dynamic analysis to provide strong software verification. Since much of the literature on automatic test generation focuses on static languages and numerical data types, many of the techniques found are not feasible or applicable to automatic test generation for JavaScript. However, some are more appropriate or feasible than others for our objective --- to generate unit test suites for JavaScript objects --- and it is those methods that we will explore during the course of this project.
+Various test data generation methods exist from the simple and imprecise random test generation to hugely complex and elaborate systems that combine static and dynamic analysis to provide strong software verification. Since much of the literature on automatic test generation focuses on static languages and numerical data types, many of the techniques found are not feasible or applicable to automatic test generation for JavaScript. However, some are more appropriate or feasible than others for our objective --- to generate unit test suites for JavaScript objects --- and it is those methods that we will explore during the course of this project.
 
-The major contribution that this project hopes to make to the field is to extend the limited amount of work done regarding dynamic languages by proposing a tool for automatic unit test generation in JavaScript. As well as offering a potential tool for JavaScript developers, we hope that our work will be able to offer new insights into automatic test generation for a dynamic language and benefit future research in that direction.
+% TODO CHALLENGES
+This project is challenging for several reasons. First, ... Thankfully, ... Secondly ... 
+
+The major contribution that this project hopes to make to the field is to extend the limited amount of work done regarding dynamic languages by proposing a tool for automatic unit test generation for JavaScript programs. As well as offering a potential tool for JavaScript developers, we hope that our work will be able to offer new insights into automatic test generation for a dynamic language and benefit future research in that direction.
 
 
 %Notes on \cite{mcminn2004search}
@@ -148,7 +151,7 @@ Automatically generating structural unit tests can be of great use for regressio
 \section{Automatic test data generation}
 \subsection{Overview}
 
-As can be seen in Mahmood's systematic review of ATDG techniques \cite{mahmood2007systematic}, many classifications exist for ATDG techniques. For our purposes, the first distinction that we need to make is between white-box, black-box and grey-box ATDG techniques, as for Flycatcher we are only interested in white-box testing. In the literature we found that white-box ATDG techniques are usually classified in two ways \cite{mahmood2007systematic, edvardsson1999survey, tahbildar2automated}.
+As can be seen in Mahmood's systematic review of ATDG techniques \cite{mahmood2007systematic}, many classifications exist for ATDG techniques. For our purposes, the first distinction that we need to make is between white-box, black-box \cite{prasanna2005survey} and grey-box ATDG techniques, as for Flycatcher we are only interested in white-box testing. In the literature we found that white-box ATDG techniques are usually classified in two ways \cite{mahmood2007systematic, edvardsson1999survey, tahbildar2automated}.
 
 The first concerns the target selection stage of ATDG techniques: where either paths or individual nodes that contribute to the overall coverage criterion are successively selected from the control flow graph, so that test data that respectively traverses the path or reaches the node can be generated. When specific paths are targeted, the ATDG technique is known as \emph{path-oriented} \cite{edvardsson1999survey} whereas if a node is targeted then it is \emph{goal-oriented}. When data is generated purely randomly \emph{i.e.} there is no specific target, then as part of this classification the ATDG technique is simply \emph{random}.
 
@@ -159,7 +162,7 @@ The choice of implementation for Flycatcher is dynamic random ATDG for our bench
 \begin{figure}
 \hspace*{-1cm}
 \begin{tikzpicture}[
-  	event/.style={text width=2.3cm,text centered,font=\rmfamily,anchor=north},
+  	event/.style={text width=2.7cm,text centered,font=\rmfamily,anchor=north},
   	edge from parent/.style={draw=black!50},
    % 	edge from parent path={(\tikzparentnode.south) -- ++(0,-0.5cm)
 	%		-| (\tikzchildnode.north)},
@@ -253,7 +256,15 @@ Consequently, due to their effectiveness in terms of coverage and the advantages
 \subsubsection{Overview}
 Genetic algorithms attempt to model the robustness and flexibility of natural selection in order to guide a search\cite{michael2001generating}. They start with a randomly initialised \emph{population} of potential candidate solutions, called \emph{individuals} or \emph{chromosomes}. The population is iteratively recombined and mutated to evolve successive populations, known as \emph{generations}. The recombination takes the `fittest' parent solutions and `breeds' them to produce new offspring. Their fitness is determined by a \emph{fitness function} that evaluates how good a candidate solution is for a particular problem.
 
-This process favours evolution towards fitter individuals, mimicking natural selection. The `breeding' of two individuals usually involves a crossover operation which swaps their information at a randomly selected position. In the interest of maintaining diversification, a \emph{mutation} phase usually occurs after the crossover, to introduce new genetic material into the search and avoid premature convergence on one area of the search space. The mutation operation randomly modifies some information of a selected individual, The process of iterative recombination and mutation, illustrated in Figure 123, is repeated until a specific termination criterion is fulfilled.
+This process favours evolution towards fitter individuals, mimicking natural selection. The `breeding' of two individuals usually involves a crossover operation which swaps their information at a randomly selected position. In the interest of maintaining diversification, a \emph{mutation} phase usually occurs after the crossover, to introduce new genetic material into the search and avoid premature convergence on one area of the search space. The mutation operation randomly modifies some information of a selected individual, The process of iterative recombination and mutation, illustrated in Figure \ref{ga}, is repeated until a specific termination criterion is fulfilled.
+
+\begin{figure}
+\hspace*{0.7cm}
+\centering
+\includegraphics[scale=0.7]{ga.pdf}
+\caption{Flowchart of a genetic algorithm}
+\label{ga}
+\end{figure}
 
 \subsubsection{Application to test data generation}
 
@@ -294,6 +305,21 @@ In dynamic languages such as JavaScript, the function signatures bear no type in
 Dynamic languages sometimes offer features that parse and evaluate a string at runtime and execute it as code, such as JavaScript's \texttt{eval} function. However, not only are these features potentially insecure, they make any analysis for test data generation much harder. As the general use of \texttt{eval} in JavaScript is prohibited anyway, we can safely ignore it for the purpose of Flycatcher.
 
 \section{Object-oriented test case generation}
+Most of the research on test generation focuses on testing imperative functions, such that the automated generation required is that of the functions' input parameters. However, when dealing with object-oriented code, a different approach is needed, as the unit under test changes from a function to an object. To test one of an object's methods three steps are necessary and should be repeated until the chosen coverage criterion for the method under test is met.
+\begin{enumerate}
+	\item Instantiate the object
+	\item Call some of its methods to possibly modify its state
+	\item Assert that the method under test returns the expected answer
+\end{enumerate}
+
+The method call sequences from the second step, as well as their inputs and the input to the constructor, should all evolve in a way that permits the successful coverage to be achieved. ATDG techniques that maximise coverage have been covered, but there has also been work done on how to guide the evolution of object-oriented tests cases \emph{i.e.} including 
+
+
+
+%One thing to note about such a test case is that it does not mean the method under test is bug-free --- again, the unit under test is the object, therefore many instantiations and method call sequences need to be tried
+%One element of this procedure that we have not discussed so far is the generation of a sequence of method calls for the second step.
+
+%create a sequence of methods leading to the method under test, it is the method under test which gives an assertion using its return value
 
 \section{JavaScript}
 \subsection{Prominence}
