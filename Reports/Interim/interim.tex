@@ -1,11 +1,14 @@
+%TODO
+%
+% - 
+
 \documentclass[a4paper,11pt,titlepage]{report}
 
-\renewcommand{\rmdefault}{ptm}
-
+%\renewcommand*\rmdefault{palatino}\normalfont\upshape
+%\renewcommand{\sfdefault}{helvet}
 \usepackage{graphicx}
 \usepackage{amssymb}
 %\usepackage[margin=2.3cm]{geometry}
-
 
 \usepackage{tikz}					% figure drawing library
 \usetikzlibrary{calendar,snakes,calc,trees,positioning,arrows,chains,shapes.geometric,%
@@ -92,19 +95,13 @@ As a result, many attempts have been made to automate the testing effort, so tha
 % have been left on the side line  s/ out of the equation ?
 Decades of research have been devoted to automatic test generation for static languages and a multitude of tools have been developed. As the research area matures, it is arriving to a point where its techniques are no longer simply applicable to restricted programming language subsets or limited programs. Indeed, companies such as Microsoft employ automatic test generation tools on a regular basis to verify their software \cite{păsăreanu2009survey}. Yet, until very recently, dynamic programming languages had been left out of the equation --- but their increasing popularity and a renewed interest in them prompts the need to start including them in the automatic testing research effort.
 
-One such programming language that has been growing in popularity in the past few years is JavaScript, with new frameworks and libraries being released for it frequently. Software libraries that have gained wide acceptance, like \textsc{Node.js}\footnote{http://nodejs.org/} which supports the writing of highly-scalable internet applications, seem to confirm JavaScript's transition from a purely client-side browser language to a an all-purpose one --- at least for some. In recent studies \cite{website:langpop}, JavaScript appears amongst the most used programming languages in the world today. In other words, it seems that JavaScript is here to stay, at least for some time, and it makes sense to devote time to it.
+One such programming language that has been growing in popularity in the past few years is JavaScript, with new frameworks and libraries being released for it frequently. Software libraries that have gained wide acceptance, like \texttt{Node.js}\footnote{http://nodejs.org/} which supports the writing of highly-scalable internet applications, seem to confirm JavaScript's transition from a purely client-side browser language to an all-purpose one --- at least for some. In recent studies \cite{website:langpop}, JavaScript appears amongst the most used programming languages in the world today. In other words, it seems that JavaScript is here to stay, at least for some time, and it makes sense to devote time to it.
 
-Various test data generation methods exist from the simple and imprecise random test generation to hugely complex and elaborate systems that combine static and dynamic analysis to provide strong software verification. Since much of the literature on automatic test generation focuses on static languages and numerical data types, many of the techniques found are not feasible or applicable to automatic test generation for JavaScript. However, some are more appropriate or feasible than others for our objective --- to generate unit test suites for JavaScript objects --- and it is those methods that we will explore during the course of this project.
+Various test generation approaches exist: from straightforward but limited random generation to elaborate systems that combine static and dynamic analysis to provide strong software verification. Since much of the literature on automatic test generation focuses on static procedural languages and numerical input data types, many of the techniques found are not feasible or applicable to automatic test generation for JavaScript. However, some are more appropriate than others for our objective --- to generate structural unit test suites for JavaScript objects --- and it is those methods that we will explore during the course of this project.\\
 
-% TODO CHALLENGES
-This project is challenging for several reasons. First of all, it requires automatic test data generation, which is an undecidable task in itself \cite{}
+This project is challenging for several reasons. First of all, it requires automatic test data generation, which is a challenging task in itself. Taking a random approach to the data generation problem is often not satisfactory, as the coverage achieved tends to be fairly poor. However, both the static and dynamic solutions that aim for a more systematic testing face major hurdles. For the static approach it is mainly to do with solving the constraints responsible for generating the test data, as this problem can become undecidable under certain circumstances. The dynamic approach depends on the execution of the program under test and the number of executions needed for sufficient coverage can become infeasible. On top of these challenges that are common to most automatic test case generation initiatives, Flycatcher raises additional difficulties. Due to the fact that it targets not only an object-oriented language but a dynamic one, our testing tool will need to tackle issues such as dynamically-typed object instance generation, that are made difficult by the absence of static types.
 
-
-
-... Thankfully, ... Secondly ... 
-
-The major contribution that this project hopes to make to the field is to extend the limited amount of work done regarding dynamic languages by proposing a tool for automatic unit test generation for JavaScript programs. As well as offering a potential tool for JavaScript developers, we hope that our work will be able to offer new insights into automatic test generation for a dynamic language and benefit future research in that direction.
-
+By investigating and bringing together the most relevant techniques, we believe that we can overcome the challenges encountered and build a tool for the structural unit-testing of JavaScript programs. The major contribution that this project hopes to make to the field is to extend the limited amount of work done regarding dynamic languages by proposing a tool for automatic unit test generation for, possibly restricted, JavaScript programs. As well as offering a potential tool to aid JavaScript developers, we hope that our work will be able to offer new insights into automatic test generation for a dynamic, object-oriented language and benefit future research in that direction.
 
 %Notes on \cite{mcminn2004search}
 %\begin{itemize}
@@ -330,12 +327,46 @@ The method call sequences from the second step, as well as their inputs and the 
 %create a sequence of methods leading to the method under test, it is the method under test which gives an assertion using its return value
 
 \section{JavaScript}
-\subsection{Prominence}
+%\subsection{Prominence}
 \subsection{Idiosyncratic features}
+
+
 \subsection{Object-oriented programming}
 
 \chapter{Project plan}
-\chapter{Evaluation strategy}
+
+\section{Outline}
+
+The plan for Flycatcher can be divided into roughly seven stages which are outlined below.
+
+\begin{enumerate}
+	
+	\item{\textbf{Program Analyser}} The Program Analyser component is responsible for retrieving information about the program that is available statically and can be used to generate the test cases. It receives a class or object under test and retrieves the object's methods as well as their signatures. Given that there are no static types in JavaScript, an additional step is needed to try to infer input variables' types from their use in the respective methods. The information collected by the program analyser will be used to create individuals to represent test cases for a particular method under test later on, during the implementation of the genetic algorithm. \emph{This stage of the project is already partially completed.}
+	 
+	\item{\textbf{Random \emph{Data} Generators for primitive types}} Given the added difficulty of generating and initialising object instances to pass in as arguments to the various methods present in our test cases, these will be dealt with at a later stage. At this stage, random data generators will be developed for three of JavaScript's primitive types namely \emph{Boolean}, \emph{Number} and \emph{String}.
+
+	\item{\textbf{Random \emph{Test Case} Generator}} This step involves building a component that generates unit test cases randomly. The test cases will consist of individuals: a constructor call, a method call sequence ending with the method under test and the appropriate input data at each stage. The test cases that result from this module are bound to achieve poor coverage due to the low probability of exploring deep paths. Hence, this component will be used to benchmark the Flycatcher application.
+
+	\item{\textbf{Search-based \emph{Test Case} Generator}} This is probably the core module of the implementation: it consists in generating test cases that strive to achieve good coverage by using heuristic search methods to guide the test case generation. The search heuristics will be effective on two levels: they will direct the generation of \emph{data} for input parameters but also the generation of \emph{method sequences} to be called on the object under test.
+
+	\item{\textbf{Dealing with complex types}}
+At this stage we will introduce JavaScript complex types (\emph{Array} and \emph{Object}) as potential input parameters in our test generation tool. In an attempt to mimic the concept of lazy instantiation, complex types will be created empty and built up as required by the program. In the case of the Search-based Test Case Generator, the search heuristics will contribute to the creation of object instances of the correct dynamic types (as it did for the creation of correct primitive types).
+		
+	\item{\textbf{Extensions}} Currently, two possible extensions are envisaged for this project. The first one concerns the introduction of custom input data generators, such that testers can adapt the test data generation to their specific needs in order to achieve better code coverage. Secondly, given that we will use a dynamic approach which comes with a potentially high execution time, another extension would be to investigate and implement methods of speeding up the implementation of Flycatcher. Other extensions are of course possible and may come to light later on during the project.
+		
+	\item{\textbf{Evaluation}}
+	The final stage will consist in evaluating the success of our project and its contribution to the state of the art. The next subsection will describe the intended evaluation process in more detail.
+
+\end{enumerate}
+
+\section{Evaluation}
+
+An evaluation of our system will need to be conducted towards the end of the project, involving experimentation with our automatic test generation tool. The random test case generation will be used as a benchmark for Flycatcher, which uses a search-based solution in order to achieve better coverage. To start off with, experiments will be run on a set of overall relatively straightforward programs of varying size, complexity and number/type of parameters. If the implementation of Flycatcher permits it, we will attempt to use our tool to test larger, real-life software such as JavaScript libraries.
+
+In order to constitute a success, Flycatcher would have to generate unit tests suite for, possibly restricted, JavaScript programs written in an object-oriented style \emph{i.e.} treating JavaScript \emph{prototypes} like classes in the traditional OO paradigm. Additionally, it should perform better using search-based test case generation than random generation and achieve reasonable coverage compared to other similar applications. We will compare the performance of our tool to applications such as \textsc{RuTeG} which bear resemblances to it, in order to assess its performance from a more general perspective. Overall, the test coverage achieved for programs of various complexities will be the main criterion used in order to evaluate Flycatcher and its contribution to the state of the art in automatic test case generation.
+
+\section{Time-frame}
+Our aim is to complete at least steps 1 to 4 above by the end of the spring term. During the spring holidays, not much progress will be made due to a focus on examinations. Hence, of the five weeks remaining after the examination period, the first two will be aimed at completing the section that deals with complex input data types (if it is not finished already), evaluation and looking at possible extensions if time permits. The three final weeks before project submission will be entirely devoted to putting the final report together.
 
 \bibliographystyle{acm}
 \bibliography{interim}
