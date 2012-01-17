@@ -1,21 +1,10 @@
-%TODO
-%
-% - 
-
 \documentclass[a4paper,11pt,titlepage]{report}
-
-%\renewcommand*\rmdefault{palatino}\normalfont\upshape
-%\renewcommand{\sfdefault}{helvet}
-\usepackage[scaled]{helvet}
 \usepackage{graphicx}
 \usepackage{amssymb}
 %\usepackage[margin=2.3cm]{geometry}
+\usepackage{tikz}
 
-\usepackage{tikz}					% figure drawing library
-\usetikzlibrary{calendar,snakes,calc,trees,positioning,arrows,chains,shapes.geometric,%
-    decorations.pathreplacing,decorations.pathmorphing,shapes,%
-    matrix,shapes.symbols}
-
+\usetikzlibrary{calendar,snakes,calc,trees,positioning,arrows,chains,shapes.geometric,decorations.pathreplacing,decorations.pathmorphing,shapes,matrix,shapes.symbols}
 \tikzset{
 >=stealth',
   value/.style={
@@ -48,9 +37,7 @@
   catlabel/.style={midway, right=2pt},
 }
 
-
 \begin{document}
-	
 	\title
 	{
 		{\Huge \textsf{Flycatcher} \\[0.2cm]}
@@ -86,8 +73,6 @@
 \tableofcontents
 
 \chapter{Introduction}
-
-
 
 Software testing is a cornerstone of software engineering --- one of the most common and effective ways to verify software quality and an effort that accounts for at least 50\% of software development time \cite{tahbildar2automated}. With the fast-paced growth of the software industry, comes the need to test larger and more complex software on an unprecedented scale. Moreover, as software becomes increasingly ubiquitous, it is held to the highest standards of reliability and correctness, which further justifies testing it in a rigorous and exhaustive manner.
 
@@ -330,7 +315,7 @@ l.add(true)
 assert (l.size == 1)
 \end{verbatim}
 
-where \texttt{LinkedList} is the class (represented by a JavaScript prototype) under test and \texttt{size} is the method under test.
+where \texttt{LinkedList} is the class under test (a JavaScript prototype) and \texttt{size} is the method under test.
 
 %, as well as their inputs and the inputs to the constructor, should all evolve in a way that permits a successful coverage to be achieved. Automatic test \emph{data} generation techniques that maximise coverage have been discussed, but work has also been done on techniques to the evolution of object-oriented tests cases.
 
