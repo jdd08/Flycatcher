@@ -44,7 +44,7 @@
 		{\large \textsf{Automatic unit test generation for JavaScript}\\[0.5cm]}
 		\begin{figure}[h]
 			\centering
-			\includegraphics[scale=0.3]{flycatcher.jpg}
+			\includegraphics[scale=0.3]{Flycatcher.jpg}
 		\end{figure}
 	}
 	\author
@@ -85,7 +85,7 @@ One such programming language that has been growing in popularity in the past fe
 
 Various test generation approaches exist: from straightforward but limited random generation to elaborate systems that combine static and dynamic analysis to provide strong software verification. Since much of the literature on automatic test generation focuses on static procedural languages and numerical input data types, many of the techniques found are not feasible or applicable to automatic test generation for JavaScript. However, some are more appropriate than others for our objective --- to generate structural unit test suites for JavaScript objects --- and it is those methods that we will explore during the course of this project.\\
 
-This project is challenging for several reasons. First of all, it requires automatic test data generation, which is a challenging task in itself. Taking a random approach to the data generation problem is often not satisfactory, as the coverage achieved tends to be fairly poor. However, both the static and dynamic solutions that aim for a more systematic testing face major hurdles. For the static approach it is mainly to do with solving the constraints responsible for generating the test data, as this problem can become undecidable under certain circumstances. The dynamic approach depends on the execution of the program under test, and the number of executions needed for sufficient coverage can become infeasible. On top of these challenges that are common to most automatic test case generation initiatives, Flycatcher raises additional difficulties due to the fact that it targets not only an object-oriented language but a dynamic one. For instance, our testing tool will need to tackle issues such as method call sequence generation and dynamically-typed object instance generation, the latter rendered difficult by the absence of static types.
+This project is challenging for several reasons. First of all, it requires automatic test data generation, which is a challenging task in itself. Taking a random approach to the data generation problem is often not satisfactory, as the coverage achieved tends to be fairly poor. However, both the static and dynamic solutions that aim for a more systematic testing face major hurdles. For the static approach it is mainly to do with solving the constraints responsible for generating the test data, as this problem can become undecidable under certain circumstances. The dynamic approach depends on the execution of the program under test, and the number of executions needed for sufficient coverage can become infeasible. On top of these challenges that are common to most automatic test case generation initiatives, \textsf{Flycatcher} raises additional difficulties due to the fact that it targets not only an object-oriented language but a dynamic one. For instance, our testing tool will need to tackle issues such as method call sequence generation and dynamically-typed object instance generation, the latter rendered difficult by the absence of static types.
 
 By investigating and bringing together the most relevant techniques, we believe that we can overcome the challenges encountered and build a tool for the structural unit-testing of JavaScript programs. The major contribution that this project hopes to make to the field is to extend the limited amount of work done regarding dynamic languages by proposing a tool for automatic unit test generation for, possibly restricted, JavaScript programs. As well as offering a potential tool to aid JavaScript developers, we hope that our work will be able to offer new insights into automatic test generation for a dynamic, object-oriented language and benefit future research in that direction.
 
@@ -108,13 +108,13 @@ By investigating and bringing together the most relevant techniques, we believe 
 %\section{Report Structure}
 
 \chapter{Background}
-In this chapter we will start by giving an overview of software testing, with particular emphasis on aspects of it that are relevant to this project. We will then take a look at the state of the art in automatic test data generation (ATDG) in order to understand the approach that will be used for Flycatcher. Because the tests will be object-oriented, method call sequences also need to be generated for the test cases and we will look at the state of the art for doing that too. Finally we will explain why we chose JavaScript as our target language and describe features of it that are of interest to us for this project.
+In this chapter we will start by giving an overview of software testing, with particular emphasis on aspects of it that are relevant to this project. We will then take a look at the state of the art in automatic test data generation (ATDG) in order to understand the approach that will be used for \textsf{Flycatcher}. Because the tests will be object-oriented, method call sequences also need to be generated for the test cases and we will look at the state of the art for doing that too. Finally we will explain why we chose JavaScript as our target language and describe features of it that are of interest to us for this project.
 
 \section{Dynamic software testing}
 
 \subsection{Overview}
 
-We can define the activity of dynamic testing as testing that requires execution of the software with test data as input \cite{mahmood2007systematic} and characterise it with respect to three parameters namely the amount of knowledge assumed by the tester, the target of the tests and the stage of development at which they are executed. The amount of knowledge of the software under test can be divided into three categories, structural (white-box testing) testing, functional (black-box testing) and a hybrid of the two (grey-box testing). The target of the tests refers to their granularity, from testing specific units of code (unit testing) to an entire integrated system (system testing). The stage at which the tests are undertaken determines whether they are regression tests, alpha-tests, beta-tests, acceptance tests \emph{etc}. With Flycatcher we hope to generate suites of structural tests, focused at the unit level of object-oriented classes, most likely to perform incremental regression testing. Hence, structural testing, unit testing and regression testing will be described in more detail in this section.
+We can define the activity of dynamic testing as testing that requires execution of the software with test data as input \cite{mahmood2007systematic} and characterise it with respect to three parameters namely the amount of knowledge assumed by the tester, the target of the tests and the stage of development at which they are executed. The amount of knowledge of the software under test can be divided into three categories, structural (white-box testing) testing, functional (black-box testing) and a hybrid of the two (grey-box testing). The target of the tests refers to their granularity, from testing specific units of code (unit testing) to an entire integrated system (system testing). The stage at which the tests are undertaken determines whether they are regression tests, alpha-tests, beta-tests, acceptance tests \emph{etc}. With \textsf{Flycatcher} we hope to generate suites of structural tests, focused at the unit level of object-oriented classes, most likely to perform incremental regression testing. Hence, structural testing, unit testing and regression testing will be described in more detail in this section.
 
 \subsection{Structural testing}
 
@@ -134,7 +134,7 @@ The stronger criteria of condition, multiple-condition and path coverage are oft
 
 \subsection{Unit testing}
 
-Unit testing consists in testing individual and independently testable units of source code \cite{myers2011art}. Therefore, unit testing is made easier if the code is designed in a modular way. The nature of the units depends on the programming language and environment but is often a class or a function. As opposed to system tests which can be aimed at the client, unit tests are usually white-box tests. Although they do not guarantee that the overall software works as required, they give confidence in specific units of code and narrow down errors, helping the development process. In Flycatcher, the target unit will be a JavaScript prototype, which will be introduced later in this chapter.
+Unit testing consists in testing individual and independently testable units of source code \cite{myers2011art}. Therefore, unit testing is made easier if the code is designed in a modular way. The nature of the units depends on the programming language and environment but is often a class or a function. As opposed to system tests which can be aimed at the client, unit tests are usually white-box tests. Although they do not guarantee that the overall software works as required, they give confidence in specific units of code and narrow down errors, helping the development process. In \textsf{Flycatcher}, the target unit will be a JavaScript prototype, which will be introduced later in this chapter.
 
 \subsection{Regression testing}
 Automatically generating structural unit tests can be of great use for regression testing. Regression testing aims to ensure that enhancing a piece of software does not introduce new faults \cite{myers2011art}. The difficulty in testing this is that programmers do not always appreciate the extent of their changes. Hence, having a suite of unit tests with good structural coverage can reduce this problem by verifying the software in a systematic, unbiased way.
@@ -142,13 +142,13 @@ Automatically generating structural unit tests can be of great use for regressio
 \section{Automatic test data generation}
 \subsection{Overview}
 
-As can be seen in Mahmood's systematic review of ATDG techniques \cite{mahmood2007systematic}, many classifications exist for ATDG techniques. For our purposes, the first distinction that we need to make is between white-box, black-box \cite{prasanna2005survey} and grey-box ATDG techniques, as for Flycatcher we are only interested in white-box testing. In the literature we found that white-box ATDG techniques are usually classified in two ways \cite{mahmood2007systematic, edvardsson1999survey, tahbildar2automated}.
+As can be seen in Mahmood's systematic review of ATDG techniques \cite{mahmood2007systematic}, many classifications exist for ATDG techniques. For our purposes, the first distinction that we need to make is between white-box, black-box \cite{prasanna2005survey} and grey-box ATDG techniques, as for \textsf{Flycatcher} we are only interested in white-box testing. In the literature we found that white-box ATDG techniques are usually classified in two ways \cite{mahmood2007systematic, edvardsson1999survey, tahbildar2automated}.
 
 The first concerns the target selection stage of ATDG techniques: where either paths or individual nodes that contribute to the overall coverage criterion are successively selected from the control flow graph, so that test data that respectively traverses the path or reaches the node can be generated. When specific paths are targeted, the ATDG technique is known as \emph{path-oriented} \cite{edvardsson1999survey} whereas if a node is targeted then it is \emph{goal-oriented}. When data is generated purely randomly \emph{i.e.} there is no specific target, then as part of this classification the ATDG technique is simply \emph{random}.
 
-The other classification of white-box ATDG concerns the type of implementation: \emph{static}, \emph{dynamic} or a \emph{hybrid} of the two \cite{han2008empirical, mcminn2004search}. We will focus on the latter classification of structural testing as it governs our choice of implementation for Flycatcher. Moreover, the former concerns the path selection stage of ATDG and this step will be ignored in Flycatcher as it is in many recent ATDG techniques \cite{tahbildar2automated}. Figure ~\ref{atdg_overview} summarises what we believe is an intuitive characterisation of ATDG techniques with respect to this project and the one which will guide our choice of implementation. Many techniques can be found under each of the static, dynamic and hybrid implementation categories and we will only list the most noteworthy to us.
+The other classification of white-box ATDG concerns the type of implementation: \emph{static}, \emph{dynamic} or a \emph{hybrid} of the two \cite{han2008empirical, mcminn2004search}. We will focus on the latter classification of structural testing as it governs our choice of implementation for \textsf{Flycatcher}. Moreover, the former concerns the path selection stage of ATDG and this step will be ignored in \textsf{Flycatcher} as it is in many recent ATDG techniques \cite{tahbildar2automated}. Figure ~\ref{atdg_overview} summarises what we believe is an intuitive characterisation of ATDG techniques with respect to this project and the one which will guide our choice of implementation. Many techniques can be found under each of the static, dynamic and hybrid implementation categories and we will only list the most noteworthy to us.
 
-The choice of implementation for Flycatcher is dynamic random ATDG for our benchmark and dynamic search-based ATDG using genetic algorithms for our solution. The rest of this section will present in further detail the structural ATDG implementation categories we have chosen and the difficulties of ATDG for a dynamic language, so that we can understand the rationale behind this choice.
+The choice of implementation for \textsf{Flycatcher} is dynamic random ATDG for our benchmark and dynamic search-based ATDG using genetic algorithms for our solution. The rest of this section will present in further detail the structural ATDG implementation categories we have chosen and the difficulties of ATDG for a dynamic language, so that we can understand the rationale behind this choice.
 
 \begin{figure}
 \hspace*{-1.6cm}
@@ -192,7 +192,7 @@ The choice of implementation for Flycatcher is dynamic random ATDG for our bench
 \end{figure}
 
 
-%We feel that the latter is more intuitive as specific ATDG techniques usually fall under one of these categories. Figure 123 summarises what we believe is the most intuitive characterisation of ATDG techniques to date and the one which will guide our choice of implementation for Flycatcher.
+%We feel that the latter is more intuitive as specific ATDG techniques usually fall under one of these categories. Figure 123 summarises what we believe is the most intuitive characterisation of ATDG techniques to date and the one which will guide our choice of implementation for \textsf{Flycatcher}.
 
 %Edvardssvon's classification \cite{edvardsson1999survey} is based on the idea that there are three approaches to automatic test data generation. The idea is that . Once a path is chosen it can be traversed by three methods: \emph{random}, (randomly explore the search space) \emph{goal-oriented} (target specific goals such as assertions) and \emph{path-oriented} (traverse an exact path).
 
@@ -214,21 +214,22 @@ Symbolic execution gathers constraints along a simulated execution of a program 
 	\item even if the path constraint is linear, solving it can lead to very high complexity
 \end{itemize}
 
-Although various static solutions have been proposed for these issues \cite{ramamoorthy1976automated,goldberg1994applications,offutt1999dynamic}, they often dramatically increase the complexity of the ATDG process. As a result, tools purely based on symbolic execution can typically handle only subsets of programming languages and are not applicable in industry. A better trend that has developed in the past decade, is the combination of concrete and symbolic execution, which tackles most of the aforementioned issues \cite{păsăreanu2009survey} --- we will cover this type of ATDG implementation in the subsection on hybrid ATDG. Due to the numerous problems posed by purely static ATDG, its weakness with dynamic types and constructs \cite{edvardsson1999survey,tahbildar2automated} and the complexity of building a fully-fledged symbolic executor for a language \cite{edvardsson1999survey,han2008empirical}, we chose not to use static ATDG for the implementation of Flycatcher.
+Although various static solutions have been proposed for these issues \cite{ramamoorthy1976automated,goldberg1994applications,offutt1999dynamic}, they often dramatically increase the complexity of the ATDG process. As a result, tools purely based on symbolic execution can typically handle only subsets of programming languages and are not applicable in industry. A better trend that has developed in the past decade, is the combination of concrete and symbolic execution, which tackles most of the aforementioned issues \cite{păsăreanu2009survey} --- we will cover this type of ATDG implementation in ~\ref{subsec:hybrid_atdg}. Due to the numerous problems posed by purely static ATDG, its weakness with dynamic types and constructs \cite{edvardsson1999survey,tahbildar2automated} and the complexity of building a fully-fledged symbolic executor for a language \cite{edvardsson1999survey,han2008empirical}, we chose not to use static ATDG for the implementation of \textsf{Flycatcher}.
 
 \subsection{Hybrid test data generation}
+\label{subsec:hybrid_atdg}
 
 The hybrid approach to ATDG consists in combining symbolic and concrete execution, which is known as \emph{concolic execution} \cite{păsăreanu2009survey}. In other words, hybrid analysis tools run programs on actual inputs, while collecting symbolic constraints in order to direct the search for new inputs. In doing so, they avoid the main weaknesses of the static approach, such as solving non-linear constraints or dealing with dynamic structures. This type of technique has been popular in recent years, mainly because it overcame the limitations that prevented static ATDG techniques from being applied to industry software. Notable tools that implement it are DART \cite{godefroid2005dart}, CUTE \cite{sen2005cute}, JPF-SE \cite{anand2007jpf}, PEX \cite{tillmann2008pex}, EXE \cite{cadar2008exe} and KLEE \cite{cadar2008klee}.
 
-Yet, although it deals with some limitations of static ATDG, hybrid ATDG still requires static analysis of the source code under test, which is unfeasible for Flycatcher, given the dynamically typed, object-oriented nature of JavaScript.
+Yet, although it deals with some limitations of static ATDG, hybrid ATDG still requires static analysis of the source code under test, which is unfeasible for \textsf{Flycatcher}, given the dynamically typed, object-oriented nature of JavaScript.
 
 \subsection{Dynamic test data generation}
 
-Dynamic structural test data generation is purely based on actual execution of the software. The program under test is run with, possibly randomly, selected input and feedback is collected at runtime regarding the chosen coverage objective \cite{edvardsson1999survey}. The feedback is usually obtained through some form of instrumentation of the program that monitors the program flow. Inputs can be continually generated randomly, relying on probability to achieve the coverage objective --- this is known as \emph{random} test data generation and does not perform well in general \cite{edvardsson1999survey}. On the other hand, inputs can be incrementally tuned based on the feedback (using different kinds of search methods) in order to satisfy the coverage objective --- this is known as \emph{search-based} test data generation \cite{mcminn2004search}, where the search-space is the control flow graph of a program. The main drawback of dynamic ATDG is that it is reliant on the speed of execution of a program and as the number of required executions to achieve satisfactory coverage may be high, this leads to an overall expensive process. Below we will present the random and search-based approaches in more detail, in order to understand which would be more suitable for Flycatcher.
+Dynamic structural test data generation is purely based on actual execution of the software. The program under test is run with, possibly randomly, selected input and feedback is collected at runtime regarding the chosen coverage objective \cite{edvardsson1999survey}. The feedback is usually obtained through some form of instrumentation of the program that monitors the program flow. Inputs can be continually generated randomly, relying on probability to achieve the coverage objective --- this is known as \emph{random} test data generation and does not perform well in general \cite{edvardsson1999survey}. On the other hand, inputs can be incrementally tuned based on the feedback (using different kinds of search methods) in order to satisfy the coverage objective --- this is known as \emph{search-based} test data generation \cite{mcminn2004search}, where the search-space is the control flow graph of a program. The main drawback of dynamic ATDG is that it is reliant on the speed of execution of a program and as the number of required executions to achieve satisfactory coverage may be high, this leads to an overall expensive process. Below we will present the random and search-based approaches in more detail, in order to understand which would be more suitable for \textsf{Flycatcher}.
 
 \subsubsection{Random approach}
 
-Random test data generation consists in producing inputs at random in the hope of achieving the chosen coverage criterion through probability. Although random test data generation is relatively simple to implement, it does not perform well in terms of coverage, as the chances of finding faults that are revealed by only a small percentage of program inputs are low \cite{edvardsson1999survey}. In other words, it is difficult for it to exercise `deep' features of a program that are exercised only through specific and unlikely paths. As a result, random ATDG only works well for straightforward programs. However, because it is the simplest ATDG technique and is considered to have the lowest acceptance rate \cite{edvardsson1999survey}, it is often used as a benchmark and is a suitable candidate for us to benchmark our Flycatcher application.
+Random test data generation consists in producing inputs at random in the hope of achieving the chosen coverage criterion through probability. Although random test data generation is relatively simple to implement, it does not perform well in terms of coverage, as the chances of finding faults that are revealed by only a small percentage of program inputs are low \cite{edvardsson1999survey}. In other words, it is difficult for it to exercise `deep' features of a program that are exercised only through specific and unlikely paths. As a result, random ATDG only works well for straightforward programs. However, because it is the simplest ATDG technique and is considered to have the lowest acceptance rate \cite{edvardsson1999survey}, it is often used as a benchmark and is a suitable candidate for us to benchmark our \textsf{Flycatcher} application.
 
 \subsubsection{Search-based approach}
 % more on search-based approach using mairhofer's stuff?
@@ -240,7 +241,7 @@ Although simulated annealing is not part of this empirical evaluation, we can se
 
 Additionally, genetic algorithms offer another advantage: as opposed to most other ATDG techniques, they do not require static analysis of the program under test \cite{han2008empirical}. This advantage is especially significant in our case, as to the best of our knowledge, tools that produce control and data flow analysis information for JavaScript source code are not available. However, this is not surprising since the dynamic, object-oriented nature of JavaScript makes this task very laborious.
 
-Consequently, due to their effectiveness in terms of coverage and the advantages they possess with regard to dynamic languages, genetic algorithms appear to be the most suitable for our implementation of ATDG for Flycatcher. We will therefore go on to explain what genetic algorithms are and how they can be applied to test data generation.
+Consequently, due to their effectiveness in terms of coverage and the advantages they possess with regard to dynamic languages, genetic algorithms appear to be the most suitable for our implementation of ATDG for \textsf{Flycatcher}. We will therefore go on to explain what genetic algorithms are and how they can be applied to test data generation.
 
 \subsection{Genetic algorithms}
 
@@ -261,9 +262,9 @@ This process favours evolution towards fitter individuals, mimicking natural sel
 \label{subsubsec:ga_application}
 For the purposes of ATDG, the population consists of input test data. The data evolves according to the genetic algorithm in order to satisfy the chosen coverage criteria \cite{michael2001generating}. In other words, the \emph{fitness function} is based on the \emph{objective function}, the function that evaluates test data according to a certain coverage criterion --- the more a candidate contributes to coverage, the fitter it is. Instead of using search heuristics to minimise our objective function, we use it to guide our natural selection process towards the data that will achieve the best coverage.
 
-Regarding the objective function used in the context of genetic algorithms, different variants exist \cite{mcminn2004search}. The \emph{coverage-oriented approach} rewards individuals on the basis of \emph{all} covered program structures. This type of objective function rewards coverage with respect to the overall goal \emph{i.e.} the system is not required to pick a specific path or node and attempt to execute it. The other approach is \emph{structure-oriented} coverage where, similarly to most other search-based ATDG methods, a structure (\emph{e.g.} a path or a node) is selected from the data flow analysis and a separate search is undertaken for each selected structure. Once more, seeing that the \emph{coverage-oriented approach} does not require static analysis of the program under test, it is the most attractive to us for the implementation of Flycatcher.
+Regarding the objective function used in the context of genetic algorithms, different variants exist \cite{mcminn2004search}. The \emph{coverage-oriented approach} rewards individuals on the basis of \emph{all} covered program structures. This type of objective function rewards coverage with respect to the overall goal \emph{i.e.} the system is not required to pick a specific path or node and attempt to execute it. The other approach is \emph{structure-oriented} coverage where, similarly to most other search-based ATDG methods, a structure (\emph{e.g.} a path or a node) is selected from the data flow analysis and a separate search is undertaken for each selected structure. Once more, seeing that the \emph{coverage-oriented approach} does not require static analysis of the program under test, it is the most attractive to us for the implementation of \textsf{Flycatcher}.
 
-Finally, the population, individual representation, fitness evaluation and methods of crossover, mutation and selection are all highly dependent on the test data generation problem at hand, hence we will discuss them with regard to Flycatcher when we come to the implementation.
+Finally, the population, individual representation, fitness evaluation and methods of crossover, mutation and selection are all highly dependent on the test data generation problem at hand, hence we will discuss them with regard to \textsf{Flycatcher} when we come to the implementation.
 
 %For a simple procedural language the evolution process will deal with test data whereas for object-oriented tests, the recombination and mutation could concern call sequences and types.
 
@@ -275,9 +276,9 @@ Finally, the population, individual representation, fitness evaluation and metho
 
 %through the program execution search-space in order to achieve the chosen test coverage criteria.
 
-\subsection{Challenges of dynamic object-oriented languages}
+\subsection{Challenges of dynamic languages}
 
-Most of the research on ATDG concerns static programming languages \cite{mahmood2007systematic} and it is only in the past few years that dynamic programming languages have sparked some interest in that field. A possible reason for this is that dynamic programming languages make ATDG harder by enabling features that allow programs to significantly change at runtime. These features can include modifying the type system, extending objects or adding new code during program execution. The challenges this type of behaviour introduces, and that Flycatcher will try and overcome, are listed below \cite{ducasse2011challenges}.
+Most of the research on ATDG concerns static programming languages \cite{mahmood2007systematic} and it is only in the past few years that dynamic programming languages have sparked some interest in that field. A possible reason for this is that dynamic programming languages make ATDG harder by enabling features that allow programs to significantly change at runtime. These features can include modifying the type system, extending objects or adding new code during program execution. The challenges this type of behaviour introduces, and that \textsf{Flycatcher} will try and overcome, are listed below \cite{ducasse2011challenges}.
 
 \subsubsection{Generating test data of the required type}
 Given that method parameters do not have static types in dynamically typed languages, we do not know what arguments to pass to them. A potential solution to this is to use a method called \emph{type inference} \cite{pluquet2009fast}, which tries to infer the type of arguments from the way they are used inside the program. Although this method does not guarantee 100\% precision, it is a good starting point for generating accurately typed test data. Mairhofer uses this technique for \textsc{\small RuTeG} \cite{mairhofer2008search}, his search-based ATDG tool for Ruby, where the search for test data refines the initially inferred type, by discarding poor candidates.
@@ -285,15 +286,15 @@ Given that method parameters do not have static types in dynamically typed langu
 \subsubsection{Generating object instances}
 Sometimes the type of an object constructor or method parameters will be a complex type and this complicates the test data generation task even further. Generating well-formed object instances to use as arguments inside tests for a dynamically typed object-oriented language is problematic because there isn't a blueprint to construct them from. There is previous work on input data generation for dynamic data structures \cite{korel1990automated, visvanathan2002generating, sai2005address, zhao2007automatic}, but all these approaches focus on statically typed languages (C/C++), require static program analysis and mostly lack generality.
 
-Another approach uses something called needed-narrowing \cite{antoy1994needed} or lazy instantiation \cite{lindblad2007property} --- where instances are only created when they are actually put to use by the program. This enables test data generators to adjust object instances during execution, when attempts are made to use them, so that they always have the required type. This technique is used by \textsc{Irulan} \cite{allwood2011high} for generating tests in Haskell, which has lazy evaluation by default. For the purpose of complex type test data generation in Flycatcher, we will investigate whether we can mimic lazy evaluation for JavaScript objects in order to build test data with the appropriate complex type.
+Another approach uses something called needed-narrowing \cite{antoy1994needed} or lazy instantiation \cite{lindblad2007property} --- where instances are only created when they are actually put to use by the program. This enables test data generators to adjust object instances during execution, when attempts are made to use them, so that they always have the required type. This technique is used by \textsc{Irulan} \cite{allwood2011high} for generating tests in Haskell, which has lazy evaluation by default. For the purpose of complex type test data generation in \textsf{Flycatcher}, we will investigate whether we can mimic lazy evaluation for JavaScript objects in order to build test data with the appropriate complex type.
 
 \subsubsection{Identifying bugs}
 
-In dynamic languages such as JavaScript, the function signatures bear no type information and this makes it difficult to know whether an exception is raised due to a wrongly typed test argument or a true program bug. In the case where the exception is not a bug it could be due to two things: manipulating a badly initialised object or breaking a program precondition. The bad initialisation problem might be prevented through the use of lazy evaluation to initialise objects. The breaking of preconditions could be avoided by giving the tester the ability to impose restrictions on the test data generator, so that preconditions for the program are respected. Being able to identify real program bugs during test data generation is an issue that will need further attention during the implementation of Flycatcher.
+In dynamic languages such as JavaScript, the function signatures bear no type information and this makes it difficult to know whether an exception is raised due to a wrongly typed test argument or a true program bug. In the case where the exception is not a bug it could be due to two things: manipulating a badly initialised object or breaking a program precondition. The bad initialisation problem might be prevented through the use of lazy evaluation to initialise objects. The breaking of preconditions could be avoided by giving the tester the ability to impose restrictions on the test data generator, so that preconditions for the program are respected. Being able to identify real program bugs during test data generation is an issue that will need further attention during the implementation of \textsf{Flycatcher}.
 
 \subsubsection{Dealing with dynamically generated code}
 
-Dynamic languages sometimes offer features that parse and evaluate a string at runtime and execute it as code, such as JavaScript's \texttt{eval} function. However, not only are these features potentially insecure, they make any analysis for test data generation much harder. As the general use of \texttt{eval} in JavaScript is prohibited anyway, we can safely ignore it for the purpose of Flycatcher.
+Dynamic languages sometimes offer features that parse and evaluate a string at runtime and execute it as code, such as JavaScript's \texttt{eval} function. However, not only are these features potentially insecure, they make any analysis for test data generation much harder. As the general use of \texttt{eval} in JavaScript is prohibited anyway, we can safely ignore it for the purpose of \textsf{Flycatcher}.
 
 \section{Object-oriented test case generation}
 Most of the research on test generation focuses on testing imperative functions, such that the automated generation required is that of the functions' input parameters. However, when dealing with object-oriented code, a different approach is needed, as the unit under test changes from a function to an object. To test one of an object's methods, three steps are necessary \cite{tonella2004evolutionary} and should be repeated until the chosen coverage criterion for the method under test is met.
@@ -303,9 +304,9 @@ Most of the research on test generation focuses on testing imperative functions,
 	\item Assert that the method under test returns the expected answer
 \end{enumerate}
 
-Because it is impossible to know how the application will use the class/object under test in reality, as many relevant test cases as possible must be tried in order to maximise the likelihood of finding a bug inside the class in question. Test coverage, the assessment measure that is used for our test case generation problem, is a good indicator of the relevance of test cases for a particular class and method under test. Hence, this measure can be used, as for the generation of input \emph{data}, as a search objective to guide the generation of \emph{method call sequences} for our test cases. Tonella was one of the first to use search-based methods for the generation of adequate OO test cases, using genetic algorithms as the search heuristics method \cite{tonella2004evolutionary}. Indeed, the procedure using genetic algorithms to generate input test data for Flycatcher described in ~\ref{subsubsec:ga_application} can simply be extended to the generation of object-oriented tests by adapting individuals so that they represent their structure.
+Because it is impossible to know how the application will use the class/object under test in reality, as many relevant test cases as possible must be tried in order to maximise the likelihood of finding a bug inside the class in question. Test coverage, the assessment measure that is used for our test case generation problem, is a good indicator of the relevance of test cases for a particular class and method under test. Hence, this measure can be used, as for the generation of input \emph{data}, as a search objective to guide the generation of \emph{method call sequences} for our test cases. Tonella was one of the first to use search-based methods for the generation of adequate OO test cases, using genetic algorithms as the search heuristics method \cite{tonella2004evolutionary}. Indeed, the procedure using genetic algorithms to generate input test data for \textsf{Flycatcher} described in ~\ref{subsubsec:ga_application} can simply be extended to the generation of object-oriented tests by adapting individuals so that they represent their structure.
 
-The code example below illustrates the type of object-oriented structural unit test that we aim to generate with Flycatcher (assuming a standard linked list implementation):
+The code example below illustrates the type of object-oriented structural unit test that we aim to generate with \textsf{Flycatcher} (assuming a standard linked list implementation):
 
 \begin{verbatim}
 l = new LinkedList
@@ -325,17 +326,97 @@ where \texttt{LinkedList} is the class under test (a JavaScript prototype) and \
 %create a sequence of methods leading to the method under test, it is the method under test which gives an assertion using its return value
 
 \section{JavaScript}
-%\subsection{Prominence}
+\subsection{Overview}
+
+JavaScript is a dynamic scripting language with weak, duck typing and first-class functions. It is multi-paradigm, supporting imperative and functional styles, as well as object-oriented programming through the use of objects and prototypes. Its original and primary use is by web browsers, where it enables websites to be dynamic. However, due to the development of fasters interpreters and compilers for the language, as well as libraries built upon them, it has become popular for a variety of applications and increasingly used in an object-oriented fashion to write more modular and reusable code.
+
+When used specifically within browsers, JavaScript programs come with certain characteristics, but since these are not the programs we are targeting, we will focus on the core of the language, as specified by the ECMA-262 standard\footnote{http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-262.pdf} --- although for the purpose of feasibility we will consider only a basic subset of it.
+
 \subsection{Idiosyncratic features}
+For the readers who are not familiar with the language, we present the characteristic features of JavaScript \cite{flanagan2006javascript} that are important in this project.
 
+\subsubsection{Types}
+Types in Javascript can be divided into two categories: \emph{primitive} types and \emph{object} types. The primitive types consist of \emph{Number}, \emph{Boolean} and \emph{String}, as well as \texttt{undefined} and \texttt{null} but the latter are particular as they are the only element of their type. Anything else in JavaScript will have the type \emph{object}. Generally, a JavaScript object is an unordered collection of named values, \emph{properties}, that can be stored or retrieved by name \emph{e.g.}:
 
-\subsection{Object-oriented programming}
+\begin{verbatim}
+	var foobar = { `foo' : 1,
+	               `bar' : 2 };
+	foobar.foo // prints 1
+	foobar.bar = 3
+	foobar.bar // prints 3
+\end{verbatim}
+
+JavaScript also has specialised objects, namely \emph{Arrays} and \emph{Functions}. Arrays are untyped, ordered collections of elements (primitives or objects) that can be accessed through a numerical index. Although arrays exhibit additional behaviour, they \emph{can} be thought of as mere objects whose properties happen to be integers.
+
+Functions however, although they are treated as first-class objects and can be stored in variables, differ significantly. They are defined as code blocks with parameters, local scope, an invocation context \texttt{this} and may return a value if invoked. Below are examples of a JavaScript function definition:
+
+\begin{verbatim}
+function add(a,b) {
+    return a + b;
+}
+\end{verbatim}
+\emph{or} equivalently
+\begin{verbatim}
+var add = function(a,b) {
+    return a + b;
+}
+\end{verbatim}
+
+An important feature of JavaScript however, is that it is dynamically typed, hence a variable cannot imply a type for its value and its type can change over time \emph{i.e.} the code below is correct:
+
+\begin{verbatim}
+var foo = "foo?";
+foo = 3;
+foo = [1,2,3];
+foo = function() {return "foo!"};
+foo(); // prints "foo!"
+\end{verbatim}
+
+Although JavaScript supports the object-oriented paradigm, the way it does so is quite different from most object-oriented languages and we will see that functions play an important part in it.
+
+\subsubsection{Object-oriented programming}
+
+JavaScript is known as a \emph{prototype-based} language, meaning that it does not have traditional class definitions to represent objects and create instances of them, but rather that object instances can be used as prototypes to construct other objects instances. That way, we can say, tying this back to classical OOP, that if two objects inherit properties from the same prototype object, they are instances of the same class. The role that functions have in this is that, usually, if two objects inherit properties from the same prototype object, it means that they have been created and initialised by the same function --- this function is known as their \emph{constructor}.
+
+A constructor is a function typically \emph{designed} for the initialisation of newly created objects. When called with the keyword \texttt{new}, their invocation context represents the object being created, hence they can initialise its properties by using the \texttt{this} keyword. An key feature of constructors is that their \texttt{prototype} property (an object) is used to initialise the object they construct --- the object \emph{inherits} from the prototype object which is why it is called prototype-based inheritance.
+
+To summarise, a class in JavaScript is defined by a constructor function\footnote{which is not technically different from standard functions except that it is \emph{intended} to be called with the \texttt{new} keyword} through two elements:
+
+\begin{enumerate}
+   \item its body, which initialises objects through accessing \texttt{this} (the class fields are defined here)
+   \item its \texttt{prototype} property, from which the constructed objects inherit all properties (the class methods are defined here)
+\end{enumerate}
+
+Below is an example of a simple class definition for a circle, to illustrate our explanation:
+
+\begin{verbatim}
+function Circle(radius) {
+    // the Circle class has a field named radius
+    this.radius = radius;
+}
+
+// the Circle class has a method getCircumference()
+Circle.prototype.getCircumference = function() {
+    return this.radius * Math.PI * 2;
+}
+
+var c1 = new Circle(1);
+var c2 = new Circle(2);
+
+c1.getCircumference() // prints approx. 6.28
+c2.getCircumference() // prints approx. 12.56
+
+\end{verbatim}
+
+In the example above, both \texttt{c1} and \texttt{c2} have a \texttt{radius} property (though initialised to different values) and a \texttt{getCircumference} function, as they were initialised with the same constructor --- we can say that they have the same class. In \textsf{Flycatcher}, classes are what we will use as the target unit for generating suites of unit tests.
+
+Finally, although classical OOP techniques such as subclassing, class hierarchies and encapsulation are all possible in JavaScript, we will not go into them for now.
 
 \chapter{Project plan}
 
 \section{Outline}
 \label{sec:project_outline}
-The plan for Flycatcher can be divided into roughly eight stages which are outlined below.
+The plan for \textsf{Flycatcher} can be divided into roughly eight stages which are outlined below.
 
 \begin{enumerate}
 	
@@ -343,9 +424,9 @@ The plan for Flycatcher can be divided into roughly eight stages which are outli
 	 
 	\item{\textbf{Random \emph{Data} Generators for primitive types}} Given the added difficulty of generating and initialising object instances to pass in as arguments to the various methods present in our test cases, these will be dealt with at a later stage. At this stage, random data generators will be developed for three of JavaScript's primitive types namely \emph{Boolean}, \emph{Number} and \emph{String}.
 
-	\item{\textbf{Test Case Executor}} In order to determine which generated test cases are worth keeping because they are appropriate for the a particular method under test \emph{or} if they contribute to test coverage, an execution environment must be developed. The goal of this environment is to track the coverage achieved by a series of generated test cases, dismissing test cases that are not yet adequate for the method under test or do not contribute to overall coverage. Developing this environment will most likely involve instrumenting programs under test with code to track the coverage achieved. Depending on their feasibility, either statement or branch coverage\footnote{it is worth noting that branch coverage is the stronger alternative of the two, although its implementation may be more involved} will constitute the coverage criterion for Flycatcher and will be tracked by the Test Case Executor.
+	\item{\textbf{Test Case Executor}} In order to determine which generated test cases are worth keeping because they are appropriate for the a particular method under test \emph{or} if they contribute to test coverage, an execution environment must be developed. The goal of this environment is to track the coverage achieved by a series of generated test cases, dismissing test cases that are not yet adequate for the method under test or do not contribute to overall coverage. Developing this environment will most likely involve instrumenting programs under test with code to track the coverage achieved. Depending on their feasibility, either statement or branch coverage\footnote{it is worth noting that branch coverage is the stronger alternative of the two, although its implementation may be more involved} will constitute the coverage criterion for \textsf{Flycatcher} and will be tracked by the Test Case Executor.
 
-	\item{\textbf{Random \emph{Test Case} Generator}} This step involves building a component that generates unit test cases randomly. The test cases will consist of individuals: a constructor call, a method call sequence ending with the method under test and the appropriate input data at each stage. The test cases that result from this module are bound to achieve poor coverage due to the low probability of exploring deep paths. Hence, this component will be used to benchmark the Flycatcher application.
+	\item{\textbf{Random \emph{Test Case} Generator}} This step involves building a component that generates unit test cases randomly. The test cases will consist of individuals: a constructor call, a method call sequence ending with the method under test and the appropriate input data at each stage. The test cases that result from this module are bound to achieve poor coverage due to the low probability of exploring deep paths. Hence, this component will be used to benchmark the \textsf{Flycatcher} application.
 	
 %Coverage feedback from the Test Case Executor will be used, not to improve the test cases as they are intrinsically random, but as a possible alternative to a time limit as a stopping criterion for the generation of tests --- the random approach is unlikely to achieve 100\% coverage and needs a condition to stop or it will run forever.
 
@@ -354,21 +435,21 @@ The plan for Flycatcher can be divided into roughly eight stages which are outli
 	\item{\textbf{Dealing with complex types}}
 At this stage we will introduce JavaScript complex types (\emph{Array} and \emph{Object}) as potential input parameters in our test generation tool. In an attempt to mimic the concept of lazy instantiation, complex types will be created empty and built up as required by the program. In the case of the Search-based Test Case Generator, the search heuristics will contribute to the creation of object instances of the correct dynamic types (as it did for the creation of correct primitive types).
 		
-	\item{\textbf{Extensions}} Currently, two possible extensions are envisaged for this project. The first one concerns the introduction of custom input data generators, such that testers can adapt the test data generation to their specific needs in order to achieve better code coverage. Secondly, given that we will use a dynamic approach which comes with a potentially high execution time, another extension would be to investigate and implement methods of speeding up the implementation of Flycatcher. Other extensions are of course possible and may come to light later on during the project.
+	\item{\textbf{Extensions}} Currently, two possible extensions are envisaged for this project. The first one concerns the introduction of custom input data generators, such that testers can adapt the test data generation to their specific needs in order to achieve better code coverage. Secondly, given that we will use a dynamic approach which comes with a potentially high execution time, another extension would be to investigate and implement methods of speeding up the implementation of \textsf{Flycatcher}. Other extensions are of course possible and may come to light later on during the project.
 		
 	\item{\textbf{Evaluation}}
-	The final stage will consist in evaluating the success of our project and its contribution to the state of the art. The next subsection will describe the intended evaluation process in more detail.
+	The final stage will consist in evaluating the success of our project and its contribution to the state of the art. The next section, ~\ref{sec:evaluation}, will describe the intended evaluation process in more detail.
 
 \end{enumerate}
 
 \section{Evaluation}
+\label{sec:evaluation}
+An evaluation of our system will need to be conducted towards the end of the project, involving experimentation with our automatic test generation tool. The random test case generation will be used as a benchmark for \textsf{Flycatcher}, which uses a search-based solution in order to achieve better coverage. To start off with, experiments will be run on a set of overall relatively straightforward programs of varying size, complexity and number/type of parameters. If the implementation of \textsf{Flycatcher} permits it, we will attempt to use our tool to test larger, real-life software such as JavaScript libraries.
 
-An evaluation of our system will need to be conducted towards the end of the project, involving experimentation with our automatic test generation tool. The random test case generation will be used as a benchmark for Flycatcher, which uses a search-based solution in order to achieve better coverage. To start off with, experiments will be run on a set of overall relatively straightforward programs of varying size, complexity and number/type of parameters. If the implementation of Flycatcher permits it, we will attempt to use our tool to test larger, real-life software such as JavaScript libraries.
-
-In order to constitute a success, Flycatcher would have to generate unit tests suite for, possibly restricted, JavaScript programs written in an object-oriented style \emph{i.e.} treating JavaScript \emph{prototypes} like classes in the traditional OO paradigm. Additionally, it should perform better using search-based test case generation than random generation and achieve reasonable coverage (statement or branch) compared to other similar applications. We will compare the performance of our tool to applications such as \textsc{RuTeG} which bear resemblances to it, in order to assess its performance from a more general perspective. Overall, the consistent test coverage achieved for programs of various complexities will be the main criterion used in order to evaluate Flycatcher and its contribution to the state of the art in automatic test case generation.
+In order to constitute a success, \textsf{Flycatcher} would have to generate unit tests suite for, possibly restricted, JavaScript programs written in an object-oriented style \emph{i.e.} treating JavaScript \emph{prototypes} like classes in the traditional OO paradigm. Additionally, it should perform better using search-based test case generation than random generation and achieve reasonable coverage (statement or branch) compared to other similar applications. We will compare the performance of our tool to applications such as \textsc{RuTeG} which bear resemblances to it, in order to assess its performance from a more general perspective. Overall, the consistent test coverage achieved for programs of various complexities will be the main criterion used in order to evaluate \textsf{Flycatcher} and its contribution to the state of the art in automatic test case generation.
 
 \section{Time-frame}
-Our aim is to complete at least steps 1 to 4 in section ~\ref{sec:project_outline} by the end of the spring term. During the spring holidays, not much progress will be made due to a focus on examinations. Hence, of the five weeks remaining after the examination period, the first two will be aimed at completing the section that deals with complex input data types (if it is not finished already), evaluation and looking at possible extensions if time permits. The three final weeks before project submission will be entirely devoted to putting the final report together.
+Our aim is to complete at least steps 1 to 4 in section ~\ref{sec:project_outline} by the end of the spring term. During the spring holidays, not much progress will be made due to a focus on examinations. Hence, of the five weeks remaining after the examination period, the first two will be aimed at completing the part that deals with complex input data types (if it is not finished already), evaluation and looking at possible extensions if time permits. The three final weeks before project submission will be entirely devoted to putting the final report together.
 
 \bibliographystyle{acm}
 \bibliography{interim}
