@@ -1,4 +1,4 @@
-load('../utils.js');
+load('utils.js');
 
 var Flycatcher = {};
 
@@ -199,10 +199,8 @@ for (var i=0; i<3; i++) {
     }
 };
 
-print(Flycatcher.stringifyTestCases(validTestCases));
-
-
-
-
-
+var testScenarios = Flycatcher.stringifyTestCases(validTestCases);
+var fileName = "Flycatcher_"+this.arguments[0]+".js";
+os.system("touch",[fileName]);
+dump(this)
 
