@@ -1,4 +1,4 @@
-README for Flycatcher
+Flycatcher
 =====================
 
 Notes
