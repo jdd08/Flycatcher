@@ -10,7 +10,13 @@ Notes
 Todo
 ----
 
+* modify burrito to return flag nodes when a Bar.prototype.MUT is reached and when that statement ends, same for this.MUT = ...
 * implement analyser for literal objects i.e. not created with a constructor
 * problem when method under test calls a function -- should it be part of the coverage? if so the burrito wrapping should be made quite sophisticated, in a way that a method is wrapped such that it conditionally logs coverage if it is called from the MUT (it could be called from another method in which case it should not contribute to the coverage measure)
 * getting the number of nodes from a method (and its possibly sub-methods) such that the coverage retrieved can be mapped onto a target set of nodes and coverage percentage can be returned for a MUT
 * Flycatcher assumes that the constructor of the CUT *does not crash* when used to instantiate an object -> however a no such method exception handler/undefined handler needs to be implemented for the parameters of the constructor so that it doesn't crash for that reason (these handlers need not do anything except prevent a crash - all that is needed at this stage is the signatures of the methods)
+
+// TODO compile the method under test only (whose definition can be gotten from a dynamic object)
+//      using this compiled version, encapsulate it in a Proxy and append the whole thing to the source
+//      the methods in the test must be called *on the proxy* the lines executed can be compared to the
+//      nodes collected when instrumenting the MUT
