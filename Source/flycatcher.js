@@ -1,8 +1,11 @@
 #!/usr/local/bin/node
 
 var dump = require('./utils.js').dump;
+var dumpf = require('./utils.js').dumpf;
 var vm = require('vm');
 var fs = require('fs');
+var bunker = require('bunker');
+var assert = require('assert');
 
 Analyser =
 {
@@ -11,10 +14,11 @@ Analyser =
         var classInfo = {};
         var arguments = process.argv;
         classInfo.className = arguments[2];
-        var classContext = {};
-        if (arguments[3]) {
 
-            var code = fs.readFileSync(arguments[3],'utf8');
+        var classContext = {};
+        if (arguments[4]) {
+
+            var code = fs.readFileSync(arguments[4],'utf8');
             vm.runInNewContext(code,classContext);
         }
         else {
@@ -31,7 +35,7 @@ Analyser =
             }
         }
         
-        var methods = [];
+        // retrieving constructor for the class under test
         var constructor = classContext[classInfo.className];
         var parameters = [];
         for (var i = 0; i<constructor.length; i++) {
@@ -39,12 +43,30 @@ Analyser =
             parameters.push(type);
         }
         classInfo.ctr = {func: constructor, params: parameters};
+        
+        // retrieving other methods for the class under test
+        
         // an instance of the class under test needs to be created in order
         // to retrieve the classe's method signatures
         var c = new (classInfo.ctr.func)();
+        
+        // 1. retrieving method under test
+        classInfo.mut = {};
+        var mut = arguments[3];
+        classInfo.mut.name = mut;
+        classInfo.mut.func = c[mut];
+        var paramTypes = [];
+        for (var i = 0; i<classInfo.mut.func.length; i++) {
+            var type = Analyser.inferType(member,i);
+            paramTypes.push(type);
+        }
+        classInfo.mut.paramTypes = paramTypes;
+
+        // 2. retrieving other methods
+        var methods = [];
         for(var m in c) {
             var member = c[m];
-            if(typeof member == "function") {
+            if(typeof member == "function" && m !== mut) {
                 var paramTypes = [];
                 for (var i = 0; i<member.length; i++) {
                     var type = Analyser.inferType(member,i);
@@ -58,8 +80,6 @@ Analyser =
     },
 
     inferType : function(func,param) {
-        //dump(func);
-        //dump(param);
         return "int";
     }
 }   
@@ -68,8 +88,8 @@ RandomDataGenerator =
 {
     generate : function(paramTypes) {
         function getRandomNumber() {
-            MAX_INT = 10000;
-            return Math.random()*MAX_INT;
+            MAX_INT = 100;
+            return Math.floor(Math.random()*MAX_INT);
         }
         function getRandomString() {
             MAX_LENGTH = 10;
@@ -125,21 +145,192 @@ RandomTestGenerator.generate = function(classInfo) {
                              func: method.func,
                              params: RandomDataGenerator.generate(method.paramTypes)});
     }
+    var mut = classInfo.mut;
+    methodSequence.push({name: mut.name,
+                         func: mut.func,
+                         params: RandomDataGenerator.generate(mut.paramTypes)})
     testCase.methodSequence = methodSequence;
     return testCase;
 }
 
 Executor =
 {
+    createProxy : function(cut,mut) {
+         Proxy.Handler = function(target) {
+           this.target = target;
+         };
+
+         Proxy.Handler.prototype = {
+
+           // == fundamental traps ==
+
+           // Object.getOwnPropertyDescriptor(proxy, name) -> pd | undefined
+           getOwnPropertyDescriptor: function(name) {
+             var desc = Object.getOwnPropertyDescriptor(this.target, name);
+             if (desc !== undefined) { desc.configurable = true; }
+             return desc;
+           },
+
+           // Object.getPropertyDescriptor(proxy, name) -> pd | undefined
+           getPropertyDescriptor: function(name) {
+             var desc = Object.getPropertyDescriptor(this.target, name);
+             if (desc !== undefined) { desc.configurable = true; }
+             return desc;
+           },
+
+           // Object.getOwnPropertyNames(proxy) -> [ string ]
+           getOwnPropertyNames: function() {
+             return Object.getOwnPropertyNames(this.target);
+           },
+
+           // Object.getPropertyNames(proxy) -> [ string ]
+           getPropertyNames: function() {
+             return Object.getPropertyNames(this.target);
+           },
+
+           // Object.defineProperty(proxy, name, pd) -> undefined
+           defineProperty: function(name, desc) {
+             return Object.defineProperty(this.target, name, desc);
+           },
+
+           // delete proxy[name] -> boolean
+           delete: function(name) { return delete this.target[name]; },
+
+           // Object.{freeze|seal|preventExtensions}(proxy) -> proxy
+           fix: function() {
+             // As long as target is not frozen, the proxy won't allow itself to be fixed
+             if (!Object.isFrozen(this.target)) {
+               return undefined;
+             }
+             var props = {};
+             Object.getOwnPropertyNames(this.target).forEach(function(name) {
+               props[name] = Object.getOwnPropertyDescriptor(this.target, name);
+             }.bind(this));
+             return props;
+           },
+
+           // == derived traps ==
+
+           // name in proxy -> boolean
+           has: function(name) { return name in this.target; },
+
+           // ({}).hasOwnProperty.call(proxy, name) -> boolean
+           hasOwn: function(name) { return ({}).hasOwnProperty.call(this.target, name); },
+
+           // proxy[name] -> any
+           get: function(receiver, name) { 
+               if(name === mut) {
+                   return bar.OMG;
+               }
+               else {
+                   return this.target[name];         
+               }
+           },
+
+           // proxy[name] = value
+           set: function(receiver, name, value) {
+            if (canPut(this.target, name)) { // canPut as defined in ES5 8.12.4 [[CanPut]]
+              this.target[name] = value;
+              return true;
+            }
+            return false; // causes proxy to throw in strict mode, ignore otherwise
+           },
+
+           // for (var name in proxy) { ... }
+           enumerate: function() {
+             var result = [];
+             for (var name in this.target) { result.push(name); };
+             return result;
+           },
+
+           /*
+           // if iterators would be supported:
+           // for (var name in proxy) { ... }
+           iterate: function() {
+             var props = this.enumerate();
+             var i = 0;
+             return {
+               next: function() {
+                 if (i === props.length) throw StopIteration;
+                 return props[i++];
+               }
+             };
+           },*/
+
+           // Object.keys(proxy) -> [ string ]
+           keys: function() { return Object.keys(this.target); }
+         };
+
+         var obj = {
+             test: function(){console.log("test");}, 
+             omg: function(){console.log("omg");}
+         };
+
+         var h = new Proxy.Handler(obj);
+         var p = Proxy.create(h);
+
+
+         function Bar() {
+             this.OMG = function() {
+             console.log("BAR");
+             }
+         }
+
+         var bar = new Bar();
+
+         p.test();
+         p.omg();
+    },
+
     execute : function(testCase) {
+        var b = bunker();
+        var src = fs.readFileSync('bar1.js','utf8');
+        
+        var cut = 'Bar';
+        var mut = "undertest1";
+        var instrMut = b.instrumentMUT(testCase.methodSequence[testCase.methodSequence.length-1].name,
+                                       testCase.methodSequence[testCase.methodSequence.length-1].func);
+        dump(instrMut)
+        var proxy = this.createProxy(cut,mut); // returns actual proxy object
+        
+        b.addSource(src);
+        b.addSource(instrMut);
+        b.addSource(proxy.src);
+        //dump(b.compile());
+
+        b.addTest(proxy.test);
+
+        /*var counts = {};
+
+        b.on('node', function (node) {
+            if (!counts[node.id]) {
+                counts[node.id] = { times : 0, node : node };
+            }
+            counts[node.id].times ++;
+        });
+
+        var bunkerContext = {assert: assert};
+        b.run(bunkerContext);
+
+        Object.keys(counts).forEach(function (key) {
+            var count = counts[key];
+            console.log(count.times + ' : ' + count.node.source() + " name: " + count.node.name + " line: " + count.node.start.line);
+            console.log(count.node.node)
+        })
+        
+        
+        
+        
         //console.log("Executing test case.........");
         var testObj = new (testCase.ctr.func)(testCase.ctr.params[0],testCase.ctr.params[1],testCase.ctr.params[2],testCase.ctr.params[3]);
+        dump(testObj)
         var methods = testCase.methodSequence;
         var result;
         for(var m=0; m<methods.length; m++) {
             result = methods[m].func.apply(testObj,methods[m].params);
         }
-        return result;
+        */
+        return "";
     }
 }
 
@@ -186,9 +377,9 @@ stringifyTestCases = function(testCases) {
     return string;
 }
 
-Analyser.classInfo = Analyser.getClassInfo(this);
+Analyser.classInfo = Analyser.getClassInfo();
 var validTestCases = [];
-for (var i=0; i<3; i++) {
+for (var i=0; i<1; i++) {
     var exploratoryTestCase = RandomTestGenerator.generate(Analyser.classInfo);
     var res = Executor.execute(exploratoryTestCase);
     if(res !== "FLYCATCHER_TEST_CRASH"){
