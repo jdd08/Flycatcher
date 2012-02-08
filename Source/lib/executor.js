@@ -1,111 +1,187 @@
+/*********** DISCLAIMER **************
 
-var fs = require('fs');
+    The code in this file is inspired
+    by/makes use of the unlicensed,
+    open source code available at the
+    time of edition, at:
+
+ https://github.com/substack/node-bunker
+
+***************************************/
+
 var dump = require('./utils.js').dump;
-var bunker = require('bunker');
-var assert = require('assert');
 
-function createTest(testCase,CUT,instrMUT) {
+var burrito = require('burrito');
+var vm = require('vm');
+var EventEmitter = require('events').EventEmitter;
 
-     function getConstructorCall(testCase) {
-         // func.name needs changing to a name property!
-         var constructor = testCase.ctr;
-         var call = "var o = new " + constructor.func.name + "(";
-         var params = constructor.params;
-         for(var j = 0; j<params.length; j++) {
-             call += params[j].toString();
-             if(j !== params.length-1) {
-                 call += ", ";
-             }
-         }
-         call += ");\n";
-         return call;
-     }
-     
-     function getMethodCalls(testCase) {
-         var string = "";
-         var methods = testCase.methodSequence;
-         for(var k = 0; k<methods.length; k++){
+module.exports = function () {
+    var b = new Executor();
+    return b;
+};
 
-             var method = methods[k];
-             string += "o.";
-             if(k !== methods.length-1) {
-                 string += method.name + "(";
-             }
-             else {
-                 string += "MUT" + "(";
-             }
-             params = method.params;
-             for(var l = 0; l<params.length; l++) {
-                 
-                 if(l !== params.length-1) {
-                     string += ", ";
-                 }
-             }
-             string += ");\n";
-         }
-         return string;
-     }
-
-     var test = getConstructorCall(testCase);
-     test += getMethodCalls(testCase);
-     return test;
+function Executor () {
+    this.source = "";
+    this.mut = "";
+    this.test = "";
+    this.nodes = [];
+    this.cov = [];
+    this.coverageNodes = {};
+    this.names = {
+        call : burrito.generateName(6),
+        expr : burrito.generateName(6),
+        stat : burrito.generateName(6)
+    };
 }
 
-exports.execute = function(testCase) {
-    var b = bunker();
-    var src = fs.readFileSync('bar1.js','utf8');
-    
-    var CUT = 'Bar';
-    var instrMUT = {};
-    instrMUT.name = "undertest1";
-    instr = b.instrumentMUT(testCase.methodSequence[testCase.methodSequence.length-1].name,
-                                     testCase.methodSequence[testCase.methodSequence.length-1].func,
-                                     CUT);
-    instrMUT.func = instr.r;
-    
+Executor.prototype = new EventEmitter;
+
+Executor.prototype.addSource = function (src) {
+    this.source = src;
+    return this;
+};
+
+Executor.prototype.setTest = function (test) {
+    this.test = test;
+    return this;
+};
+
+Executor.prototype.setMUT = function(classInfo) {
+    var nodes = this.nodes;
+    var names = this.names;
+    var cov = this.cov;
+    var def = classInfo.name + ".prototype.MUT = "+classInfo.mut.def;
+    var mut = burrito(def, function (node) {
+        var i = nodes.length;
+        if (node.name === 'call') {
+            nodes.push(node);
+            cov.push({src:node.source(),exec:false});
+            node.wrap(names.call + '(' + i + ')(%s)');
+        }
+        else if (node.name === 'stat' || node.name === 'throw'
+        || node.name === 'var') {
+            nodes.push(node);
+            cov.push({src:node.source(),exec:false});
+            node.wrap('{' + names.stat + '(' + i + ');%s}');
+        }
+        else if (node.name === 'binary') {
+            nodes.push(node);
+            cov.push({src:node.source(),exec:false});
+            node.wrap(names.expr + '(' + i + ')(%s)');
+        }
+        else if (node.name === 'unary-postfix' || node.name === 'unary-prefix') {
+            nodes.push(node);
+            cov.push({src:node.source(),exec:false});
+            node.wrap(names.expr + '(' + i + ')(%s)');
+        }
+        // if the node does not correspond to any of the node types above
+        // (like the very last one) no need to set its id as this node is
+        // effectively ignored (it is not pushed onto the nodes array)
+        if (i !== nodes.length) {
+            node.id = i;
+        }
+    });
+
     // ignoring the first node which contains the MUT definition
-    var nodeCoverage = instr.cov.slice(1);
+    this.mut = mut;
+    this.coverageNodes = cov.slice(1);
+}
 
-    //dump(nodeCoverage)
-    var test = createTest(testCase,CUT,instrMUT);
-    b.addSource(src);
-    b.addSource(instrMUT.func)
-    b.addSource(test);
-    //b.displaySource();
+Executor.prototype.getCoverageNodes = function() {
+    return this.coverageNodes;
+}
+
+Executor.prototype.assign = function (context) {
+    if (!context) context = {};
+    
+    var self = this;
+    var stack = [];
+    
+    context[self.names.call] = function (i) {
+        var node = self.nodes[i];
+        stack.unshift(node);
+        self.emit('node', node, stack);
+        
+        return function (expr) {
+            stack.shift();
+            return expr;
+        };
+    };
+    
+    context[self.names.expr] = function (i) {
+        var node = self.nodes[i];
+        self.emit('node', node, stack);
+        
+        return function (expr) {
+            return expr;
+        };
+    };
+    
+    context[self.names.stat] = function (i) {
+        var node = self.nodes[i];
+        self.emit('node', node, stack);
+    };
+    
+    return context;
+};
+    
+Executor.prototype.display = function() {
+    console.log('-------------- SOURCE -----------------');
+    console.log(this.source);
+    console.log('---------------------------------------');
+    console.log('-------------- MUT --------------------');
+    console.log(this.mut);
+    console.log('---------------------------------------');
+    console.log('-------------- TEST -------------------');
+    console.log(this.test);
+    console.log('---------------------------------------');    
+}
+
+function getCoverage(coverageNodes) {
+    var nodesCovered = [];
+    for (var n in coverageNodes) {
+        if (coverageNodes[n].exec) {
+            nodesCovered.push(n);
+        }
+    }
+    return nodesCovered;
+}
+
+Executor.prototype.execute = function() {
     var counts = {};
-
-    b.on('node', function (node) {
+    var coverageNodes = this.coverageNodes;
+    
+    // TODO: calculate before after coverage difference more efficiently
+    var nodesBefore = getCoverage(coverageNodes);
+    var good = false;
+    this.on('node', function (node) {
         if (!counts[node.id]) {
             counts[node.id] = { times : 0, node : node };
         }
         counts[node.id].times ++;
     });
-
-    var bunkerContext = {};
-    bunkerContext.assert = assert;
-    b.run(bunkerContext);
-
+    
+    var res = this.run();
     Object.keys(counts).forEach(function (key) {
         if(key > '0'){
             var count = counts[key];
-            console.log(key + ' : ' + count.node.source() + " name: " + count.node.name + " line: " + count.node.start.line);
-
+            // console.log(key + ' : ' + count.node.source() + " name: " + count.node.name + " line: " + count.node.start.line);
             // relevant nodes are indexed from 1 but the array starts from 0 for convenience
-            nodeCoverage[key-1].exec = true;
+            coverageNodes[key-1].exec = true;
         }
-        //console.log(count.node.node)
     })
-    dump(nodeCoverage)
-    dump("Current coverage of the mut: ")
-
-    /*//console.log("Executing test case.........");
-    var testObj = new (testCase.ctr.func)(testCase.ctr.params[0],testCase.ctr.params[1],testCase.ctr.params[2],testCase.ctr.params[3]);
-    dump(testObj)
-    var methods = testCase.methodSequence;
-    var result;
-    for(var m=0; m<methods.length; m++) {
-        result = methods[m].func.apply(testObj,methods[m].params);
-    }
-    */
-    return "";
+    var nodesAfter = getCoverage(coverageNodes);
+    return {good : !(nodesAfter.length === nodesBefore.length), result : res};
 }
+
+Executor.prototype.run = function (context) {
+    var src = this.source + '\n' + this.mut + '\n' + this.test;
+    if (!this.mut) {
+        console.warn("Warning: Executor.mut is an empty string")
+    }
+    if (!this.mut) {
+        console.warn("Warning: Executor.test is an empty string")
+    }
+    var res = vm.runInNewContext(src, this.assign(context));
+    return res;
+};

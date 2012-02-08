@@ -1,6 +1,6 @@
 var doNothing = function(a){a++; return a;};
 
-function Bar(x,y) {
+var Bar = function (x,y) {
     this.x = x; 
     this.y = y;
     

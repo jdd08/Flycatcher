@@ -7,7 +7,7 @@ function inferType(func,param) {
     return "int";
 }
 
-exports.getClassInfo = function(commander,classContext,className) {
+exports.getClassInfo = function(commander,classContext,className,mutName) {
     
     // retrieving constructor for the class under test
     var constructor = classContext[className];
@@ -33,16 +33,21 @@ exports.getClassInfo = function(commander,classContext,className) {
     var methods = [];
     for(var m in c) {
         var member = c[m];
-        if(typeof member == "function") {
+        if(typeof member == "function" && m !== mutName) {
             var methodParams = [];
             for (var i = 0; i<member.length; i++) {
                 var type = inferType(member,i);
                 methodParams.push(type);
             }
-            var methods = {};
-            methods[m] = {def: c[m], params: methodParams};
+            methods.push({name: m, def: c[m], params: methodParams});
         }
     }
-
-    return { ctr : ctr, methods : methods };
+    var mutDef = c[mutName];
+    var mutParams = [];
+    for (var i = 0; i<mutDef.length; i++) {
+        var type = inferType(mutDef,i);
+        mutParams.push(type);
+    }
+    var mut = {name : mutName, def: mutDef, params: mutParams};
+    return { name: className, ctr : ctr, methods : methods, mut: mut };
 }

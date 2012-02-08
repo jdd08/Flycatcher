@@ -16,4 +16,4 @@ Todo
 * getting the number of nodes from a method (and its possibly sub-methods) such that the coverage retrieved can be mapped onto a target set of nodes and coverage percentage can be returned for a MUT
 * Flycatcher assumes that the constructor of the CUT *does not crash* when used to instantiate an object -> however a no such method exception handler/undefined handler needs to be implemented for the parameters of the constructor so that it doesn't crash for that reason (these handlers need not do anything except prevent a crash - all that is needed at this stage is the signatures of the methods)
 
-=> current command line: node --harmony_proxies flycatcher.js Bar undertest1 bar1.js
+=> current command line: ./flycatcher.js examples/bar1.js Bar -m undertest1 -c 50
