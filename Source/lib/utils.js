@@ -1,13 +1,13 @@
-exports.dump = function(elem) {
-    console.log(dumpObj(elem,0));
-}
-
-exports.dumpf = function(elem) {
-    console.log(dumpfObj(elem,0));
-}
-
-exports.retdump = function(elem) {
-    return dumpObj(elem,0);
+exports.dump = function(elem,type) {
+    if (!type) {
+        console.log(dumpObj(elem,0));        
+    }
+    else if (type === "f") {
+        console.log(dumpfObj(elem,0));        
+    }
+    else if (type === "r") {
+        return dumpObj(elem,0);
+    }
 }
 
 var dumpObj = function(elem,level) {
