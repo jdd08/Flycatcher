@@ -156,113 +156,6 @@ RandomTestGenerator.generate = function(classInfo) {
 Executor =
 {
     createTest : function(testCase,CUT,instrMUT) {
-        function adaptProxyProto(CUT,instrMUT) {
-            
-            Proxy.Handler = function(target) {
-              this.target = target;
-            };
-            Proxy.Handler.prototype = {
-
-              // == fundamental traps ==
-
-              // Object.getOwnPropertyDescriptor(proxy, name) -> pd | undefined
-              getOwnPropertyDescriptor: function(name) {
-                var desc = Object.getOwnPropertyDescriptor(this.target, name);
-                if (desc !== undefined) { desc.configurable = true; }
-                return desc;
-              },
-
-              // Object.getPropertyDescriptor(proxy, name) -> pd | undefined
-              getPropertyDescriptor: function(name) {
-                var desc = Object.getPropertyDescriptor(this.target, name);
-                if (desc !== undefined) { desc.configurable = true; }
-                return desc;
-              },
-
-              // Object.getOwnPropertyNames(proxy) -> [ string ]
-              getOwnPropertyNames: function() {
-                return Object.getOwnPropertyNames(this.target);
-              },
-
-              // Object.getPropertyNames(proxy) -> [ string ]
-              getPropertyNames: function() {
-                return Object.getPropertyNames(this.target);
-              },
-
-              // Object.defineProperty(proxy, name, pd) -> undefined
-              defineProperty: function(name, desc) {
-                return Object.defineProperty(this.target, name, desc);
-              },
-
-              // delete proxy[name] -> boolean
-              delete: function(name) { return delete this.target[name]; },
-
-              // Object.{freeze|seal|preventExtensions}(proxy) -> proxy
-              fix: function() {
-                // As long as target is not frozen, the proxy won't allow itself to be fixed
-                if (!Object.isFrozen(this.target)) {
-                  return undefined;
-                }
-                var props = {};
-                Object.getOwnPropertyNames(this.target).forEach(function(name) {
-                  props[name] = Object.getOwnPropertyDescriptor(this.target, name);
-                }.bind(this));
-                return props;
-              },
-
-              // == derived traps ==
-
-              // name in proxy -> boolean
-              has: function(name) { return name in this.target; },
-
-              // ({}).hasOwnProperty.call(proxy, name) -> boolean
-              hasOwn: function(name) { return ({}).hasOwnProperty.call(this.target, name); },
-
-              // proxy[name] -> any
-              get: function(receiver, name) { 
-                  if(name === instrMUT.name) {
-                      //return instrMUT.func;
-                      return "MUT";
-                  }
-                  else {
-                      return this.target[name];         
-                  }
-              },
-
-              // proxy[name] = value
-              /*set: function(receiver, name, value) {
-               if (canPut(this.target, name)) { // canPut as defined in ES5 8.12.4 [[CanPut]]
-                 this.target[name] = value;
-                 return true;
-               }
-               return false; // causes proxy to throw in strict mode, ignore otherwise
-              },*/
-
-              // for (var name in proxy) { ... }
-              enumerate: function() {
-                var result = [];
-                for (var name in this.target) { result.push(name); };
-                return result;
-              },
-
-              /*
-              // if iterators would be supported:
-              // for (var name in proxy) { ... }
-              iterate: function() {
-                var props = this.enumerate();
-                var i = 0;
-                return {
-                  next: function() {
-                    if (i === props.length) throw StopIteration;
-                    return props[i++];
-                  }
-                };
-              },*/
-
-              // Object.keys(proxy) -> [ string ]
-              keys: function() { return Object.keys(this.target); }
-            };
-        }
 
          function getConstructorCall(testCase) {
              // func.name needs changing to a name property!
@@ -305,9 +198,6 @@ Executor =
          }
 
          var test = getConstructorCall(testCase);
-         //var proxy = adaptProxyProto(CUT,instrMUT);
-         //test += "var h = new Proxy.Handler(o);\n"
-         //test += "var p = Proxy.create(h);\n"
          test += getMethodCalls(testCase);
          return test;
     },
