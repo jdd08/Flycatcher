@@ -35,7 +35,7 @@ Circle.prototype.doubleRadius = doubleRadius;
 
 function getMultiplyRadius() {
     function multiplyRadius(n) {
-        this.radius = this.radius * 3;
+        this.radius = this.radius * n;
     }
     return multiplyRadius;
 }

@@ -156,6 +156,113 @@ RandomTestGenerator.generate = function(classInfo) {
 Executor =
 {
     createTest : function(testCase,CUT,instrMUT) {
+        function adaptProxyProto(CUT,instrMUT) {
+            
+            Proxy.Handler = function(target) {
+              this.target = target;
+            };
+            Proxy.Handler.prototype = {
+
+              // == fundamental traps ==
+
+              // Object.getOwnPropertyDescriptor(proxy, name) -> pd | undefined
+              getOwnPropertyDescriptor: function(name) {
+                var desc = Object.getOwnPropertyDescriptor(this.target, name);
+                if (desc !== undefined) { desc.configurable = true; }
+                return desc;
+              },
+
+              // Object.getPropertyDescriptor(proxy, name) -> pd | undefined
+              getPropertyDescriptor: function(name) {
+                var desc = Object.getPropertyDescriptor(this.target, name);
+                if (desc !== undefined) { desc.configurable = true; }
+                return desc;
+              },
+
+              // Object.getOwnPropertyNames(proxy) -> [ string ]
+              getOwnPropertyNames: function() {
+                return Object.getOwnPropertyNames(this.target);
+              },
+
+              // Object.getPropertyNames(proxy) -> [ string ]
+              getPropertyNames: function() {
+                return Object.getPropertyNames(this.target);
+              },
+
+              // Object.defineProperty(proxy, name, pd) -> undefined
+              defineProperty: function(name, desc) {
+                return Object.defineProperty(this.target, name, desc);
+              },
+
+              // delete proxy[name] -> boolean
+              delete: function(name) { return delete this.target[name]; },
+
+              // Object.{freeze|seal|preventExtensions}(proxy) -> proxy
+              fix: function() {
+                // As long as target is not frozen, the proxy won't allow itself to be fixed
+                if (!Object.isFrozen(this.target)) {
+                  return undefined;
+                }
+                var props = {};
+                Object.getOwnPropertyNames(this.target).forEach(function(name) {
+                  props[name] = Object.getOwnPropertyDescriptor(this.target, name);
+                }.bind(this));
+                return props;
+              },
+
+              // == derived traps ==
+
+              // name in proxy -> boolean
+              has: function(name) { return name in this.target; },
+
+              // ({}).hasOwnProperty.call(proxy, name) -> boolean
+              hasOwn: function(name) { return ({}).hasOwnProperty.call(this.target, name); },
+
+              // proxy[name] -> any
+              get: function(receiver, name) { 
+                  if(name === instrMUT.name) {
+                      //return instrMUT.func;
+                      return "MUT";
+                  }
+                  else {
+                      return this.target[name];         
+                  }
+              },
+
+              // proxy[name] = value
+              /*set: function(receiver, name, value) {
+               if (canPut(this.target, name)) { // canPut as defined in ES5 8.12.4 [[CanPut]]
+                 this.target[name] = value;
+                 return true;
+               }
+               return false; // causes proxy to throw in strict mode, ignore otherwise
+              },*/
+
+              // for (var name in proxy) { ... }
+              enumerate: function() {
+                var result = [];
+                for (var name in this.target) { result.push(name); };
+                return result;
+              },
+
+              /*
+              // if iterators would be supported:
+              // for (var name in proxy) { ... }
+              iterate: function() {
+                var props = this.enumerate();
+                var i = 0;
+                return {
+                  next: function() {
+                    if (i === props.length) throw StopIteration;
+                    return props[i++];
+                  }
+                };
+              },*/
+
+              // Object.keys(proxy) -> [ string ]
+              keys: function() { return Object.keys(this.target); }
+            };
+        }
 
          function getConstructorCall(testCase) {
              // func.name needs changing to a name property!
@@ -212,13 +319,20 @@ Executor =
         var CUT = 'Bar';
         var instrMUT = {};
         instrMUT.name = "undertest1";
-        instrMUT.func  = b.instrumentMUT(testCase.methodSequence[testCase.methodSequence.length-1].name,
-                                          testCase.methodSequence[testCase.methodSequence.length-1].func);
+        instr = b.instrumentMUT(testCase.methodSequence[testCase.methodSequence.length-1].name,
+                                         testCase.methodSequence[testCase.methodSequence.length-1].func,
+                                         CUT);
+        instrMUT.func = instr.r;
+        
+        // ignoring the first node which contains the MUT definition
+        var nodeCoverage = instr.cov.slice(1);
+
+        //dump(nodeCoverage)
         var test = this.createTest(testCase,CUT,instrMUT);
         b.addSource(src);
         b.addSource(instrMUT.func)
         b.addSource(test);
-        b.displaySource();
+        //b.displaySource();
         var counts = {};
 
         b.on('node', function (node) {
@@ -230,17 +344,20 @@ Executor =
 
         var bunkerContext = {};
         bunkerContext.assert = assert;
-        /*bunkerContext.Proxy = {};
-        bunkerContext.Proxy.create = Proxy.create;
-        bunkerContext.Proxy.createFunction = Proxy.createFunction;
-        bunkerContext.Proxy.Handler = Proxy.Handler;*/
         b.run(bunkerContext);
 
         Object.keys(counts).forEach(function (key) {
-            var count = counts[key];
-            console.log(count.times + ' : ' + count.node.source() + " name: " + count.node.name + " line: " + count.node.start.line);
-            console.log(count.node.node)
+            if(key > '0'){
+                var count = counts[key];
+                console.log(key + ' : ' + count.node.source() + " name: " + count.node.name + " line: " + count.node.start.line);
+
+                // relevant nodes are indexed from 1 but the array starts from 0 for convenience
+                nodeCoverage[key-1].exec = true;
+            }
+            //console.log(count.node.node)
         })
+        dump(nodeCoverage)
+        dump("Coverage achieved by this test: ")
         
         /*//console.log("Executing test case.........");
         var testObj = new (testCase.ctr.func)(testCase.ctr.params[0],testCase.ctr.params[1],testCase.ctr.params[2],testCase.ctr.params[3]);
