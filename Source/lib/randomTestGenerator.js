@@ -1,10 +1,10 @@
 var randomDataGenerator = require('./randomDataGenerator.js');
 var dump = require('./utils').dump;
 
-function TestCase(ctr,callSequence,mutParams) {
+function TestCase(ctr,callSequence,mut) {
     this.ctr = ctr;
     this.callSequence = callSequence;
-    this.mutParams = mutParams;
+    this.mut = mut;
 }
 
 TestCase.prototype.getConstructorCall = function() {
@@ -39,10 +39,24 @@ TestCase.prototype.getMethodCalls = function() {
     return string;
 }
 
-TestCase.prototype.getMutCall = function() {
+TestCase.prototype.getDummyMutCall = function() {
     // adding call to MUT
     var string = "o.MUT(";
-    params = this.mutParams;
+    params = this.mut.params;
+    for(var l = 0; l<params.length; l++) {
+        string += params[l].toString();
+        if(l !== params.length-1) {
+            string += ", ";
+        }
+    }
+    string += ")";
+    return string;
+}
+
+TestCase.prototype.getRealMutCall = function() {
+    // adding call to MUT
+    var string = "o." + this.mut.name + "(";
+    params = this.mut.params;
     for(var l = 0; l<params.length; l++) {
         string += params[l].toString();
         if(l !== params.length-1) {
@@ -56,15 +70,14 @@ TestCase.prototype.getMutCall = function() {
 TestCase.prototype.toExecutorFormat = function() {
     var test = this.getConstructorCall();
     test += this.getMethodCalls();
-    test += this.getMutCall() + ";\n";
+    test += this.getDummyMutCall() + ";\n";
     return test;
 }
 
 TestCase.prototype.toUnitTestFormat = function(result) {
-    var test = "//UNIT TEST FORMAT\n";
-    test += this.getConstructorCall();
+    var test = this.getConstructorCall();
     test += this.getMethodCalls();
-    test += "assert(" + this.getMutCall() + " === " + result + ");";
+    test += "assert(" + this.getRealMutCall() + " === " + result + ");";
     return test;
 }
 
@@ -82,7 +95,7 @@ exports.generate = function(classInfo) {
         callSequence.push({name: method.name,
                            params: randomDataGenerator.generate(method.params)});
     }
-    var mutParams = randomDataGenerator.generate(classInfo.mut.params)
-    
-    return new TestCase(ctr,callSequence,mutParams);
+    var mut = {params : randomDataGenerator.generate(classInfo.mut.params),
+               name : classInfo.mut.name};
+    return new TestCase(ctr,callSequence,mut);
 }

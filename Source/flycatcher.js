@@ -13,7 +13,7 @@ commander
   .version('1.0')
   .usage('[options] <file path> <class name>')
   .option('-m, --method <name>', 'generate tests for a specific method of the given class')
-  .option('-c, --coverage_max <num>', 'maximum percentage for method coverage',Number,60)
+  .option('-c, --coverage_max <num>', 'maximum percentage for method coverage',Number,100)
   .parse(process.argv);
 
 if (commander.args.length !== 2) {
@@ -41,25 +41,25 @@ exec.addSource(src);
 
 // method under test has been specified
 if (commander.method) {
-
     var mutName = commander.method;
     var classInfo = analyser.getClassInfo(commander,classContext,className,mutName);
     exec.setMUT(classInfo);
 
-    //while(measureCoverage(coverageNodes) < commander.max_coverage) {
-    var goodTestScenarios = []
-    for(var i = 0; i<3; i++) {
+    process.stdout.write("\nGenerating tests for at least " + commander.coverage_max + "\% coverage of ");
+    process.stdout.write("method <" + commander.method + "> from class <" + className + "> : ");
+    var goodTestScenarios = [];
+    while(exec.getMutCoverage() < commander.coverage_max) {
         var test = randomTestGenerator.generate(classInfo);
         exec.setTest(test.toExecutorFormat());
-        var res = exec.execute();
+        var res = exec.run();
         if (res.good) {
             goodTestScenarios.push(test.toUnitTestFormat(res.result));
         }
     }
-
     var fileName = "Flycatcher_"+className+".js";
+    console.log("(" + res.cov + "\%)\nGeneration succesful. Tests can be found in " + fileName + "\n");
     fs.writeFileSync(fileName,goodTestScenarios.join('\n\n'));
 }
 else { // by default generates tests for all of a class' methods
-    
+
 }

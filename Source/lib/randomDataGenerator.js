@@ -1,7 +1,7 @@
 
 exports.generate = function(paramTypes) {
     function getRandomNumber() {
-        MAX_INT = 100;
+        MAX_INT = 700;
         return Math.floor(Math.random()*MAX_INT);
     }
     function getRandomString() {

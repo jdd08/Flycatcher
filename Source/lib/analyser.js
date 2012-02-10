@@ -12,7 +12,7 @@ exports.getClassInfo = function(commander,classContext,className,mutName) {
     // retrieving constructor for the class under test
     var constructor = classContext[className];
     if (!constructor) {
-        console.error("Error: specified class could not be found in given file");
+        console.error("Error: specified class <" + className + "> was not found");
         console.error("(see README for information on recognised class definitions)");
         console.info(commander.helpInformation());
         process.exit(1);
@@ -43,6 +43,12 @@ exports.getClassInfo = function(commander,classContext,className,mutName) {
         }
     }
     var mutDef = c[mutName];
+    if (!mutDef) {
+        console.error("Error: specified method <" + mutName + "> was not found in class <"+ className +">");
+        console.error("(see README for information on recognised class definitions)");
+        console.info(commander.helpInformation());
+        process.exit(1);
+    }
     var mutParams = [];
     for (var i = 0; i<mutDef.length; i++) {
         var type = inferType(mutDef,i);
