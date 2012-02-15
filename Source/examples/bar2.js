@@ -1,4 +1,35 @@
-function Bar(x,y,z,a,b,c) {
+var Test = function (x,y,z,a,b,c) {
+    this.x = x; 
+    this.y = y;
+    this.z = z; 
+    this.a = a;
+    this.b = b;
+    this.c = c;
+};
+
+Test.prototype.TEST = function(a) {
+    
+}
+
+function omg(){
+    this.omgomg = function() {
+        
+    };
+};
+
+omg.prototype.omgomgomg = function() {
+    
+}
+
+var test = "a";
+
+if (test) {
+    var b = new omg();
+}
+
+asda = "asda";
+
+var Bar = function (x,y,z,a,b,c) {
     this.x = x; 
     this.y = y;
     this.z = z; 

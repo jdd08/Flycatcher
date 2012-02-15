@@ -7,29 +7,29 @@ var executor = require('./lib/executor.js');
 
 var fs = require('fs');
 var vm = require('vm');
-var commander = require('commander');
+var cmd = require('commander');
 
-commander
+cmd
   .version('1.0')
   .usage('[options] <file path> <class name>')
   .option('-m, --method <name>', 'generate tests for a specific method of the given class')
   .option('-c, --coverage_max <num>', 'maximum percentage for method coverage',Number,100)
   .parse(process.argv);
 
-if (commander.args.length !== 2) {
-    console.info(commander.helpInformation());
+if (cmd.args.length !== 2) {
+    console.info(cmd.helpInformation());
     process.exit(1);
 }
 
-var filePath = commander.args[0];
-var className = commander.args[1];
+var filePath = cmd.args[0];
+var className = cmd.args[1];
 
 try {
     var src = fs.readFileSync(filePath,'utf8');
 }
 catch (error) {
     console.error(error.toString());
-    console.info(commander.helpInformation());
+    console.info(cmd.helpInformation());
     process.exit(1);
 }
 
@@ -40,22 +40,22 @@ var exec = executor();
 exec.addSource(src);
 
 // method under test has been specified
-if (commander.method) {
-    var mutName = commander.method;
-    var classInfo = analyser.getClassInfo(commander,classContext,className,mutName);
-    exec.setMUT(classInfo);
+if (cmd.method) {
+    var classes = analyser.getClasses(cmd,classContext,className,cmd.method);    
+    var cut = classes[className];
+    exec.setMUT(cut);
 
-    process.stdout.write("\nGenerating tests for at least " + commander.coverage_max + "\% coverage of ");
-    process.stdout.write("method <" + commander.method + "> from class <" + className + "> : ");
+    process.stdout.write("\nGenerating tests for at least " + cmd.coverage_max + "\% coverage of ");
+    process.stdout.write("method <" + cmd.method + "> from class <" + className + "> : ");
     var goodTestScenarios = [];
-    while(exec.getMutCoverage() < commander.coverage_max) {
-        var test = randomTestGenerator.generate(classInfo);
+    //while(exec.getMutCoverage() < cmd.coverage_max) {
+        var test = randomTestGenerator.generate(classes,className);
         exec.setTest(test.toExecutorFormat());
         var res = exec.run();
-        if (res.good) {
+      //  if (res.good) {
             goodTestScenarios.push(test.toUnitTestFormat(res.result));
-        }
-    }
+    //    }
+    //}
     var fileName = "Flycatcher_"+className+".js";
     console.log("(" + res.cov + "\%)\nGeneration succesful. Tests can be found in " + fileName + "\n");
     fs.writeFileSync(fileName,goodTestScenarios.join('\n\n'));

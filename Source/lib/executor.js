@@ -28,6 +28,10 @@ function Executor () {
     this.coverage = [];
     this.nodeNum = 0;
     this.currentCov = 0;
+
+    // only used when the mut is not specified
+    this.mutIndex = 0;
+
     this.names = {
         call : burrito.generateName(6),
         expr : burrito.generateName(6),
@@ -37,6 +41,7 @@ function Executor () {
     
     this.on('node', function (node) {
         // -1 is because we ignore the first node (the MUT definition)
+        
         this.coverage[node.id-1] = true;
         //console.log(node.id + ": " + node.source())
     });
@@ -54,21 +59,28 @@ Executor.prototype.getMutCoverage = function() {
     return this.currentCov;
 }
 
-Executor.prototype.addSource = function (src) {
+Executor.prototype.addSource = function(src) {
     this.source = src;
     return this;
 };
 
-Executor.prototype.setTest = function (test) {
+Executor.prototype.setTest = function(test) {
     this.test = test;
     return this;
 };
 
-Executor.prototype.setMUT = function(classInfo) {
+Executor.prototype.setMUT = function(classInfo,index) {
     var nodes = this.nodes;
     var names = this.names;
     var n = 0;
-    var def = classInfo.name + ".prototype.MUT = "+classInfo.mut.def;
+    var mutDef = "";
+    if (index) {
+        mutDef = classInfo.methods[index].def;
+    }
+    else {
+        mutDef = classInfo.methods.filter(function(x){return x.mut})[0].def;
+    }
+    var def = classInfo.name + ".prototype.MUT = " + mutDef;
     var mut = burrito(def, function (node) {
         var i = nodes.length;
         if (node.name === 'call') {

@@ -1,5 +1,8 @@
+var _ = require('underscore');
+var dump = require('./utils').dump;
 
-exports.generate = function(paramTypes) {
+exports.generate = function(classes,params) {
+    
     function getRandomNumber() {
         MAX_INT = 700;
         return Math.floor(Math.random()*MAX_INT);
@@ -17,27 +20,29 @@ exports.generate = function(paramTypes) {
     function getRandomBoolean() {
         return Math.floor(Math.random()*2) === 1;
     }
-    function getRandomValueFromType(type) {
-        var randomValue;
-        switch(type) {
-            case "int": {
-                randomValue = getRandomNumber();
-                break;
-            }
-            case "string": {
-                randomValue = getRandomString();
-                break;
-            }
-            case "boolean": {
-                randomValue = getRandomBoolean();
-                break;
+    function inferType(methods) {
+        var currentMatches = 0;
+        var name = "";
+        var paramTypes = [];
+        for(var c in classes) {
+            var classMethods = classes[c].methods;
+            var matches = _.intersection(_.pluck(classMethods,"name"),methods).length;
+            if (matches > currentMatches) {
+                currentMatches = matches;
+                name = classes[c].ctr.def.name;
+                ctrParams = classes[c].ctr.params;
+                for (var p in ctrParams) {
+                    paramTypes.push(inferType(ctrParams[p]))
+                }
             }
         }
-        return randomValue;
+        if (currentMatches === 0) name = "Number";
+        return {name : name, params : paramTypes};
     }
+    
     var randomParams = [];
-    for(var i = 0; i<paramTypes.length; i++) {
-        randomParams[i] = getRandomValueFromType(paramTypes[i]);
+    for(var i = 0; i<params.length; i++) {
+        randomParams[i] = inferType(params[i]);
     }
     return randomParams;
 }
