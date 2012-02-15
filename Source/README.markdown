@@ -3,7 +3,7 @@ Flycatcher
 
 Todo
 ----
-* use Proxy to catch method calls and fill in the parameters method lists so that they can be instantiated to the appropriate class
+* use Proxy to catch method calls and fill in the parameters' method lists so that they can be instantiated to the appropriate class
 
 Issues
 ----
