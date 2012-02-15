@@ -1,4 +1,4 @@
-var randomDataGenerator = require('./randomDataGenerator.js');
+var randomData = require('./randomData.js');
 var dump = require('./utils').dump;
 var _ = require('underscore');
 
@@ -49,12 +49,32 @@ function Mut(instanceIdentifier,methodName,params) {
     }
 }
 
+
+function isPrimitive(type) {
+    return type === "Number" ||
+           type === "String" ||
+           type === "Boolean";
+}
+
 function translateParams(params,ids) {
     var ret = "";
     for (var i in params) {
         var p = params[i];
-        ret += p.name.toLowerCase();
-        ret += ids[i];
+        var type = p.name;
+        if(isPrimitive(type)) {
+            switch(type) {
+                case "Number" : ret += randomData.getNum();
+                                break;
+                case "Boolean" : ret += randomData.getBool();
+                                 break;
+                case "String" : ret += randomData.getString();;
+                                break;
+                default : throw new("Unknown primtive type");
+            }
+        }
+        else {
+            ret += p.name.toLowerCase() + ids[i];            
+        }
         if(i < params.length-1) {
             ret += ","
         }
@@ -66,13 +86,16 @@ function Test() {
     this.stack = [];
 }
 
-Test.prototype.push = function(elem,isMut) {
+Test.prototype.push = function(elem) {
     var params = elem.params;
     var ids = [];
     for(var p in params) {
         var id = _.uniqueId();
         ids.push(id);
-        this.push(new Declaration(params[p].name,params[p].params,id));
+        var type = params[p].name;
+        if(!isPrimitive(type)) {
+            this.push(new Declaration(type,params[p].params,id));   
+        }
     }
     this.stack.push(elem.translate(ids));
 }
@@ -88,13 +111,16 @@ exports.generate = function(classes,className,index) {
     MAX_SEQUENCE_LENGTH = 10;
 
     
-    var parameters = randomDataGenerator.generate(classes,classInfo.ctr.params);
+    var parameters = randomData.generate(classes,classInfo.ctr.params);
 
     var t = new Test();
 
     var instance = new Declaration(classInfo.name,parameters,_.uniqueId());
+    
     t.push(instance);
-
+    console.log()
+    t.show();
+    
     var callSequence = [];
     randomSequenceLength = Math.ceil(Math.random()*MAX_SEQUENCE_LENGTH);
     for (var j = 0; j<randomSequenceLength;j++) {
@@ -105,7 +131,7 @@ exports.generate = function(classes,className,index) {
         var method = classInfo.methods[randomMethod];
         var call = new Call(instance.getIdentifier(),
                             method.name,
-                            randomDataGenerator.generate(classes,method.params));
+                            randomData.generate(classes,method.params));
         t.push(call);
     }
 
@@ -122,7 +148,7 @@ exports.generate = function(classes,className,index) {
     }
     var mut = new Mut(instance.getIdentifier(),
                        mutName,
-                       randomDataGenerator.generate(classes,mutParams));
+                       randomData.generate(classes,mutParams));
     t.push(mut);
     return t;
 }

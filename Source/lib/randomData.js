@@ -36,7 +36,18 @@ exports.generate = function(classes,params) {
                 }
             }
         }
-        if (currentMatches === 0) name = "Number";
+        if (currentMatches === 0) {
+            var r = Math.floor(Math.random()*3);
+            if (r === 0) {
+                name = "Number";
+            }
+            else if (r === 1) {
+                name = "String";
+            }
+            else {
+                name = "Boolean";
+            }
+        }
         return {name : name, params : paramTypes};
     }
     
