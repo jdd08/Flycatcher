@@ -6,9 +6,10 @@ Test.prototype.toExecutorFormat = function() {
     return this.stack.join('\n');
 }
 
-Test.prototype.toUnitTestFormat = function(result) {
+Test.prototype.toUnitTestFormat = function(result,mut) {
     var test = this.stack.slice(0,-1).join('\n');
-    test += "\nassert(" + this.stack.slice(-1) + " === " + result + ");";
+    test += "\nassert(" + (this.stack.slice(-1)).toString().replace(/MUT/,mut) 
+                        + " === " + result + ");";
     return test;
 }
 
@@ -105,21 +106,16 @@ Test.prototype.show = function() {
 }
 
 exports.generate = function(classes,className,index) {
-    //dump(classes,"f");
-
     var classInfo = classes[className];
     MAX_SEQUENCE_LENGTH = 10;
-
     
-    var parameters = randomData.generate(classes,classInfo.ctr.params);
-
+    var parameters = randomData.inferTypes(classes,classInfo.ctr.params);
     var t = new Test();
-
     var instance = new Declaration(classInfo.name,parameters,_.uniqueId());
     
     t.push(instance);
-    console.log()
-    t.show();
+    //console.log()
+    //t.show();
     
     var callSequence = [];
     randomSequenceLength = Math.ceil(Math.random()*MAX_SEQUENCE_LENGTH);
@@ -131,7 +127,7 @@ exports.generate = function(classes,className,index) {
         var method = classInfo.methods[randomMethod];
         var call = new Call(instance.getIdentifier(),
                             method.name,
-                            randomData.generate(classes,method.params));
+                            randomData.inferTypes(classes,method.params));
         t.push(call);
     }
 
@@ -148,7 +144,7 @@ exports.generate = function(classes,className,index) {
     }
     var mut = new Mut(instance.getIdentifier(),
                        mutName,
-                       randomData.generate(classes,mutParams));
+                       randomData.inferTypes(classes,mutParams));
     t.push(mut);
     return t;
 }

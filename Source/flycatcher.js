@@ -2,7 +2,7 @@
 
 var dump = require('./lib/utils.js').dump;
 var analyser = require('./lib/analyser.js');
-var randomTestGenerator = require('./lib/randomTestGenerator.js');
+var randomTestGenerator = require('./lib/randomTest.js');
 var executor = require('./lib/executor.js');
 
 var fs = require('fs');
@@ -48,14 +48,14 @@ if (cmd.method) {
     process.stdout.write("\nGenerating tests for at least " + cmd.coverage_max + "\% coverage of ");
     process.stdout.write("method <" + cmd.method + "> from class <" + className + "> : ");
     var goodTestScenarios = [];
-    //while(exec.getMutCoverage() < cmd.coverage_max) {
+    while(exec.getMutCoverage() < cmd.coverage_max) {
         var test = randomTestGenerator.generate(classes,className);
         exec.setTest(test.toExecutorFormat());
         var res = exec.run();
-      //  if (res.good) {
-            goodTestScenarios.push(test.toUnitTestFormat(res.result));
-    //    }
-    //}
+        if (res.good) {
+            goodTestScenarios.push(test.toUnitTestFormat(res.result,cmd.method));
+        }
+    }
     var fileName = "Flycatcher_"+className+".js";
     console.log("(" + res.cov + "\%)\nGeneration succesful. Tests can be found in " + fileName + "\n");
     fs.writeFileSync(fileName,goodTestScenarios.join('\n\n'));

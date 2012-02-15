@@ -20,16 +20,7 @@ exports.getClasses = function(commander,classContext,className,mutName) {
 
             var ctrParams = [];
             for (var i = 0; i<constructor.length; i++) {
-                if(classDef === className) {
-                    //ctrParams.push([]);
-                    ctrParams.push(["incX","incY"]);
-                }
-                else if (classDef === "Point") {
-                    ctrParams.push(["foo1","foo2"]);
-                }
-                else {
-                    ctrParams.push([]);
-                }
+                ctrParams.push([]);
             }
             var ctr = {def: constructor, params: ctrParams};
 

@@ -1,25 +1,8 @@
 var _ = require('underscore');
 var dump = require('./utils').dump;
 
-exports.generate = function(classes,params) {
-    
-    function getRandomNumber() {
-        MAX_INT = 700;
-        return Math.floor(Math.random()*MAX_INT);
-    }
-    function getRandomString() {
-        MAX_LENGTH = 10;
-        var string = "";
-        var charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+exports.inferTypes = function(classes,params) {
 
-        for(var i=0; i < Math.ceil(Math.random()*MAX_LENGTH); i++) {
-            string += charSet.charAt(Math.floor(Math.random() * charSet.length));
-        }
-        return string;
-    }
-    function getRandomBoolean() {
-        return Math.floor(Math.random()*2) === 1;
-    }
     function inferType(methods) {
         var currentMatches = 0;
         var name = "";
@@ -56,4 +39,24 @@ exports.generate = function(classes,params) {
         randomParams[i] = inferType(params[i]);
     }
     return randomParams;
+}
+
+exports.getNum = function() {
+    MAX_INT = 700;
+    return Math.floor(Math.random()*MAX_INT);   
+}
+
+exports.getBool = function() {
+    return Math.floor(Math.random()*2) === 1;
+}
+
+exports.getString = function() {
+    MAX_LENGTH = 10;
+    var string = "";
+    var charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+    for(var i=0; i < Math.ceil(Math.random()*MAX_LENGTH); i++) {
+        string += charSet.charAt(Math.floor(Math.random() * charSet.length));
+    }
+    return "\"" + string + "\"";
 }
