@@ -42,7 +42,7 @@ exec.addSource(src);
 // method under test has been specified
 if (cmd.method) {
     var classes = analyser.getClasses(cmd,classContext,className,cmd.method);    
-    
+    dump(classes,"f")
     exec.setupContext(classes);
     
     var cut = classes[className];

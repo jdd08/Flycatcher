@@ -19,6 +19,11 @@ function Declaration(className,params,id) {
     this.id = id;
     this.identifier = className.toLowerCase() + id;
     this.translate = function(ids) {
+        
+        // the CUT might need a different proxying, however it doesn't need proxying
+        // for catching erroneous method calls (all its methods are known from the analyser
+        // and called specifically)
+        
         var ret = "var " + this.identifier + "tmp = new " + this.className
                       + "(" + translateParams(this.params,ids) + ");\n"
         ret += "var " + this.identifier + " = Proxy.create(new Proxy.Handler("
@@ -65,13 +70,14 @@ function translateParams(params,ids) {
         var p = params[i];
         var type = p.name;
         if(isPrimitive(type)) {
-            switch(type) {
+            /*switch(type) {
                 case "Number" : ret += randomData.getNum();
                                 break;
                 case "Boolean" : ret += randomData.getBool();
                                  break;
                 case "String" : ret += randomData.getString();;
-            }
+            }*/
+            // TODO replace with Proxy
         }
         else {
             ret += p.name.toLowerCase() + ids[i];            

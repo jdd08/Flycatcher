@@ -20,6 +20,33 @@ exports.inferTypes = function(classes,params) {
             }
         }
         if (currentMatches === 0) {
+            
+
+            /*var NoSuchMethodTrap = Proxy.create({
+              get: function(rcvr, name) {
+                if (name === '__noSuchMethod__') {
+                  throw new Error("receiver does not implement __noSuchMethod__ hook");
+                } else {
+                  return function() {
+                    var args = Array.prototype.slice.call(arguments);
+                    return this.__noSuchMethod__(name, args);
+                  }
+                }
+              }
+            });
+
+            context.String = String;
+            context.String.prototype = Object.create(NoSuchMethodTrap);
+            context.String.__noSuchMethod__ = function() {return "OMGNOMETHOD string"};
+
+            context.Number   = Number;
+            context.Number.prototype = Object.create(NoSuchMethodTrap);
+            context.Number.__noSuchMethod__ = function() {return "OMGNOMETHOD number"};
+
+            context.Boolean = Boolean;
+            context.Boolean.prototype = Object.create(NoSuchMethodTrap);
+            context.Boolean.__noSuchMethod__ = function() {return "OMGNOMETHOD booleans"};*/            
+            
             var r = Math.floor(Math.random()*3);
             if (r === 0) {
                 name = "Number";

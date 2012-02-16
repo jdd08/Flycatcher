@@ -13,6 +13,7 @@ var dump = require('./utils.js').dump;
 
 var burrito = require('burrito');
 var vm = require('vm');
+var _ = require('underscore');
 var EventEmitter = require('events').EventEmitter;
 
 module.exports = function () {
@@ -187,10 +188,14 @@ function initProxy(classes) {
 
       // proxy[name] -> any
       get: function(receiver, name) {
+          console.log()
+          console.log()
+          console.log(_.indexOf(_.keys(this.target),'bottomLeft'));
           console.log(this.target)
           console.log(this.className)
-          dump(this.classes,"f")
           console.log(name)
+          dump(this.classes,"f")
+
           
           // TODO: change the params array into a map for easier indexing
           // of the parameters to update their method lists?
@@ -238,31 +243,6 @@ function initProxy(classes) {
 Executor.prototype.setupContext = function(classes) {
     var context = {};
     context.Proxy = initProxy(classes);
-
-    var NoSuchMethodTrap = Proxy.create({
-      get: function(rcvr, name) {
-        if (name === '__noSuchMethod__') {
-          throw new Error("receiver does not implement __noSuchMethod__ hook");
-        } else {
-          return function() {
-            var args = Array.prototype.slice.call(arguments);
-            return this.__noSuchMethod__(name, args);
-          }
-        }
-      }
-    });
-
-    context.String = String;
-    context.String.prototype = Object.create(NoSuchMethodTrap);
-    context.String.__noSuchMethod__ = function() {return "OMGNOMETHOD string"};
-
-    context.Number   = Number;
-    context.Number.prototype = Object.create(NoSuchMethodTrap);
-    context.Number.__noSuchMethod__ = function() {return "OMGNOMETHOD number"};
-
-    context.Boolean = Boolean;
-    context.Boolean.prototype = Object.create(NoSuchMethodTrap);
-    context.Boolean.__noSuchMethod__ = function() {return "OMGNOMETHOD booleans"};
     
     // adding the instrumentation methods to the runtime context
     var self = this;
