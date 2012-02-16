@@ -2,7 +2,7 @@
 
 var dump = require('./lib/utils.js').dump;
 var analyser = require('./lib/analyser.js');
-var randomTestGenerator = require('./lib/randomTest.js');
+var randomTest = require('./lib/randomTest.js');
 var executor = require('./lib/executor.js');
 
 var fs = require('fs');
@@ -42,14 +42,16 @@ exec.addSource(src);
 // method under test has been specified
 if (cmd.method) {
     var classes = analyser.getClasses(cmd,classContext,className,cmd.method);    
+    
+    exec.setupContext(classes);
+    
     var cut = classes[className];
     exec.setMUT(cut);
-
     process.stdout.write("\nGenerating tests for at least " + cmd.coverage_max + "\% coverage of ");
     process.stdout.write("method <" + cmd.method + "> from class <" + className + "> : ");
     var goodTestScenarios = [];
     while(exec.getMutCoverage() < cmd.coverage_max) {
-        var test = randomTestGenerator.generate(classes,className);
+        var test = randomTest.generate(classes,className);
         exec.setTest(test.toExecutorFormat());
         var res = exec.run();
         if (res.good) {

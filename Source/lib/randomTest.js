@@ -19,8 +19,10 @@ function Declaration(className,params,id) {
     this.id = id;
     this.identifier = className.toLowerCase() + id;
     this.translate = function(ids) {
-        var ret = "var " + this.identifier + " = new " + this.className
-                      + "(" + translateParams(this.params,ids) + ");"
+        var ret = "var " + this.identifier + "tmp = new " + this.className
+                      + "(" + translateParams(this.params,ids) + ");\n"
+        ret += "var " + this.identifier + " = Proxy.create(new Proxy.Handler("
+        ret += this.identifier + "tmp,\"" + this.className + "\"))";
         return ret;
     }
     this.getIdentifier = function() {
@@ -69,8 +71,6 @@ function translateParams(params,ids) {
                 case "Boolean" : ret += randomData.getBool();
                                  break;
                 case "String" : ret += randomData.getString();;
-                                break;
-                default : throw new("Unknown primtive type");
             }
         }
         else {
