@@ -54,7 +54,7 @@ exports.getClasses = function(commander,classContext,className,mutName) {
                 c = constructC(emptyParams);
             }
             catch (err) {
-                console.log(err.toString());
+                console.log(err.stack);
                 console.error("Error in class constructor/function definition <" + classDef + ">.");
                 process.exit(1);
             }

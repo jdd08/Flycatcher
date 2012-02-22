@@ -34,15 +34,21 @@ catch (error) {
 }
 
 var classContext = {};
-vm.runInNewContext(src,classContext);
+try {
+    vm.runInNewContext(src,classContext);
+}
+catch (err){
+    console.error("Error while parsing source <" + filePath + ">");
+    console.error(err.toString());
+    process.exit(1);   
+}
 
 var exec = executor();
 exec.addSource(src);
 
 // method under test has been specified
 if (cmd.method) {
-    var classes = analyser.getClasses(cmd,classContext,className,cmd.method);    
-    dump(classes,"f")
+    var classes = analyser.getClasses(cmd,classContext,className,cmd.method);
     exec.setupContext(classes);
     
     var cut = classes[className];

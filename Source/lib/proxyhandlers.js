@@ -7,6 +7,15 @@
 
 exports.analyserHandler = {
 
+    delete: function(name) {
+        console.log(name)
+        var self = this;
+        return Proxy.createFunction(self,
+        function() {
+            return Proxy.create(self)
+        });
+    },
+
     // ignoring fundamental traps that aren't in ES5
     getOwnPropertyDescriptor: function(name) {
         var desc = Object.getOwnPropertyDescriptor(this, name);
@@ -20,21 +29,23 @@ exports.analyserHandler = {
     // proxy[name] -> any
     get: function(rcvr, name) {
         var self = this;
-        return Proxy.createFunction(self,function(){return Proxy.create(self)});
+        if (name === "valueOf") {
+            return function() {
+                return 1;
+            }
+        }
+        else {
+            return Proxy.createFunction(self,
+            function() {
+                return Proxy.create(self)
+            });
+        }
     },
 
     // proxy[name] = value
     set: function(receiver, name, value) {
-        var self = this;
-        this[name] = Proxy.create(self);
+        this[name] = Proxy.create(this);
         return true;
-        /*if (canPut(this.target, name)) { // canPut as defined in ES5 8.12.4 [[CanPut]]
-     this.target[name] = value;
-     return true;
-   }*/
-
-        // ignored for the sake of the analyzer, only signatures are needed
-        //   return false; // causes proxy to throw in strict mode, ignore otherwise
     },
 
     // name in proxy -> boolean
