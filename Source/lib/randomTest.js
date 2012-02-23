@@ -13,6 +13,26 @@ Test.prototype.toUnitTestFormat = function(result,mut) {
     return test;
 }
 
+function CutDeclaration(className,params,id) {
+    this.className = className;
+    this.params = params;
+    this.id = id;
+    this.identifier = className.toLowerCase() + id;
+    this.translate = function(ids) {
+        
+        // the CUT might need a different proxying, however it doesn't need proxying
+        // for catching erroneous method calls (all its methods are known from the analyser
+        // and called specifically)
+        
+        var ret = "var " + this.identifier + " = new " + this.className
+                         + "(" + translateParams(this.params,ids,this.className,this.className) + ");\n";
+        return ret;
+    }
+    this.getIdentifier = function() {
+        return this.identifier;
+    }
+}
+
 function Declaration(className,params,id) {
     this.className = className;
     this.params = params;
@@ -25,9 +45,9 @@ function Declaration(className,params,id) {
         // and called specifically)
         
         var ret = "var " + this.identifier + "tmp = new " + this.className
-                      + "(" + translateParams(this.params,ids) + ");\n"
-        ret += "var " + this.identifier + " = Proxy.create(new Proxy.Handler("
-        ret += this.identifier + "tmp,\"" + this.className + "\"))";
+                         + "(" + translateParams(this.params,ids,this.className) + ");\n";
+        ret += "var " + this.identifier + " = Proxy.create(new Handler(";
+        ret += this.className + "\",\"" + this.className +"\"))";
         return ret;
     }
     this.getIdentifier = function() {
@@ -35,24 +55,25 @@ function Declaration(className,params,id) {
     }
 }
 
-function Call(instanceIdentifier,methodName,params) {
+function Call(instanceIdentifier,methodName,params,className) {
     this.instanceIdentifier = instanceIdentifier;
     this.methodName = methodName;
     this.params = params;
     this.translate = function(ids) {
         var ret = instanceIdentifier + "." + this.methodName
-                  + "(" + translateParams(this.params,ids) + ");"
+                  + "(" + translateParams(this.params,ids,className,this.methodName) + ");"
         return ret;
     }
 }
 
-function Mut(instanceIdentifier,methodName,params) {
+function Mut(instanceIdentifier,methodName,params,className) {
     this.instanceIdentifier = instanceIdentifier;
     this.methodName = methodName;
     this.params = params;
     this.translate = function(ids) {
+        // semi-colon left out on purpose for the assert statement
         var ret = instanceIdentifier + ".MUT"
-                  + "(" + translateParams(this.params,ids) + ")"
+                  + "(" + translateParams(this.params,ids,className,methodName) + ")"
         return ret;
     }
 }
@@ -64,23 +85,25 @@ function isPrimitive(type) {
            type === "Boolean";
 }
 
-function translateParams(params,ids) {
+function isUnknown(type) { return type === "Unknown"; }
+
+function isUserDefined(type) { return !isUnknown(type) && !isPrimitive(type); }
+
+function translateParams(params,ids,className,methodName) {
     var ret = "";
     for (var i in params) {
         var p = params[i];
         var type = p.name;
         if(isPrimitive(type)) {
-            /*switch(type) {
-                case "Number" : ret += randomData.getNum();
-                                break;
-                case "Boolean" : ret += randomData.getBool();
-                                 break;
-                case "String" : ret += randomData.getString();;
-            }*/
-            // TODO replace with Proxy
+            ret += "123";
+        }
+        else if (type === "Unknown") {
+            ret += "Proxy.create(new Handler(\"" 
+            ret += className + "\",\"" + methodName + "\"," + i + "))";
         }
         else {
-            ret += p.name.toLowerCase() + ids[i];            
+            var id = p.name.toLowerCase() + ids[i];
+            ret += "Proxy.create()"
         }
         if(i < params.length-1) {
             ret += ","
@@ -100,7 +123,7 @@ Test.prototype.push = function(elem) {
         var id = _.uniqueId();
         ids.push(id);
         var type = params[p].name;
-        if(!isPrimitive(type)) {
+        if(isUserDefined(type)) {
             this.push(new Declaration(type,params[p].params,id));   
         }
     }
@@ -117,7 +140,7 @@ exports.generate = function(classes,className,index) {
     
     var parameters = randomData.inferTypes(classes,classInfo.ctr.params);
     var t = new Test();
-    var instance = new Declaration(classInfo.name,parameters,_.uniqueId());
+    var instance = new CutDeclaration(className,parameters,_.uniqueId());
     
     t.push(instance);
     //console.log()
@@ -133,7 +156,8 @@ exports.generate = function(classes,className,index) {
         var method = classInfo.methods[randomMethod];
         var call = new Call(instance.getIdentifier(),
                             method.name,
-                            randomData.inferTypes(classes,method.params));
+                            randomData.inferTypes(classes,method.params),
+                            className);
         t.push(call);
     }
 
@@ -150,7 +174,8 @@ exports.generate = function(classes,className,index) {
     }
     var mut = new Mut(instance.getIdentifier(),
                        mutName,
-                       randomData.inferTypes(classes,mutParams));
+                       randomData.inferTypes(classes,mutParams),
+                       className);
     t.push(mut);
     return t;
 }

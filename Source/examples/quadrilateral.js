@@ -31,7 +31,6 @@ Point.prototype.incY = function() {
 
 
 function Quadrilateral(topRight,topLeft,bottomRight,bottomLeft) {
-
 /*
     // All arguments are in effect Proxy objects which return
     // function Proxies such that the return values of get operations
@@ -180,41 +179,75 @@ function Quadrilateral(topRight,topLeft,bottomRight,bottomLeft) {
 }
 
 Quadrilateral.prototype.incTopRightX = function(n) {
-    //this.topRight.incX();
+    this.topRight.incX();
 }
 
 Quadrilateral.prototype.intTopLeftX = function(n) {
-    //this.topLeft.incX();
+    this.topLeft.incX();
 }
 
 Quadrilateral.prototype.incBottomRightX = function(n) {
-    //this.bottomRight.incX();
+    this.bottomRight.incX();
 }
 
-Quadrilateral.prototype.incBottomLeftX = function(n) {
-    //this.bottomLeft.incX();
+Quadrilateral.prototype.incBottomLeftX = function(n,m) {
+    this.bottomLeft.incX();
 }
 
 Quadrilateral.prototype.incTopRightY = function(n) {
-    //this.topRight.incY();
+    this.topRight.incY();
 }
 
 Quadrilateral.prototype.intTopLeftY = function(n) {
-    //this.topLeft.incY();
+    this.topLeft.incY();
 }
 
 Quadrilateral.prototype.incBottomRightY = function(n) {
-    //this.bottomRight.incY();
+    this.bottomRight.incY();
 }
 
 Quadrilateral.prototype.incBottomLeftY = function(n) {
-    //this.bottomLeft.incY();
+    this.bottomLeft.incY();
 }
 
 Quadrilateral.prototype.getCoords = function() {
+    var tr = this.topRight;
+    var tl = this.topLeft;
+    var br = this.bottomRight;
+    var bl = this.bottomleft;
+
+    if(tr.y > 1) {
+        var f = new Foo(1,2,3);
+    }
+    if(tr.x > 1) {
+        var f = new Foo(1,2,3);
+    }
+    
+    if(tr.y > 2) {
+        var f = new Foo(1,2,3);
+    }
+    if(tr.x > 2) {
+        var f = new Foo(1,2,3);
+    }
+    
+    if(tr.y > 3) {
+        var f = new Foo(1,2,3);
+    }
+    if(tr.x > 3) {
+        var f = new Foo(1,2,3);
+    }
+    if(tr.y > 4) {
+        var f = new Foo(1,2,3);
+    }
+    if(tr.x > 4) {
+        var f = new Foo(1,2,3);
+    }
+    
+/*  
     var res = this.topRight.x + " " + this.topRight.y + ", ";
     res += this.topLeft.x + " " + this.topLeft.y + ", ";
     res += this.bottomRight.x + " " + this.bottomRight.y + ", ";
     res += this.bottomLeft.x + " " + this.bottomLeft.y;
-    return res;
+*/
+    return "MUT";
 }

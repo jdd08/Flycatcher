@@ -56,13 +56,15 @@ if (cmd.method) {
     process.stdout.write("\nGenerating tests for at least " + cmd.coverage_max + "\% coverage of ");
     process.stdout.write("method <" + cmd.method + "> from class <" + className + "> : ");
     var goodTestScenarios = [];
-    while(exec.getMutCoverage() < cmd.coverage_max) {
+    var count = 0;
+    while(exec.getMutCoverage() < cmd.coverage_max && count++ < 3) {
         var test = randomTest.generate(classes,className);
         exec.setTest(test.toExecutorFormat());
         var res = exec.run();
         if (res.good) {
             goodTestScenarios.push(test.toUnitTestFormat(res.result,cmd.method));
         }
+//        console.log(classes[className].ctr.params)
     }
     var fileName = "Flycatcher_"+className+".js";
     console.log("(" + res.cov + "\%)\nGeneration succesful. Tests can be found in " + fileName + "\n");

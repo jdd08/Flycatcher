@@ -16,12 +16,12 @@ var vm = require('vm');
 var _ = require('underscore');
 var EventEmitter = require('events').EventEmitter;
 
-module.exports = function () {
+module.exports = function() {
     var b = new Executor();
     return b;
 };
 
-function Executor () {
+function Executor() {
     this.source = "";
     this.mut = "";
     this.test = "";
@@ -34,21 +34,22 @@ function Executor () {
     this.mutIndex = 0;
 
     this.names = {
-        call : burrito.generateName(6),
-        expr : burrito.generateName(6),
-        stat : burrito.generateName(6)
+        call: burrito.generateName(6),
+        expr: burrito.generateName(6),
+        stat: burrito.generateName(6)
     };
-    
-    this.on('node', function (node) {
+
+    this.on('node',
+    function(node) {
         // -1 is because we ignore the first node (the MUT definition)
-        
-        this.coverage[node.id-1] = true;
+        this.coverage[node.id - 1] = true;
         //console.log(node.id + ": " + node.source())
     });
 
-    this.on('cov', function (currentCoverage,good) {
-        this.currentCov = Math.round((currentCoverage/this.nodeNum*100)*
-                          Math.pow(10,2)/Math.pow(10,2));
+    this.on('cov',
+    function(currentCoverage, good) {
+        this.currentCov = Math.round((currentCoverage / this.nodeNum * 100) *
+        Math.pow(10, 2) / Math.pow(10, 2));
         if (good) process.stdout.write(".");
     });
 }
@@ -69,7 +70,7 @@ Executor.prototype.setTest = function(test) {
     return this;
 };
 
-Executor.prototype.setMUT = function(classInfo,index) {
+Executor.prototype.setMUT = function(classInfo, index) {
     var nodes = this.nodes;
     var names = this.names;
     var n = 0;
@@ -78,10 +79,13 @@ Executor.prototype.setMUT = function(classInfo,index) {
         mutDef = classInfo.methods[index].def;
     }
     else {
-        mutDef = classInfo.methods.filter(function(x){return x.mut})[0].def;
+        mutDef = classInfo.methods.filter(function(x) {
+            return x.mut
+        })[0].def;
     }
     var def = classInfo.name + ".prototype.MUT = " + mutDef;
-    var mut = burrito(def, function (node) {
+    var mut = burrito(def,
+    function(node) {
         var i = nodes.length;
         if (node.name === 'call') {
             nodes.push(node);
@@ -116,166 +120,120 @@ Executor.prototype.setMUT = function(classInfo,index) {
     // initialising coverage tracker
     // n-- is for ignoring the first node which was for the MUT definition
     n--;
-    for(var c = 0; c<n; c++) {
+    for (var c = 0; c < n; c++) {
         this.coverage[c] = false;
     }
     this.nodeNum = n;
 }
 
-function initProxy(classes) {
-    Proxy.Handler = function(target,className) {
-      this.target = target;
-      this.className = className;
-      this.classes = classes;
-    };
+function createExecHandler(classes) {
 
-    Proxy.Handler.prototype = {
-
-      // == fundamental traps ==
-
-      // Object.getOwnPropertyDescriptor(proxy, name) -> pd | undefined
-      getOwnPropertyDescriptor: function(name) {
-        var desc = Object.getOwnPropertyDescriptor(this.target, name);
-        if (desc !== undefined) { desc.configurable = true; }
-        return desc;
-      },
-
-      // Object.getPropertyDescriptor(proxy, name) -> pd | undefined
-      getPropertyDescriptor: function(name) {
-        var desc = Object.getPropertyDescriptor(this.target, name);
-        if (desc !== undefined) { desc.configurable = true; }
-        return desc;
-      },
-
-      // Object.getOwnPropertyNames(proxy) -> [ string ]
-      getOwnPropertyNames: function() {
-        return Object.getOwnPropertyNames(this.target);
-      },
-
-      // Object.getPropertyNames(proxy) -> [ string ]
-      getPropertyNames: function() {
-        return Object.getPropertyNames(this.target);
-      },
-
-      // Object.defineProperty(proxy, name, pd) -> undefined
-      defineProperty: function(name, desc) {
-        return Object.defineProperty(this.target, name, desc);
-      },
-
-      // delete proxy[name] -> boolean
-      delete: function(name) { return delete this.target[name]; },
-
-      // Object.{freeze|seal|preventExtensions}(proxy) -> proxy
-      fix: function() {
-        // As long as target is not frozen, the proxy won't allow itself to be fixed
-        if (!Object.isFrozen(this.target)) {
-          return undefined;
+    var Handler = function(className, methodName, paramIndex) {
+        this.className = className;
+        this.methodName = methodName;
+        this.paramIndex = paramIndex;
+        this.classes = classes;
+        this.isConstructorParam = function() {
+            return className === methodName;
         }
-        var props = {};
-        Object.getOwnPropertyNames(this.target).forEach(function(name) {
-          props[name] = Object.getOwnPropertyDescriptor(this.target, name);
-        }.bind(this));
-        return props;
-      },
+    }
 
-      // == derived traps ==
+    Handler.prototype = {
 
-      // name in proxy -> boolean
-      has: function(name) { return name in this.target; },
+        // delete proxy[name] -> boolean
+        delete: function(name) {
+            return delete this.target[name];
+        },
 
-      // ({}).hasOwnProperty.call(proxy, name) -> boolean
-      hasOwn: function(name) { return ({}).hasOwnProperty.call(this.target, name); },
+        // name in proxy -> boolean
+        has: function(name) {
+            return name in this.target;
+        },
 
-      // proxy[name] -> any
-      get: function(receiver, name) {
-          console.log()
-          console.log()
-          console.log(_.indexOf(_.keys(this.target),'bottomLeft'));
-          console.log(this.target)
-          console.log(this.className)
-          console.log(name)
-          dump(this.classes,"f")
+        // proxy[name] -> any
+        get: function(receiver, name) {
+            var paramInfo = this.isConstructorParam() ?
+                this.classes[this.className].ctr.params[this.paramIndex] :
+                this.classes[this.methodName].params[this.paramIndex];
+            paramInfo.push(name);
+            if (name === "valueOf") {
+                return function() {
+                    return 1;
+                }
+            }
+            else {
+                var self = this;
+                return Proxy.createFunction(self,
+                    function() {
+                        return Proxy.create(self)
+                });
+            }
+        },
 
-          
-          // TODO: change the params array into a map for easier indexing
-          // of the parameters to update their method lists?
-          
-          this.classes[this.className]
-          return this.target[name];
-      },
+        // proxy[name] = value
+        set: function(receiver, name, value) {
+            if (canPut(this.target, name)) {
+                // canPut as defined in ES5 8.12.4 [[CanPut]]
+                this.target[name] = value;
+                return true;
+            }
+            return false;
+            // causes proxy to throw in strict mode, ignore otherwise
+        },
 
-      // proxy[name] = value
-      set: function(receiver, name, value) {
-       if (canPut(this.target, name)) { // canPut as defined in ES5 8.12.4 [[CanPut]]
-         this.target[name] = value;
-         return true;
-       }
-       return false; // causes proxy to throw in strict mode, ignore otherwise
-      },
+        // for (var name in proxy) { ... }
+        enumerate: function() {
+            var result = [];
+            for (var name in this.target) {
+                result.push(name);
+            };
+            return result;
+        },
 
-      // for (var name in proxy) { ... }
-      enumerate: function() {
-        var result = [];
-        for (var name in this.target) { result.push(name); };
-        return result;
-      },
-
-      /*
-      // if iterators would be supported:
-      // for (var name in proxy) { ... }
-      iterate: function() {
-        var props = this.enumerate();
-        var i = 0;
-        return {
-          next: function() {
-            if (i === props.length) throw StopIteration;
-            return props[i++];
-          }
-        };
-      },*/
-
-      // Object.keys(proxy) -> [ string ]
-      keys: function() { return Object.keys(this.target); }
+        // Object.keys(proxy) -> [ string ]
+        keys: function() {
+            return Object.keys(this.target);
+        }
     };
-    return Proxy;
+    return Handler;
 }
 
 Executor.prototype.setupContext = function(classes) {
     var context = {};
-    context.Proxy = initProxy(classes);
-    
+    context.Handler = createExecHandler(classes);
+
     // adding the instrumentation methods to the runtime context
     var self = this;
     var stack = [];
-    
-    context[self.names.call] = function (i) {
+
+    context[self.names.call] = function(i) {
         var node = self.nodes[i];
         stack.unshift(node);
         self.emit('node', node, stack);
-        
-        return function (expr) {
+
+        return function(expr) {
             stack.shift();
             return expr;
         };
     };
 
-    context[self.names.expr] = function (i) {
+    context[self.names.expr] = function(i) {
         var node = self.nodes[i];
         self.emit('node', node, stack);
-        
-        return function (expr) {
+
+        return function(expr) {
             return expr;
         };
     };
-    
-    context[self.names.stat] = function (i) {
+
+    context[self.names.stat] = function(i) {
         var node = self.nodes[i];
         self.emit('node', node, stack);
     };
-    
+
     this.context = context;
 };
-    
+
 Executor.prototype.display = function() {
     console.log('-------------- SOURCE -----------------');
     console.log(this.source);
@@ -285,14 +243,18 @@ Executor.prototype.display = function() {
     console.log('---------------------------------------');
     console.log('-------------- TEST -------------------');
     console.log(this.test);
-    console.log('---------------------------------------');    
+    console.log('---------------------------------------');
 }
 
-Executor.prototype.covered = function () {
-    return (this.coverage.filter(function(x){return x;})).length;
+Executor.prototype.covered = function() {
+    return (this.coverage.filter(function(x) {
+        return x;
+    })).length;
 }
 
-Executor.prototype.run = function () {
+Executor.prototype.run = function() {
+//    console.log()
+    console.log(this.test)
     var src = this.source + '\n' + this.mut + '\n' + this.test;
     if (!this.mut) {
         console.warn("Warning: Executor.mut is an empty string")
@@ -303,13 +265,18 @@ Executor.prototype.run = function () {
     var before = this.covered();
     var res = {};
     try {
-        vm.runInNewContext(src,this.context);
+        vm.runInNewContext(src, this.context);
     }
-    catch (err){
-        console.log("caught "+err);
+    catch(err) {
+        console.log(err.stack)
+        console.log("caught " + err);
     }
     var after = this.covered();
     var good = after > before;
-    this.emit('cov',after,good);
-    return {good : good, result : res, cov : this.currentCov};
+    this.emit('cov', after, good);
+    return {
+        good: good,
+        result: res,
+        cov: this.currentCov
+    };
 };

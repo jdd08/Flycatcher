@@ -54,8 +54,8 @@ exports.getClasses = function(commander,classContext,className,mutName) {
                 c = constructC(emptyParams);
             }
             catch (err) {
-                console.log(err.stack);
-                console.error("Error in class constructor/function definition <" + classDef + ">.");
+                console.error("Error in class constructor/function definition <" + classDef + "> :");
+                console.error(err.stack);
                 process.exit(1);
             }
             // retrieving methods
@@ -77,13 +77,11 @@ exports.getClasses = function(commander,classContext,className,mutName) {
                     }
                 }
             }
-            if(mutName !== undefined && classDef === className) {
-                if (!mutDefined) {
-                    console.error("Error: specified method <" + mutName + "> was not found in class <"+ className +">");
-                    console.error("(see README for information on recognised class definitions)");
-                    console.info(commander.helpInformation());
-                    process.exit(1);
-                }
+            if(mutName !== undefined && classDef === className && !mutDefined) {
+                console.error("Error: specified method <" + mutName + "> was not found in class <"+ className +">");
+                console.error("(see README for information on recognised class definitions)");
+                console.info(commander.helpInformation());
+                process.exit(1);
             }
             
             classes[classDef] = {name : classDef, ctr : ctr, methods : methods};
