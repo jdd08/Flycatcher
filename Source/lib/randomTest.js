@@ -1,6 +1,7 @@
 var randomData = require('./randomData.js');
 var dump = require('./utils').dump;
 var _ = require('underscore');
+var beautify = require('./beautify-js/beautify.js');
 
 Test.prototype.toExecutorFormat = function() {
     return this.stack.join('\n');
@@ -10,7 +11,7 @@ Test.prototype.toUnitTestFormat = function(result,mut) {
     var test = this.stack.slice(0,-1).join('\n');
     test += "\nassert(" + (this.stack.slice(-1)).toString().replace(/MUT/,mut) 
                         + " === " + result + ");";
-    return test;
+    return beautify.js_beautify(test);
 }
 
 function CutDeclaration(className,params,id) {
@@ -44,11 +45,17 @@ function Declaration(className,params,id) {
         // for catching erroneous method calls (all its methods are known from the analyser
         // and called specifically)
         
-        var ret = "var " + this.identifier + "tmp = new " + this.className
+        /*var ret = "var " + this.identifier + "tmp = new " + this.className
                          + "(" + translateParams(this.params,ids,this.className) + ");\n";
-        ret += "var " + this.identifier + " = Proxy.create(new Handler(";
-        ret += this.className + "\",\"" + this.className +"\"))";
+        ret += "var " + this.identifier + " = Proxy.create(new Handler(\"";
+        ret += this.className + "\",\"" + this.className +"\"))";*/
+        //var ret = "var " + this.identifier + " =     get" + type + "(\"" + className + "\",\"" + methodName + "\"," + i + "))";
+        //return ret;
+        console.log("params",this.params)
+        var ret = "var " + this.identifier + " = new " + this.className
+                         + "(" + translateParams(this.params,ids,this.className,this.className) + ");\n";
         return ret;
+        
     }
     this.getIdentifier = function() {
         return this.identifier;
@@ -98,12 +105,12 @@ function translateParams(params,ids,className,methodName) {
             ret += "123";
         }
         else if (type === "Unknown") {
-            ret += "Proxy.create(new Handler(\"" 
-            ret += className + "\",\"" + methodName + "\"," + i + "))";
+            ret += p.name.toLowerCase() + ids[i];
+            /*ret += "Proxy.create(new Handler(\"" 
+            ret += className + "\",\"" + methodName + "\"," + i + "))";*/
         }
         else {
-            var id = p.name.toLowerCase() + ids[i];
-            ret += "Proxy.create()"
+            ret += p.name.toLowerCase() + ids[i];
         }
         if(i < params.length-1) {
             ret += ","
@@ -123,9 +130,9 @@ Test.prototype.push = function(elem) {
         var id = _.uniqueId();
         ids.push(id);
         var type = params[p].name;
-        if(isUserDefined(type)) {
+//        if(isUserDefined(type)) {
             this.push(new Declaration(type,params[p].params,id));   
-        }
+//       }
     }
     this.stack.push(elem.translate(ids));
 }

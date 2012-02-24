@@ -28,7 +28,6 @@ exports.inferTypes = function(classes,params) {
         for (var p = 0; p < params.length; ++p) {
             paramTypes.push(inferType(params[p]));
         }
-//        console.log(type);
         console.log({name : type.name, params : paramTypes});
         return {name : type.name, params : paramTypes};
     }

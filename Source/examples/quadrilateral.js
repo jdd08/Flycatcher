@@ -20,12 +20,12 @@ function Point(foo) {
 }
 
 Point.prototype.incX = function() {
-    this.foo.foo1();
+//    this.foo.foo1();
     this.x++;   
 }
 
 Point.prototype.incY = function() {
-    this.foo.foo2();
+//    this.foo.foo2();
     this.y++;
 }
 
@@ -242,12 +242,9 @@ Quadrilateral.prototype.getCoords = function() {
     if(tr.x > 4) {
         var f = new Foo(1,2,3);
     }
-    
-/*  
     var res = this.topRight.x + " " + this.topRight.y + ", ";
     res += this.topLeft.x + " " + this.topLeft.y + ", ";
     res += this.bottomRight.x + " " + this.bottomRight.y + ", ";
     res += this.bottomLeft.x + " " + this.bottomLeft.y;
-*/
-    return "MUT";
+    return res;
 }

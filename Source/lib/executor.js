@@ -14,16 +14,11 @@ var dump = require('./utils.js').dump;
 var burrito = require('burrito');
 var vm = require('vm');
 var _ = require('underscore');
+var beautify = require('./beautify-js/beautify.js');
 var EventEmitter = require('events').EventEmitter;
 
-module.exports = function() {
-    var b = new Executor();
-    return b;
-};
-
-function Executor() {
-    this.source = "";
-    this.mut = "";
+var Executor = module.exports.Executor = function(src,classes,className) 
+{
     this.test = "";
     this.nodes = [];
     this.coverage = [];
@@ -39,6 +34,11 @@ function Executor() {
         stat: burrito.generateName(6)
     };
 
+    this.source = src;
+    this.setupContext(classes);
+    this.proxies = this.getProxies(classes);
+
+    this.mut = this.getMut(classes[className]);
     this.on('node',
     function(node) {
         // -1 is because we ignore the first node (the MUT definition)
@@ -67,10 +67,9 @@ Executor.prototype.addSource = function(src) {
 
 Executor.prototype.setTest = function(test) {
     this.test = test;
-    return this;
 };
 
-Executor.prototype.setMUT = function(classInfo, index) {
+Executor.prototype.getMut = function(classInfo, index) {
     var nodes = this.nodes;
     var names = this.names;
     var n = 0;
@@ -115,8 +114,7 @@ Executor.prototype.setMUT = function(classInfo, index) {
             node.id = i;
         }
     });
-
-    this.mut = mut;
+    
     // initialising coverage tracker
     // n-- is for ignoring the first node which was for the MUT definition
     n--;
@@ -124,6 +122,7 @@ Executor.prototype.setMUT = function(classInfo, index) {
         this.coverage[c] = false;
     }
     this.nodeNum = n;
+    return mut;
 }
 
 function createExecHandler(classes) {
@@ -234,16 +233,38 @@ Executor.prototype.setupContext = function(classes) {
     this.context = context;
 };
 
-Executor.prototype.display = function() {
-    console.log('-------------- SOURCE -----------------');
-    console.log(this.source);
-    console.log('---------------------------------------');
+
+Executor.prototype.show = function() {
+    this.showSource();
+    this.showProxies();
+    this.showMut();
+    this.showTest();
+}
+
+Executor.prototype.showMut = function() {
     console.log('-------------- MUT --------------------');
     console.log(this.mut);
     console.log('---------------------------------------');
+}
+
+Executor.prototype.showSource = function() {
+    console.log('-------------- SOURCE -----------------');
+    console.log(this.source);
+    console.log('---------------------------------------');
+}
+
+Executor.prototype.showProxies = function() {
+    console.log('-------------- PROXIES -----------------');
+    console.log(beautify.js_beautify(this.proxies));
+    console.log('---------------------------------------');
+
+}
+
+Executor.prototype.showTest = function() {
     console.log('-------------- TEST -------------------');
     console.log(this.test);
     console.log('---------------------------------------');
+
 }
 
 Executor.prototype.covered = function() {
@@ -252,10 +273,22 @@ Executor.prototype.covered = function() {
     })).length;
 }
 
+Executor.prototype.getProxies = function(classes) {
+    var proxyList = [];
+    for (var c in classes) {
+        var proxy = "";
+        proxy += "var construct" +c+ "= (function() { function F(args) { return " +c+ ".apply(this, args); } F.prototype = " +c+ ".prototype; return function(args) { return new F(args);} })();"
+        proxy += "var _" + c + " = {};\n";
+        proxy += "for (var p in " + c + ".prototype) {";
+        proxy += "    _" + c + "[p] = { value: " + c + ".prototype[p], enumerable: true };}\n";
+        proxy += "function get" +c+ "(args,className,methodName,paramIndex) { "+c+".prototype = Object.create(Proxy.create(new Handler(className,methodName,paramIndex)),_"+c+"); return construct" +c+ "(args);}"
+        proxyList.push(proxy);
+    }
+    return proxyList.join('\n\n');
+}
+
 Executor.prototype.run = function() {
-//    console.log()
-    console.log(this.test)
-    var src = this.source + '\n' + this.mut + '\n' + this.test;
+    var src = this.source + '\n' + this.proxies + '\n' + this.mut + '\n' + this.test;
     if (!this.mut) {
         console.warn("Warning: Executor.mut is an empty string")
     }
@@ -265,7 +298,7 @@ Executor.prototype.run = function() {
     var before = this.covered();
     var res = {};
     try {
-        vm.runInNewContext(src, this.context);
+        res = vm.runInNewContext(src, this.context);
     }
     catch(err) {
         console.log(err.stack)
