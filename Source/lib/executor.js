@@ -36,7 +36,7 @@ var Executor = module.exports.Executor = function(src,classes,className)
 
     this.source = src;
     this.setupContext(classes);
-    this.proxies = this.getProxies(classes);
+    this.proxies = this.addProxyMethod();
 
     this.mut = this.getMut(classes[className]);
     this.on('node',
@@ -138,7 +138,7 @@ function createExecHandler(classes) {
     }
 
     Handler.prototype = {
-
+        
         // delete proxy[name] -> boolean
         delete: function(name) {
             return delete this.target[name];
@@ -151,22 +151,37 @@ function createExecHandler(classes) {
 
         // proxy[name] -> any
         get: function(receiver, name) {
+            var methodName = this.methodName;
+
+/*            console.log(_.find(this.classes[this.className].methods,function(elem){
+                return elem.name === methodName;
+            }))
+            console.log(this.isConstructorParam())
+*/
+            console.log(this.className)
+            console.log("this.methodName",this.methodName)
+            console.log("method to add",name)
+
+            // TODO index this.methodName directly vs filter
             var paramInfo = this.isConstructorParam() ?
                 this.classes[this.className].ctr.params[this.paramIndex] :
-                this.classes[this.methodName].params[this.paramIndex];
+                _.find(this.classes[this.className].methods,function(elem){
+                    return elem.name === methodName;
+                }).params[this.paramIndex];
             paramInfo.push(name);
-            if (name === "valueOf") {
+/*            if (name === "valueOf") {
                 return function() {
                     return 1;
                 }
             }
             else {
+*/
                 var self = this;
                 return Proxy.createFunction(self,
                     function() {
                         return Proxy.create(self)
                 });
-            }
+//            }
         },
 
         // proxy[name] = value
@@ -200,6 +215,7 @@ function createExecHandler(classes) {
 Executor.prototype.setupContext = function(classes) {
     var context = {};
     context.Handler = createExecHandler(classes);
+    context.log = console.log;
 
     // adding the instrumentation methods to the runtime context
     var self = this;
@@ -273,17 +289,48 @@ Executor.prototype.covered = function() {
     })).length;
 }
 
+Executor.prototype.addProxyMethod = function() {
+    var m = "Proxy.proxy = function(o,className,methodName,paramIndex) {";
+            m += "o.__proto__.__proto__ = ";
+            m += "Proxy.create(new Handler(className,methodName,paramIndex));";
+            m += "return o;}";
+    return m;
+}
+
 Executor.prototype.getProxies = function(classes) {
     var proxyList = [];
-    for (var c in classes) {
-        var proxy = "";
-        proxy += "var construct" +c+ "= (function() { function F(args) { return " +c+ ".apply(this, args); } F.prototype = " +c+ ".prototype; return function(args) { return new F(args);} })();"
-        proxy += "var _" + c + " = {};\n";
-        proxy += "for (var p in " + c + ".prototype) {";
-        proxy += "    _" + c + "[p] = { value: " + c + ".prototype[p], enumerable: true };}\n";
-        proxy += "function get" +c+ "(args,className,methodName,paramIndex) { "+c+".prototype = Object.create(Proxy.create(new Handler(className,methodName,paramIndex)),_"+c+"); return construct" +c+ "(args);}"
-        proxyList.push(proxy);
+    var p = "var TEST = {};";
+    proxyList.push(p);
+    for (var Class in classes) {
+        var p = "TEST.get"+Class+" = function(args,className,methodName,paramIndex) {";
+                p += "return function() {"
+                p += "var _"+Class+" = {};";
+                p += "for (var p in "+Class+".prototype) {";
+                    p += "_"+Class+"[p] = { value: "+Class+".prototype[p], enumerable: true };";
+                p += "}";
+                p += "var construct"+Class+" = (function(){";
+                    p += "function F(args) {";
+                        p += "return " +Class+ ".apply(this, args);";
+                    p += "}";
+                    p += "F.prototype = "+Class+".prototype;";
+                    p += "return function(args) {";
+                        p += "var r = new F(args);";
+                        p += Class+".prototype = _"+Class+";";
+                        p += "return r;";
+                    p += "}";
+                p += "})();";
+//        p += "log('before',"+Class+".prototype);";
+//        p += "log('before',"+Class+".prototype.test);";
+        p += "var h = new Handler(className,methodName,paramIndex);";
+//        p += "//log(\"h\",h)";
+        p += Class+".prototype = Object.create(Proxy.create(h),_"+Class+");";
+//        p += "log('after',"+Class+".prototype.test);";
+        p += "return construct"+Class+"(args);}()}";
+        proxyList.push(p);
     }
+    var p = "TEST.getUnknown = function(args,className,methodName,paramIndex)";
+    p += "{return Object.create(Proxy.create(new Handler(className,methodName,paramIndex)),{})}";
+    proxyList.push(p);
     return proxyList.join('\n\n');
 }
 

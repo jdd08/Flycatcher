@@ -26,7 +26,7 @@ function CutDeclaration(className,params,id) {
         // and called specifically)
         
         var ret = "var " + this.identifier + " = new " + this.className
-                         + "(" + translateParams(this.params,ids,this.className,this.className) + ");\n";
+                         + "(" + translateParamsCut(this.params,ids,this.className,this.className) + ");\n";
         return ret;
     }
     this.getIdentifier = function() {
@@ -34,11 +34,12 @@ function CutDeclaration(className,params,id) {
     }
 }
 
-function Declaration(className,params,id) {
+function Declaration(className,params,identifier,index,parentType,parentMethod) {
     this.className = className;
     this.params = params;
-    this.id = id;
-    this.identifier = className.toLowerCase() + id;
+    this.identifier = identifier;
+    this.parentType = parentType;
+    this.parentMethod = parentMethod;
     this.translate = function(ids) {
         
         // the CUT might need a different proxying, however it doesn't need proxying
@@ -52,8 +53,8 @@ function Declaration(className,params,id) {
         //var ret = "var " + this.identifier + " =     get" + type + "(\"" + className + "\",\"" + methodName + "\"," + i + "))";
         //return ret;
         console.log("params",this.params)
-        var ret = "var " + this.identifier + " = new " + this.className
-                         + "(" + translateParams(this.params,ids,this.className,this.className) + ");\n";
+        var ret = "var " + this.identifier + " = TEST.get" + this.className
+                         + "(" + translateParams(this.params,ids,index,parentType,parentMethod) + ");\n";
         return ret;
         
     }
@@ -65,10 +66,11 @@ function Declaration(className,params,id) {
 function Call(instanceIdentifier,methodName,params,className) {
     this.instanceIdentifier = instanceIdentifier;
     this.methodName = methodName;
+    this.className = className;
     this.params = params;
     this.translate = function(ids) {
         var ret = instanceIdentifier + "." + this.methodName
-                  + "(" + translateParams(this.params,ids,className,this.methodName) + ");"
+                  + "(" + translateParamsCut(this.params,ids,className,this.methodName) + ");"
         return ret;
     }
 }
@@ -76,11 +78,12 @@ function Call(instanceIdentifier,methodName,params,className) {
 function Mut(instanceIdentifier,methodName,params,className) {
     this.instanceIdentifier = instanceIdentifier;
     this.methodName = methodName;
+    this.className = className;
     this.params = params;
     this.translate = function(ids) {
         // semi-colon left out on purpose for the assert statement
         var ret = instanceIdentifier + ".MUT"
-                  + "(" + translateParams(this.params,ids,className,methodName) + ")"
+                  + "(" + translateParamsCut(this.params,ids,className,methodName) + ")"
         return ret;
     }
 }
@@ -96,7 +99,7 @@ function isUnknown(type) { return type === "Unknown"; }
 
 function isUserDefined(type) { return !isUnknown(type) && !isPrimitive(type); }
 
-function translateParams(params,ids,className,methodName) {
+function translateParamsCut(params,ids,className,methodName) {
     var ret = "";
     for (var i in params) {
         var p = params[i];
@@ -105,17 +108,59 @@ function translateParams(params,ids,className,methodName) {
             ret += "123";
         }
         else if (type === "Unknown") {
-            ret += p.name.toLowerCase() + ids[i];
-            /*ret += "Proxy.create(new Handler(\"" 
-            ret += className + "\",\"" + methodName + "\"," + i + "))";*/
+            ret += ids[i];
         }
         else {
-            ret += p.name.toLowerCase() + ids[i];
+            ret += ids[i];
         }
         if(i < params.length-1) {
-            ret += ","
+            ret += ",";
         }
     }
+    return ret;
+}
+
+/*function translateParamsCall(params,ids,className,methodName,index) {
+    var ret = "[";
+    for (var i in params) {
+        var p = params[i];
+        var type = p.name;
+        if(isPrimitive(type)) {
+            ret += "123";
+        }
+        else if (type === "Unknown") {
+            ret += ids[i];
+        }
+        else {
+            ret += ids[i];
+        }
+        if(i < params.length-1) {
+            ret += ",";
+        }
+    }
+    ret +="],\"" + className + "\",\"" + methodName + "\"," + index;
+    return ret;
+}*/ 
+
+function translateParams(params,ids,index,parentType,parentMethod) {
+    var ret = "[";
+    for (var i in params) {
+        var p = params[i];
+        var type = p.name;
+        if(isPrimitive(type)) {
+            ret += "123";
+        }
+        else if (type === "Unknown") {
+            ret += ids[i];
+        }
+        else {
+            ret += ids[i];
+        }
+        if(i < params.length-1) {
+            ret += ",";
+        }
+    }
+    ret +="],\"" + parentType + "\",\"" + parentMethod + "\"," + index;
     return ret;
 }
 
@@ -123,18 +168,59 @@ function Test() {
     this.stack = [];
 }
 
-Test.prototype.push = function(elem) {
+Test.prototype.push = function(elem,paramTable,key) {
     var params = elem.params;
     var ids = [];
-    for(var p in params) {
-        var id = _.uniqueId();
-        ids.push(id);
-        var type = params[p].name;
-//        if(isUserDefined(type)) {
-            this.push(new Declaration(type,params[p].params,id));   
-//       }
+    var identifiers = [];
+    var decls = [];
+    var first = paramTable === undefined;
+    var reuse = false;
+    if(first) {
+        paramTable = [];
     }
-    this.stack.push(elem.translate(ids));
+    else {
+        if(paramTable[key]) {
+            reuse = true;
+        }
+        else {
+            paramTable[key] = [];
+        }
+    }
+    for(var p = 0; p<params.length; ++p) {
+        var id;
+        if (reuse) {
+            id = paramTable[key][p];
+        }
+        else {
+            var length = ids.length;
+            var reuseExisting = length && Math.random() > 0.75;
+            if (reuseExisting) {
+                var r = Math.floor(Math.random()*length);
+                var id = ids[r];
+            }
+            else {
+                id = _.uniqueId();
+            }            
+        }
+        var type = params[p].name;
+        var identifier = type.toLowerCase() + id  + "_" + p;
+        identifiers.push(identifier);
+        ids.push(id);
+        if(!first) {
+            paramTable[key].push(id);
+        }
+        if (elem instanceof Call || elem instanceof Mut) {
+            this.push(new Declaration(type,params[p].params,identifier,p,elem.className,elem.methodName),paramTable,id);            
+        }
+        else {
+            this.push(new Declaration(type,params[p].params,identifier,p,elem.className,elem.className),paramTable,id);            
+        }
+//        decls.push(new Declaration(type,params[p].params,identifier,id,p));
+    }
+//    for (var i = 0; i<decls.length; ++i) {
+//        this.push(decls[i]);
+//    }
+    this.stack.push(elem.translate(identifiers));
 }
 
 Test.prototype.show = function() {
@@ -143,7 +229,7 @@ Test.prototype.show = function() {
 
 exports.generate = function(classes,className,index) {
     var classInfo = classes[className];
-    MAX_SEQUENCE_LENGTH = 10;
+    MAX_SEQUENCE_LENGTH = 5;
     
     var parameters = randomData.inferTypes(classes,classInfo.ctr.params);
     var t = new Test();
@@ -180,9 +266,9 @@ exports.generate = function(classes,className,index) {
         mutParams = mut_.params;
     }
     var mut = new Mut(instance.getIdentifier(),
-                       mutName,
-                       randomData.inferTypes(classes,mutParams),
-                       className);
+                      mutName,
+                      randomData.inferTypes(classes,mutParams),
+                      className);
     t.push(mut);
     return t;
 }

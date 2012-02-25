@@ -46,6 +46,8 @@ try {
 // method under test has been specified
 if (cmd.method) {
     var classes = analyser.getClasses(cmd, classContext, className, cmd.method);
+    console.log(classes['Point'].ctr)
+    console.log(classes['Point'].methods)
     var exec = new Executor(src, classes, className);
     exec.showProxies();
     process.stdout.write("\nGenerating tests for at least " + cmd.coverage_max + "\% coverage of ");

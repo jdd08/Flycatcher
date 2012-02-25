@@ -21,12 +21,12 @@ function Point(foo) {
 
 Point.prototype.incX = function() {
 //    this.foo.foo1();
-    this.x++;   
+//    this.x++;   
 }
 
 Point.prototype.incY = function() {
 //    this.foo.foo2();
-    this.y++;
+//    this.y++;
 }
 
 
@@ -172,6 +172,10 @@ function Quadrilateral(topRight,topLeft,bottomRight,bottomLeft) {
     // work these will work too, only they
     // will change the parameter's value
 */
+    bottomRight.incX();
+    topRight.incY();
+    topLeft.incY();
+    bottomLeft.incY();
     this.topRight = topRight;
     this.topLeft = topLeft;
     this.bottomRight = bottomRight;
@@ -179,39 +183,67 @@ function Quadrilateral(topRight,topLeft,bottomRight,bottomLeft) {
 }
 
 Quadrilateral.prototype.incTopRightX = function(n) {
-    this.topRight.incX();
+    n.incX();
 }
 
-Quadrilateral.prototype.intTopLeftX = function(n) {
-    this.topLeft.incX();
+Quadrilateral.prototype.incTopLeftX = function(n) {
+    n.incX();
 }
 
 Quadrilateral.prototype.incBottomRightX = function(n) {
-    this.bottomRight.incX();
+    n.incX();
 }
 
-Quadrilateral.prototype.incBottomLeftX = function(n,m) {
-    this.bottomLeft.incX();
+Quadrilateral.prototype.incBottomLeftX = function(n) {
+    n.incX();
 }
 
 Quadrilateral.prototype.incTopRightY = function(n) {
-    this.topRight.incY();
+    n.incY();
 }
 
 Quadrilateral.prototype.intTopLeftY = function(n) {
-    this.topLeft.incY();
+    n.incY();
 }
 
 Quadrilateral.prototype.incBottomRightY = function(n) {
-    this.bottomRight.incY();
+    n.incY();
 }
 
 Quadrilateral.prototype.incBottomLeftY = function(n) {
-    this.bottomLeft.incY();
+    n.incY();
 }
 
-Quadrilateral.prototype.getCoords = function() {
-    var tr = this.topRight;
+Quadrilateral.prototype.getCoords = function(n,m) {
+    
+    n.incX();
+    var r = Math.random();
+    if (r < 0.1) {
+        Math.random();
+    }
+    else if (r < 0.2) {
+        Math.random();
+    }
+    else if (r < 0.3) {
+        Math.random();
+    }
+    else if (r < 0.4) {
+        Math.random();
+    }
+    else if (r < 0.5) {
+        Math.random();
+    }
+    else if (r < 0.6) {
+        Math.random();
+    }
+    else if (r < 0.7) {
+        Math.random();
+    }
+    else if (r < 0.8) {
+        Math.random();
+    }
+//    m.incY();
+    /*var tr = this.topRight;
     var tl = this.topLeft;
     var br = this.bottomRight;
     var bl = this.bottomleft;
@@ -245,6 +277,6 @@ Quadrilateral.prototype.getCoords = function() {
     var res = this.topRight.x + " " + this.topRight.y + ", ";
     res += this.topLeft.x + " " + this.topLeft.y + ", ";
     res += this.bottomRight.x + " " + this.bottomRight.y + ", ";
-    res += this.bottomLeft.x + " " + this.bottomLeft.y;
-    return res;
+    res += this.bottomLeft.x + " " + this.bottomLeft.y;*/
+    return "HARO";
 }
