@@ -1,5 +1,10 @@
 
 
+function Bye() {
+    
+}
+Bye.prototype.bye = function(){};
+
 function Foo(x,y,z) {
     this.x = x;
     this.y = y;
@@ -7,6 +12,9 @@ function Foo(x,y,z) {
 }
 
 Foo.prototype.foo1 = function() {
+    this.x.bye();
+    this.y.bye();
+    this.z.bye();    
     return "foo1 " + this.x + this.y + this.z;
 }
 
@@ -15,8 +23,9 @@ Foo.prototype.foo2 = function() {
 }
 
 function Point(foo) {
-    this.x = 1;
-    this.y = 1;
+    foo.foo1();
+//    this.x = 1;
+//    this.y = 1;
 }
 
 Point.prototype.incX = function() {
@@ -176,10 +185,10 @@ function Quadrilateral(topRight,topLeft,bottomRight,bottomLeft) {
     topRight.incY();
     topLeft.incY();
     bottomLeft.incY();
-    this.topRight = topRight;
+/*    this.topRight = topRight;
     this.topLeft = topLeft;
     this.bottomRight = bottomRight;
-    this.bottomLeft = bottomLeft;
+    this.bottomLeft = bottomLeft;*/
 }
 
 Quadrilateral.prototype.incTopRightX = function(n) {

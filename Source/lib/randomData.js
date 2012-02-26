@@ -2,13 +2,11 @@ var _ = require('underscore');
 var dump = require('./utils').dump;
 
 exports.inferTypes = function(classes,params) {
-
     function inferType(methods) {
         methods = _.uniq(methods);
-//        console.log("methods ", methods)
+//        console.log(methods)
         var currentMatches = 0;
         var name = "";
-        var paramTypes = [];
         var map = _.map(classes,function(num,key){
             return {
                 name:key,
@@ -21,14 +19,17 @@ exports.inferTypes = function(classes,params) {
         });
         var max = _.max(map,function(elem){
             return elem.count;
-        });
+        });        
         var type = max.count > 0 ? max : {name: "Unknown", params : []};
-        var params = type.params;
+        var pars = type.params;
         var paramTypes = [];
-        for (var p = 0; p < params.length; ++p) {
-            paramTypes.push(inferType(params[p]));
+//        console.log(type)
+//        console.log(pars.length)
+//        console.log(pars[p])
+        for (var p = 0; p < pars.length; ++p) {
+            paramTypes.push(inferType(pars[p]));
         }
-        console.log({name : type.name, params : paramTypes});
+//        console.log({name : type.name, params : paramTypes});
         return {name : type.name, params : paramTypes};
     }
     

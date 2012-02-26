@@ -36,7 +36,7 @@ var Executor = module.exports.Executor = function(src,classes,className)
 
     this.source = src;
     this.setupContext(classes);
-    this.proxies = this.addProxyMethod();
+//    this.proxies = this.addProxyMethod();
 
     this.mut = this.getMut(classes[className]);
     this.on('node',
@@ -157,10 +157,12 @@ function createExecHandler(classes) {
                 return elem.name === methodName;
             }))
             console.log(this.isConstructorParam())
-*/
+
             console.log(this.className)
+            console.log(this.paramIndex)
             console.log("this.methodName",this.methodName)
             console.log("method to add",name)
+*/
 
             // TODO index this.methodName directly vs filter
             var paramInfo = this.isConstructorParam() ?
@@ -169,19 +171,18 @@ function createExecHandler(classes) {
                     return elem.name === methodName;
                 }).params[this.paramIndex];
             paramInfo.push(name);
-/*            if (name === "valueOf") {
+            if (name === "valueOf") {
                 return function() {
                     return 1;
                 }
             }
             else {
-*/
                 var self = this;
                 return Proxy.createFunction(self,
                     function() {
                         return Proxy.create(self)
                 });
-//            }
+            }
         },
 
         // proxy[name] = value
@@ -214,8 +215,30 @@ function createExecHandler(classes) {
 
 Executor.prototype.setupContext = function(classes) {
     var context = {};
-    context.Handler = createExecHandler(classes);
-    context.log = console.log;
+    var Handler = createExecHandler(classes);
+    function getProperties(o) {
+        var own = {};
+        var proto = {};
+        for (var i in o) {
+            if (o.hasOwnProperty(i)) {
+                own[i] = {value:o[i]};
+            }
+            else {
+                proto[i] = {value:o[i]};
+            }
+        }
+        return {own: own, proto: proto};
+    }
+    context.proxy = function(o,className,methodName,paramIndex) {
+        var p = getProperties(o);
+        var prox = Object.create(
+            Object.create(Proxy.create(new Handler(className,methodName,paramIndex)),p.proto),
+            p.own
+        );
+        return prox;
+    }
+
+//    context.log = console.log;
 
     // adding the instrumentation methods to the runtime context
     var self = this;
@@ -271,7 +294,7 @@ Executor.prototype.showSource = function() {
 
 Executor.prototype.showProxies = function() {
     console.log('-------------- PROXIES -----------------');
-    console.log(beautify.js_beautify(this.proxies));
+//    console.log(beautify.js_beautify(this.proxies));
     console.log('---------------------------------------');
 
 }
@@ -289,10 +312,11 @@ Executor.prototype.covered = function() {
     })).length;
 }
 
-Executor.prototype.addProxyMethod = function() {
+/*Executor.prototype.addProxyMethod = function() {
     var m = "Proxy.proxy = function(o,className,methodName,paramIndex) {";
             m += "o.__proto__.__proto__ = ";
             m += "Proxy.create(new Handler(className,methodName,paramIndex));";
+            m += "var 0"
             m += "return o;}";
     return m;
 }
@@ -332,10 +356,10 @@ Executor.prototype.getProxies = function(classes) {
     p += "{return Object.create(Proxy.create(new Handler(className,methodName,paramIndex)),{})}";
     proxyList.push(p);
     return proxyList.join('\n\n');
-}
+}*/
 
 Executor.prototype.run = function() {
-    var src = this.source + '\n' + this.proxies + '\n' + this.mut + '\n' + this.test;
+    var src = this.source + '\n' + this.mut + '\n' + this.test;
     if (!this.mut) {
         console.warn("Warning: Executor.mut is an empty string")
     }

@@ -8,7 +8,7 @@ Test.prototype.toExecutorFormat = function() {
 }
 
 Test.prototype.toUnitTestFormat = function(result,mut) {
-    var test = this.stack.slice(0,-1).join('\n');
+    var test = this.stack.slice(0,-1);
     test += "\nassert(" + (this.stack.slice(-1)).toString().replace(/MUT/,mut) 
                         + " === " + result + ");";
     return beautify.js_beautify(test);
@@ -52,9 +52,10 @@ function Declaration(className,params,identifier,index,parentType,parentMethod) 
         ret += this.className + "\",\"" + this.className +"\"))";*/
         //var ret = "var " + this.identifier + " =     get" + type + "(\"" + className + "\",\"" + methodName + "\"," + i + "))";
         //return ret;
-        console.log("params",this.params)
-        var ret = "var " + this.identifier + " = TEST.get" + this.className
-                         + "(" + translateParams(this.params,ids,index,parentType,parentMethod) + ");\n";
+//        console.log("params",this.params)
+        var type = this.className === "Unknown" ? "Object" : this.className;
+        var ret = "var " + this.identifier + " = proxy"
+                         + "(new " +type+ translateParams(this.params,ids,parentType,parentMethod,index,className) + ");\n";
         return ret;
         
     }
@@ -142,8 +143,34 @@ function translateParamsCut(params,ids,className,methodName) {
     return ret;
 }*/ 
 
-function translateParams(params,ids,index,parentType,parentMethod) {
-    var ret = "[";
+function translateParams(params,ids,parentType,parentMethod,index,className) {
+/*    var ret = "";
+    if (className === "Unknown") {
+        ret += "{}";
+    }
+    else {
+        ret += "new " + className + "(";
+        for (var i in params) {
+            var p = params[i];
+            var type = p.name;
+            if(isPrimitive(type)) {
+                ret += "123";
+            }
+            else if (type === "Unknown") {
+                ret += ids[i];
+            }
+            else {
+                ret += ids[i];
+            }
+            if(i < params.length-1) {
+                ret += ",";
+            }
+        }
+        ret += ")";
+    }
+    ret += ",\"" + parentType + "\",\"" + parentMethod + "\"," + index;
+*/
+    var ret = "(";
     for (var i in params) {
         var p = params[i];
         var type = p.name;
@@ -160,7 +187,7 @@ function translateParams(params,ids,index,parentType,parentMethod) {
             ret += ",";
         }
     }
-    ret +="],\"" + parentType + "\",\"" + parentMethod + "\"," + index;
+    ret += "),\"" + parentType + "\",\"" + parentMethod + "\"," + index;
     return ret;
 }
 
@@ -230,12 +257,11 @@ Test.prototype.show = function() {
 exports.generate = function(classes,className,index) {
     var classInfo = classes[className];
     MAX_SEQUENCE_LENGTH = 5;
-    
     var parameters = randomData.inferTypes(classes,classInfo.ctr.params);
-    var t = new Test();
+    var t = new Test();    
     var instance = new CutDeclaration(className,parameters,_.uniqueId());
-    
     t.push(instance);
+
     //console.log()
     //t.show();
     

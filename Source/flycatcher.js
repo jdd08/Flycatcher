@@ -46,20 +46,18 @@ try {
 // method under test has been specified
 if (cmd.method) {
     var classes = analyser.getClasses(cmd, classContext, className, cmd.method);
-    console.log(classes['Point'].ctr)
-    console.log(classes['Point'].methods)
+//    console.log(classes['Point'].ctr)
+//    console.log(classes['Point'].methods)
     var exec = new Executor(src, classes, className);
-    exec.showProxies();
     process.stdout.write("\nGenerating tests for at least " + cmd.coverage_max + "\% coverage of ");
     process.stdout.write("method <" + cmd.method + "> from class <" + className + "> : ");
     var goodTestScenarios = [];
     var count = 0;
-    while (exec.getMutCoverage() < cmd.coverage_max && count++<2) {
-        console.log();
+    while (exec.getMutCoverage() < cmd.coverage_max) {
         var test = randomTest.generate(classes, className);
         exec.setTest(test.toExecutorFormat());
-        exec.showTest();
         var res = exec.run();
+
         if (res.good) {
             goodTestScenarios.push(test.toUnitTestFormat(res.result, cmd.method));
         }
