@@ -50,7 +50,9 @@ var Executor = module.exports.Executor = function(src,classes,className)
     function(currentCoverage, good) {
         this.currentCov = Math.round((currentCoverage / this.nodeNum * 100) *
         Math.pow(10, 2) / Math.pow(10, 2));
-        if (good) process.stdout.write(".");
+        if (good) {
+            process.stdout.write("\b\b"+this.currentCov);
+        }
     });
 }
 
@@ -388,10 +390,7 @@ Executor.prototype.run = function() {
     if (!this.test) {
         console.warn("Warning: Executor.test is empty")
     }
-    console.log()
-    console.log("this.test.hasUnknowns()",this.test.hasUnknowns())    
     var before = this.covered();
-    console.log("before this.covered()",this.covered())
     var res = {};
     try {
         res = vm.runInNewContext(src, this.context);
@@ -401,9 +400,7 @@ Executor.prototype.run = function() {
         console.log("caught " + err);
     }
     var after = this.covered();
-    console.log("after this.covered()",this.covered())
     var good = after > before;
-    console.log("good",good)
     this.emit('cov', after, good);
     return {
         good: good,

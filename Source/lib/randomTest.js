@@ -64,6 +64,24 @@ function Declaration(className,params,identifier,index,parentType,parentMethod) 
     }
 }
 
+function NumberDeclaration(className,params,identifier,index,parentType,parentMethod) {
+    this.className = className;
+    this.params = params;
+    this.identifier = identifier;
+    this.parentType = parentType;
+    this.parentMethod = parentMethod;
+    this.translate = function(ids) {
+
+        var type = this.className === "Unknown" ? "Object" : this.className;
+        var ret = "var " + this.identifier + " = " + + ";";
+        return ret;
+        
+    }
+    this.getIdentifier = function() {
+        return this.identifier;
+    }
+}
+
 function Call(instanceIdentifier,methodName,params,className) {
     this.instanceIdentifier = instanceIdentifier;
     this.methodName = methodName;
@@ -106,7 +124,7 @@ function translateParamsCut(params,ids,className,methodName) {
         var p = params[i];
         var type = p.name;
         if(isPrimitive(type)) {
-            ret += randomData.getNumber();
+            ret += ids[i];
         }
         else if (type === "Unknown") {
             ret += ids[i];
@@ -121,61 +139,13 @@ function translateParamsCut(params,ids,className,methodName) {
     return ret;
 }
 
-/*function translateParamsCall(params,ids,className,methodName,index) {
-    var ret = "[";
-    for (var i in params) {
-        var p = params[i];
-        var type = p.name;
-        if(isPrimitive(type)) {
-            ret += "123";
-        }
-        else if (type === "Unknown") {
-            ret += ids[i];
-        }
-        else {
-            ret += ids[i];
-        }
-        if(i < params.length-1) {
-            ret += ",";
-        }
-    }
-    ret +="],\"" + className + "\",\"" + methodName + "\"," + index;
-    return ret;
-}*/ 
-
 function translateParams(params,ids,parentType,parentMethod,index,className) {
-/*    var ret = "";
-    if (className === "Unknown") {
-        ret += "{}";
-    }
-    else {
-        ret += "new " + className + "(";
-        for (var i in params) {
-            var p = params[i];
-            var type = p.name;
-            if(isPrimitive(type)) {
-                ret += "123";
-            }
-            else if (type === "Unknown") {
-                ret += ids[i];
-            }
-            else {
-                ret += ids[i];
-            }
-            if(i < params.length-1) {
-                ret += ",";
-            }
-        }
-        ret += ")";
-    }
-    ret += ",\"" + parentType + "\",\"" + parentMethod + "\"," + index;
-*/
     var ret = "(";
     for (var i in params) {
         var p = params[i];
         var type = p.name;
         if(isPrimitive(type)) {
-            ret += randomData.getNumber();
+            ret += ids[i];
         }
         else if (type === "Unknown") {
             ret += ids[i];
@@ -204,60 +174,68 @@ Test.prototype.push = function(elem,paramTable,key) {
     if(elem instanceof Declaration && elem.className === "Unknown") {
         this.unknowns = true;
     }
-    var params = elem.params;
-    var ids = [];
-    var identifiers = [];
-    var decls = [];
-    var first = paramTable === undefined;
-    var reuse = false;
-    if(first) {
-        paramTable = [];
-    }
-    else {
-        if(paramTable[key]) {
-            reuse = true;
+    
+    // TODO store a unique number in the table instead of an id
+    // when the type is a Number so that it can be re-used
+    if (!(elem instanceof NumberDeclaration)) {
+        var params = elem.params;
+        var ids = [];
+        var identifiers = [];
+        var decls = [];
+        var first = paramTable === undefined;
+        var reuse = false;
+        if(first) {
+            paramTable = [];
         }
         else {
-            paramTable[key] = [];
-        }
-    }
-    for(var p = 0; p<params.length; ++p) {
-        var id;
-        if (reuse) {
-            id = paramTable[key][p];
-        }
-        else {
-            var length = ids.length;
-            var reuseExisting = length && Math.random() > 0.75;
-            if (reuseExisting) {
-                var r = Math.floor(Math.random()*length);
-                var id = ids[r];
+            if(paramTable[key]) {
+                reuse = true;
             }
             else {
-                id = _.uniqueId();
-            }            
+                paramTable[key] = [];
+            }
         }
-        var type = params[p].name;
-        var identifier = type.toLowerCase() + id  + "_" + p;
-        identifiers.push(identifier);
-        ids.push(id);
-        if(!first) {
-            paramTable[key].push(id);
-        }
-        if (!isPrimitive(type)) {
-            if (elem instanceof Call || elem instanceof Mut) {
-                this.push(new Declaration(type,params[p].params,identifier,p,elem.className,elem.methodName),paramTable,id);            
+        for(var p = 0; p<params.length; ++p) {
+            var id;
+            if (reuse) {
+                id = paramTable[key][p];
             }
             else {
-                this.push(new Declaration(type,params[p].params,identifier,p,elem.className,elem.className),paramTable,id);            
-            }            
+                var length = ids.length;
+                var reuseExisting = length && Math.random() > 0.75;
+                if (reuseExisting) {
+                    var r = Math.floor(Math.random()*length);
+                    var id = ids[r];
+                }
+                else {
+                    id = _.uniqueId();
+                }            
+            }
+            var type = params[p].name;
+            var identifier = type.toLowerCase() + id  + "_" + p;
+            identifiers.push(identifier);
+            ids.push(id);
+            if(!first) {
+                paramTable[key].push(id);
+            }
+            if (!isPrimitive(type)) {
+                if (elem instanceof Call || elem instanceof Mut) {
+                    this.push(new Declaration(type,params[p].params,identifier,p,elem.className,elem.methodName),paramTable,id);            
+                }
+                else {
+                    this.push(new Declaration(type,params[p].params,identifier,p,elem.className,elem.className),paramTable,id);            
+                }
+            }
+            else {
+                if (elem instanceof Call || elem instanceof Mut) {
+                    this.push(new NumberDeclaration(type,params[p].params,identifier,p,elem.className,elem.className),paramTable,id);
+                }
+                else {
+                    this.push(new NumberDeclaration(type,params[p].params,identifier,p,elem.className,elem.className),paramTable,id);
+                }
+            }
         }
-
-//        decls.push(new Declaration(type,params[p].params,identifier,id,p));
     }
-//    for (var i = 0; i<decls.length; ++i) {
-//        this.push(decls[i]);
-//    }
     this.stack.push(elem.translate(identifiers));
 }
 
@@ -278,19 +256,21 @@ exports.generate = function(classes,className,index) {
     
     var callSequence = [];
     randomSequenceLength = Math.ceil(Math.random()*MAX_SEQUENCE_LENGTH);
-    for (var j = 0; j<randomSequenceLength;j++) {
-        var randomMethod = Math.floor(Math.random()*classInfo.methods.length);
+    if (classInfo.methods.length > 1) {
+        for (var j = 0; j<randomSequenceLength;j++) {
+            var randomMethod = Math.floor(Math.random()*classInfo.methods.length);
 
-        // TODO: if index is 0 initially FAILS IF CLASS UNDER TEST HAS NO METHODS
-        while ((index && randomMethod === index) || classInfo.methods[randomMethod].mut) {
-            randomMethod = Math.floor(Math.random()*classInfo.methods.length);
+            // TODO: if index is 0 initially FAILS IF CLASS UNDER TEST HAS NO METHODS
+            while ((index && randomMethod === index) || classInfo.methods[randomMethod].mut) {
+                randomMethod = Math.floor(Math.random()*classInfo.methods.length);
+            }
+            var method = classInfo.methods[randomMethod];
+            var call = new Call(instance.getIdentifier(),
+                                method.name,
+                                randomData.inferTypes(classes,method.params),
+                                className);
+            t.push(call);
         }
-        var method = classInfo.methods[randomMethod];
-        var call = new Call(instance.getIdentifier(),
-                            method.name,
-                            randomData.inferTypes(classes,method.params),
-                            className);
-        t.push(call);
     }
 
     var mutParams = {};

@@ -4,6 +4,7 @@ var dump = require('./utils').dump;
 exports.inferTypes = function(classes,params) {
     function inferType(methods) {
         methods = _.uniq(methods);
+//        console.log(methods)
         if (methods[0] && methods.length && methods[0] === 'valueOf') {
             return {name : "Number", params : []};
         }
@@ -46,7 +47,8 @@ exports.inferTypes = function(classes,params) {
 }
 
 exports.getNumber = function() {
-    MAX_INT = 1000;
+    // returns a number from 0 to 65535
+    MAX_INT = (1 << 16);
     return Math.floor(Math.random()*MAX_INT);   
 }
 

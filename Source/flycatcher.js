@@ -51,21 +51,21 @@ if (cmd.method) {
 //    console.log(classes['Point'].methods)
     var exec = new Executor(src, classes, className);
     process.stdout.write("\nGenerating tests for at least " + cmd.coverage_max + "\% coverage of ");
-    process.stdout.write("method <" + cmd.method + "> from class <" + className + "> : ");
+    process.stdout.write("method <" + cmd.method + "> from class <" + className + "> :   ");
     var goodTestScenarios = [];
     var count = 0;
-    while (exec.getMutCoverage() < cmd.coverage_max && count++<4) {
+    while (exec.getMutCoverage() < cmd.coverage_max) {
         var test = randomTest.generate(classes, className);
         exec.setTest(test);
-//        exec.showTest();
         var res = exec.run();
 
         if (res.good && !test.hasUnknowns()) {
+            exec.showTest();
             goodTestScenarios.push(test.toUnitTestFormat(res.result, cmd.method));
         }
     }
     var fileName = "Flycatcher_" + className + ".js";
-    console.log("(" + res.cov + "\%)\nGeneration succesful. Tests can be found in " + fileName + "\n");
+    console.log(" (" + res.cov + "\%)\nGeneration succesful. Tests can be found in " + fileName + "\n");
     fs.writeFileSync(fileName, goodTestScenarios.join('\n\n'));
 }
  else {
