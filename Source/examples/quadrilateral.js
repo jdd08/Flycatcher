@@ -1,43 +1,17 @@
 
 
-function Bye() {
-    
-}
-Bye.prototype.bye = function(){};
-
-function Foo(x,y,z) {
+function Point(x,y) {
     this.x = x;
     this.y = y;
-    this.z = z;
-}
-
-Foo.prototype.foo1 = function() {
-    this.x.bye();
-    this.y.bye();
-    this.z.bye();    
-    return "foo1 " + this.x + this.y + this.z;
-}
-
-Foo.prototype.foo2 = function() {
-    return "foo2" + this.x + this.y + this.z;    
-}
-
-function Point(foo) {
-    foo.foo1();
-//    this.x = 1;
-//    this.y = 1;
 }
 
 Point.prototype.incX = function() {
-//    this.foo.foo1();
-//    this.x++;   
+    this.x++;
 }
 
 Point.prototype.incY = function() {
-//    this.foo.foo2();
-//    this.y++;
+    this.y++;
 }
-
 
 function Quadrilateral(topRight,topLeft,bottomRight,bottomLeft) {
 /*
@@ -181,51 +155,47 @@ function Quadrilateral(topRight,topLeft,bottomRight,bottomLeft) {
     // work these will work too, only they
     // will change the parameter's value
 */
-    bottomRight.incX();
-    topRight.incY();
-    topLeft.incY();
-    bottomLeft.incY();
-/*    this.topRight = topRight;
+    this.topRight = topRight;
     this.topLeft = topLeft;
     this.bottomRight = bottomRight;
-    this.bottomLeft = bottomLeft;*/
+    this.bottomLeft = bottomLeft;
 }
 
-Quadrilateral.prototype.incTopRightX = function(n) {
-    n.incX();
+
+Quadrilateral.prototype.incTopRightX = function() {
+    this.topRight.incX();
 }
 
-Quadrilateral.prototype.incTopLeftX = function(n) {
-    n.incX();
+Quadrilateral.prototype.incTopLeftX = function() {
+    this.topLeft.incX();
 }
 
-Quadrilateral.prototype.incBottomRightX = function(n) {
-    n.incX();
+Quadrilateral.prototype.incBottomRightX = function() {
+    this.bottomRight.incX();
 }
 
-Quadrilateral.prototype.incBottomLeftX = function(n) {
-    n.incX();
+Quadrilateral.prototype.incBottomLeftX = function() {
+    this.bottomLeft.incX();
 }
 
-Quadrilateral.prototype.incTopRightY = function(n) {
-    n.incY();
+Quadrilateral.prototype.incTopRightY = function() {
+    this.topRight.incY();
 }
 
-Quadrilateral.prototype.intTopLeftY = function(n) {
-    n.incY();
+Quadrilateral.prototype.intTopLeftY = function() {
+    this.topLeft.incY();
 }
 
-Quadrilateral.prototype.incBottomRightY = function(n) {
-    n.incY();
+Quadrilateral.prototype.incBottomRightY = function() {
+    this.bottomRight.incY();
 }
 
-Quadrilateral.prototype.incBottomLeftY = function(n) {
-    n.incY();
+Quadrilateral.prototype.incBottomLeftY = function() {
+    this.bottomLeft.incY();
 }
 
-Quadrilateral.prototype.getCoords = function(n,m) {
-    
-    n.incX();
+Quadrilateral.prototype.getCoords = function() {
+
     var r = Math.random();
     if (r < 0.1) {
         Math.random();
@@ -283,9 +253,11 @@ Quadrilateral.prototype.getCoords = function(n,m) {
     if(tr.x > 4) {
         var f = new Foo(1,2,3);
     }
+    */
+//    res = ["this.topRight.x",this.topRight.x].join("");
     var res = this.topRight.x + " " + this.topRight.y + ", ";
     res += this.topLeft.x + " " + this.topLeft.y + ", ";
     res += this.bottomRight.x + " " + this.bottomRight.y + ", ";
-    res += this.bottomLeft.x + " " + this.bottomLeft.y;*/
-    return "HARO";
+    res += this.bottomLeft.x + " " + this.bottomLeft.y;
+    return res;
 }

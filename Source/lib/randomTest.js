@@ -8,7 +8,7 @@ Test.prototype.toExecutorFormat = function() {
 }
 
 Test.prototype.toUnitTestFormat = function(result,mut) {
-    var test = this.stack.slice(0,-1);
+    var test = this.stack.slice(0,-1).join('\n');
     test += "\nassert(" + (this.stack.slice(-1)).toString().replace(/MUT/,mut) 
                         + " === " + result + ");";
     return beautify.js_beautify(test);
@@ -26,7 +26,7 @@ function CutDeclaration(className,params,id) {
         // and called specifically)
         
         var ret = "var " + this.identifier + " = new " + this.className
-                         + "(" + translateParamsCut(this.params,ids,this.className,this.className) + ");\n";
+                         + "(" + translateParamsCut(this.params,ids,this.className,this.className) + ");";
         return ret;
     }
     this.getIdentifier = function() {
@@ -55,7 +55,7 @@ function Declaration(className,params,identifier,index,parentType,parentMethod) 
 //        console.log("params",this.params)
         var type = this.className === "Unknown" ? "Object" : this.className;
         var ret = "var " + this.identifier + " = proxy"
-                         + "(new " +type+ translateParams(this.params,ids,parentType,parentMethod,index,className) + ");\n";
+                         + "(new " +type+ translateParams(this.params,ids,parentType,parentMethod,index,className) + ");";
         return ret;
         
     }
@@ -106,7 +106,7 @@ function translateParamsCut(params,ids,className,methodName) {
         var p = params[i];
         var type = p.name;
         if(isPrimitive(type)) {
-            ret += "123";
+            ret += randomData.getNumber();
         }
         else if (type === "Unknown") {
             ret += ids[i];
@@ -175,7 +175,7 @@ function translateParams(params,ids,parentType,parentMethod,index,className) {
         var p = params[i];
         var type = p.name;
         if(isPrimitive(type)) {
-            ret += "123";
+            ret += randomData.getNumber();
         }
         else if (type === "Unknown") {
             ret += ids[i];
@@ -236,12 +236,15 @@ Test.prototype.push = function(elem,paramTable,key) {
         if(!first) {
             paramTable[key].push(id);
         }
-        if (elem instanceof Call || elem instanceof Mut) {
-            this.push(new Declaration(type,params[p].params,identifier,p,elem.className,elem.methodName),paramTable,id);            
+        if (!isPrimitive(type)) {
+            if (elem instanceof Call || elem instanceof Mut) {
+                this.push(new Declaration(type,params[p].params,identifier,p,elem.className,elem.methodName),paramTable,id);            
+            }
+            else {
+                this.push(new Declaration(type,params[p].params,identifier,p,elem.className,elem.className),paramTable,id);            
+            }            
         }
-        else {
-            this.push(new Declaration(type,params[p].params,identifier,p,elem.className,elem.className),paramTable,id);            
-        }
+
 //        decls.push(new Declaration(type,params[p].params,identifier,id,p));
     }
 //    for (var i = 0; i<decls.length; ++i) {
@@ -269,6 +272,8 @@ exports.generate = function(classes,className,index) {
     randomSequenceLength = Math.ceil(Math.random()*MAX_SEQUENCE_LENGTH);
     for (var j = 0; j<randomSequenceLength;j++) {
         var randomMethod = Math.floor(Math.random()*classInfo.methods.length);
+
+        // TODO: if index is 0 initially FAILS IF CLASS UNDER TEST HAS NO METHODS
         while ((index && randomMethod === index) || classInfo.methods[randomMethod].mut) {
             randomMethod = Math.floor(Math.random()*classInfo.methods.length);
         }

@@ -151,6 +151,7 @@ function createExecHandler(classes) {
 
         // proxy[name] -> any
         get: function(receiver, name) {
+//            console.log(name)
             var methodName = this.methodName;
 
 /*            console.log(_.find(this.classes[this.className].methods,function(elem){
@@ -173,9 +174,15 @@ function createExecHandler(classes) {
             paramInfo.push(name);
             if (name === "valueOf") {
                 return function() {
-                    return 1;
+                    return 2;
                 }
             }
+/*            else if (name === "toString") {
+                return function() {
+                    return "HARO!";
+                }
+            }
+*/
             else {
                 var self = this;
                 return Proxy.createFunction(self,
@@ -187,6 +194,7 @@ function createExecHandler(classes) {
 
         // proxy[name] = value
         set: function(receiver, name, value) {
+            console.log(name)
             if (canPut(this.target, name)) {
                 // canPut as defined in ES5 8.12.4 [[CanPut]]
                 this.target[name] = value;
@@ -221,7 +229,12 @@ Executor.prototype.setupContext = function(classes) {
         var proto = {};
         for (var i in o) {
             if (o.hasOwnProperty(i)) {
-                own[i] = {value:o[i]};
+                own[i] = {
+                    value:o[i],
+                    writable:true,
+                    enumerable:true,
+                    configurable:true
+                };
             }
             else {
                 proto[i] = {value:o[i]};
@@ -237,6 +250,7 @@ Executor.prototype.setupContext = function(classes) {
         );
         return prox;
     }
+    context.log = console.log;
 
 //    context.log = console.log;
 

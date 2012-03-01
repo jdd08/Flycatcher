@@ -4,33 +4,38 @@ var dump = require('./utils').dump;
 exports.inferTypes = function(classes,params) {
     function inferType(methods) {
         methods = _.uniq(methods);
-//        console.log(methods)
-        var currentMatches = 0;
-        var name = "";
-        var map = _.map(classes,function(num,key){
-            return {
-                name:key,
-                params:num.ctr.params,
-                count: function(){
-                    var names = _.pluck(num.methods,"name");
-                    return _.intersection(names,methods).length;
-                }()
-            }
-        });
-        var max = _.max(map,function(elem){
-            return elem.count;
-        });        
-        var type = max.count > 0 ? max : {name: "Unknown", params : []};
-        var pars = type.params;
-        var paramTypes = [];
-//        console.log(type)
-//        console.log(pars.length)
-//        console.log(pars[p])
-        for (var p = 0; p < pars.length; ++p) {
-            paramTypes.push(inferType(pars[p]));
+        if (methods[0] && methods.length && methods[0] === 'valueOf') {
+            return {name : "Number", params : []};
         }
-//        console.log({name : type.name, params : paramTypes});
-        return {name : type.name, params : paramTypes};
+        else {
+//            console.log(methods);
+            var currentMatches = 0;
+            var name = "";
+            var map = _.map(classes,function(num,key){
+                return {
+                    name:key,
+                    params:num.ctr.params,
+                    count: function(){
+                        var names = _.pluck(num.methods,"name");
+                        return _.intersection(names,methods).length;
+                    }()
+                }
+            });
+            var max = _.max(map,function(elem){
+                return elem.count;
+            });        
+            var type = max.count > 0 ? max : {name: "Unknown", params : []};
+            var pars = type.params;
+            var paramTypes = [];
+    //        console.log(type)
+    //        console.log(pars.length)
+    //        console.log(pars[p])
+            for (var p = 0; p < pars.length; ++p) {
+                paramTypes.push(inferType(pars[p]));
+            }
+    //        console.log({name : type.name, params : paramTypes});
+            return {name : type.name, params : paramTypes};
+        }
     }
     
     var randomParams = [];
@@ -40,8 +45,8 @@ exports.inferTypes = function(classes,params) {
     return randomParams;
 }
 
-exports.getNum = function() {
-    MAX_INT = 700;
+exports.getNumber = function() {
+    MAX_INT = 1000;
     return Math.floor(Math.random()*MAX_INT);   
 }
 

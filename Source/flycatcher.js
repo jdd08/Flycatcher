@@ -34,6 +34,7 @@ try {
 }
 
 var classContext = {};
+classContext.log = console.log;
 try {
     vm.runInNewContext(src, classContext);
 }
@@ -53,9 +54,10 @@ if (cmd.method) {
     process.stdout.write("method <" + cmd.method + "> from class <" + className + "> : ");
     var goodTestScenarios = [];
     var count = 0;
-    while (exec.getMutCoverage() < cmd.coverage_max) {
+    while (exec.getMutCoverage() < cmd.coverage_max && count++<6) {
         var test = randomTest.generate(classes, className);
         exec.setTest(test.toExecutorFormat());
+//        exec.showTest();
         var res = exec.run();
 
         if (res.good) {
