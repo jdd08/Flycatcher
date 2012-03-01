@@ -60,8 +60,7 @@ if (cmd.method) {
         var res = exec.run();
 
         if (res.good && !test.hasUnknowns()) {
-            exec.showTest();
-            goodTestScenarios.push(test.toUnitTestFormat(res.result, cmd.method));
+            goodTestScenarios.push(test.toUnitTestFormat(res.result, ++count, className, cmd.method));
         }
     }
     var fileName = "Flycatcher_" + className + ".js";

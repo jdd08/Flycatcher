@@ -4,14 +4,23 @@ var _ = require('underscore');
 var beautify = require('./beautify-js/beautify.js');
 
 Test.prototype.toExecutorFormat = function() {
-    return this.stack.join('\n');
+    var test = [];
+    for (var i = 0; i<this.stack.length; ++i) {
+        var e = this.stack[i];
+        test[i] = e.elem.toExecutorFormat(e.identifiers);
+    }
+    return test.join('\n');
 }
 
-Test.prototype.toUnitTestFormat = function(result,mut) {
-    var test = this.stack.slice(0,-1).join('\n');
-    test += "\nassert(" + (this.stack.slice(-1)).toString().replace(/MUT/,mut) 
-                        + " === " + result + ");";
-    return beautify.js_beautify(test);
+Test.prototype.toUnitTestFormat = function(result,testIndex,className,methodName) {
+    var test = [];
+    test[0] = "// FLYCATCHER automatically generated test #" + testIndex;
+    test[1] = "// for class <" + className + "> and method <" + methodName + ">";
+    for (var i = 0; i<this.stack.length; ++i) {
+        var testElement = this.stack[i];
+        test[i+2] = testElement.elem.toUnitTestFormat(testElement.identifiers,result);
+    }
+    return test.join('\n');
 }
 
 function CutDeclaration(className,params,id) {
@@ -19,14 +28,24 @@ function CutDeclaration(className,params,id) {
     this.params = params;
     this.id = id;
     this.identifier = className.toLowerCase() + id;
-    this.translate = function(ids) {
+    this.toExecutorFormat = function(ids) {
         
         // the CUT might need a different proxying, however it doesn't need proxying
         // for catching erroneous method calls (all its methods are known from the analyser
         // and called specifically)
         
         var ret = "var " + this.identifier + " = new " + this.className
-                         + "(" + translateParamsCut(this.params,ids,this.className,this.className) + ");";
+                         + "(" + executorParamsCut(this.params,ids,this.className,this.className) + ");";
+        return ret;
+    }
+    this.toUnitTestFormat = function(ids) {
+        
+        // the CUT might need a different proxying, however it doesn't need proxying
+        // for catching erroneous method calls (all its methods are known from the analyser
+        // and called specifically)
+        
+        var ret = "var " + this.identifier + " = new " + this.className
+                         + "(" + executorParamsCut(this.params,ids,this.className,this.className) + ");";
         return ret;
     }
     this.getIdentifier = function() {
@@ -40,43 +59,48 @@ function Declaration(className,params,identifier,index,parentType,parentMethod) 
     this.identifier = identifier;
     this.parentType = parentType;
     this.parentMethod = parentMethod;
-    this.translate = function(ids) {
+    this.toExecutorFormat = function(ids) {
         
         // the CUT might need a different proxying, however it doesn't need proxying
         // for catching erroneous method calls (all its methods are known from the analyser
         // and called specifically)
-        
-        /*var ret = "var " + this.identifier + "tmp = new " + this.className
-                         + "(" + translateParams(this.params,ids,this.className) + ");\n";
-        ret += "var " + this.identifier + " = Proxy.create(new Handler(\"";
-        ret += this.className + "\",\"" + this.className +"\"))";*/
-        //var ret = "var " + this.identifier + " =     get" + type + "(\"" + className + "\",\"" + methodName + "\"," + i + "))";
-        //return ret;
-//        console.log("params",this.params)
         var type = this.className === "Unknown" ? "Object" : this.className;
         var ret = "var " + this.identifier + " = proxy"
-                         + "(new " +type+ translateParams(this.params,ids,parentType,parentMethod,index,className) + ");";
+                         + "(new " +type+ executorParams(this.params,ids,parentType,parentMethod,index,className) + ");";
         return ret;
+    }
+    this.toUnitTestFormat = function(ids) {
         
+        // the CUT might need a different proxying, however it doesn't need proxying
+        // for catching erroneous method calls (all its methods are known from the analyser
+        // and called specifically)
+        var type = this.className === "Unknown" ? "Object" : this.className;
+        var ret = "var " + this.identifier + " = new " +type;
+            ret += unitTestParams(this.params,ids) + ";";
+        return ret;
     }
     this.getIdentifier = function() {
         return this.identifier;
     }
 }
 
-function NumberDeclaration(className,params,identifier,index,parentType,parentMethod) {
+function NumberDeclaration(className,params,identifier,index,parentType,parentMethod,num) {
     this.className = className;
     this.params = params;
     this.identifier = identifier;
     this.parentType = parentType;
     this.parentMethod = parentMethod;
-    this.translate = function(ids) {
-
+    this.toExecutorFormat = function(ids) {
         var type = this.className === "Unknown" ? "Object" : this.className;
-        var ret = "var " + this.identifier + " = " + + ";";
+        var ret = "var " + this.identifier + " = " + num + ";";
         return ret;
-        
     }
+    this.toUnitTestFormat = function(ids) {
+        var type = this.className === "Unknown" ? "Object" : this.className;
+        var ret = "var " + this.identifier + " = " + num + ";";
+        return ret;
+    }
+
     this.getIdentifier = function() {
         return this.identifier;
     }
@@ -87,9 +111,14 @@ function Call(instanceIdentifier,methodName,params,className) {
     this.methodName = methodName;
     this.className = className;
     this.params = params;
-    this.translate = function(ids) {
+    this.toExecutorFormat = function(ids) {
         var ret = instanceIdentifier + "." + this.methodName
-                  + "(" + translateParamsCut(this.params,ids,className,this.methodName) + ");"
+                  + "(" + executorParamsCut(this.params,ids,className,this.methodName) + ");"
+        return ret;
+    }
+    this.toUnitTestFormat = function(ids) {
+        var ret = instanceIdentifier + "." + this.methodName
+                  + "(" + executorParamsCut(this.params,ids,className,this.methodName) + ");"
         return ret;
     }
 }
@@ -99,10 +128,14 @@ function Mut(instanceIdentifier,methodName,params,className) {
     this.methodName = methodName;
     this.className = className;
     this.params = params;
-    this.translate = function(ids) {
-        // semi-colon left out on purpose for the assert statement
+    this.toExecutorFormat = function(ids) {
         var ret = instanceIdentifier + ".MUT"
-                  + "(" + translateParamsCut(this.params,ids,className,methodName) + ")"
+                  + "(" + executorParamsCut(this.params,ids,className,methodName) + ");"
+        return ret;
+    }
+    this.toUnitTestFormat = function(ids,result) {        
+        var ret = "assert(" + instanceIdentifier +"."+ this.methodName;
+            ret +=  "(" + executorParamsCut(this.params,ids,className,methodName) + ") === " + result + ");";
         return ret;
     }
 }
@@ -118,7 +151,7 @@ function isUnknown(type) { return type === "Unknown"; }
 
 function isUserDefined(type) { return !isUnknown(type) && !isPrimitive(type); }
 
-function translateParamsCut(params,ids,className,methodName) {
+function executorParamsCut(params,ids,className,methodName) {
     var ret = "";
     for (var i in params) {
         var p = params[i];
@@ -139,7 +172,7 @@ function translateParamsCut(params,ids,className,methodName) {
     return ret;
 }
 
-function translateParams(params,ids,parentType,parentMethod,index,className) {
+function executorParams(params,ids,parentType,parentMethod,index,className) {
     var ret = "(";
     for (var i in params) {
         var p = params[i];
@@ -161,6 +194,29 @@ function translateParams(params,ids,parentType,parentMethod,index,className) {
     return ret;
 }
 
+function unitTestParams(params,ids) {
+    var ret = "(";
+    for (var i in params) {
+        var p = params[i];
+        var type = p.name;
+        if(isPrimitive(type)) {
+            ret += ids[i];
+        }
+        else if (type === "Unknown") {
+            ret += ids[i];
+        }
+        else {
+            ret += ids[i];
+        }
+        if(i < params.length-1) {
+            ret += ",";
+        }
+    }
+    ret += ")";
+    return ret;
+}
+
+
 function Test() {
     this.unknowns = false;
     this.stack = [];
@@ -171,33 +227,38 @@ Test.prototype.hasUnknowns = function() {
 }
 
 Test.prototype.push = function(elem,paramTable,key) {
-    if(elem instanceof Declaration && elem.className === "Unknown") {
+    if(elem.className === "Unknown") {
         this.unknowns = true;
     }
-    
-    // TODO store a unique number in the table instead of an id
-    // when the type is a Number so that it can be re-used
-    if (!(elem instanceof NumberDeclaration)) {
-        var params = elem.params;
-        var ids = [];
-        var identifiers = [];
-        var decls = [];
-        var first = paramTable === undefined;
-        var reuse = false;
-        if(first) {
-            paramTable = [];
+    var params = elem.params;
+    var ids = [];
+    var identifiers = [];
+    var numbers = [];
+    var decls = [];
+    var first = paramTable === undefined;
+    var keyExists = false;
+    if(first) {
+        paramTable = [];
+    }
+    else {
+        // the way the test stack works, whenever a statement
+        // is pushed, statements for *its* parameters are immediately
+        //  dealt with, so we need to keep track of whether we have
+        // starte dealing with a statement or not, if we have, then
+        // we can potentially use previous parameters within the
+        // statement for the parameter at hand
+        if(paramTable[key]) {
+            keyExists = true;
         }
         else {
-            if(paramTable[key]) {
-                reuse = true;
-            }
-            else {
-                paramTable[key] = [];
-            }
+            paramTable[key] = [];
         }
-        for(var p = 0; p<params.length; ++p) {
+    }
+    for(var p = 0; p<params.length; ++p) {
+        var type = params[p].name;
+        if (!isPrimitive(type)) {
             var id;
-            if (reuse) {
+            if (keyExists) {
                 id = paramTable[key][p];
             }
             else {
@@ -211,36 +272,48 @@ Test.prototype.push = function(elem,paramTable,key) {
                     id = _.uniqueId();
                 }            
             }
-            var type = params[p].name;
             var identifier = type.toLowerCase() + id  + "_" + p;
             identifiers.push(identifier);
             ids.push(id);
             if(!first) {
                 paramTable[key].push(id);
             }
-            if (!isPrimitive(type)) {
-                if (elem instanceof Call || elem instanceof Mut) {
-                    this.push(new Declaration(type,params[p].params,identifier,p,elem.className,elem.methodName),paramTable,id);            
-                }
-                else {
-                    this.push(new Declaration(type,params[p].params,identifier,p,elem.className,elem.className),paramTable,id);            
-                }
+            if (elem instanceof Call || elem instanceof Mut) {
+                this.push(new Declaration(type,params[p].params,identifier,p,elem.className,elem.methodName),paramTable,id);            
             }
             else {
-                if (elem instanceof Call || elem instanceof Mut) {
-                    this.push(new NumberDeclaration(type,params[p].params,identifier,p,elem.className,elem.className),paramTable,id);
+                this.push(new Declaration(type,params[p].params,identifier,p,elem.className,elem.className),paramTable,id);            
+            }
+        }
+        else {
+            var num;
+            if (keyExists) {
+                num = paramTable[key][p];
+            }
+            else {
+                var length = ids.length;
+                var reuseExisting = length && Math.random() > 0.75;
+                if (reuseExisting) {
+                    var r = Math.floor(Math.random()*length);
+                    var num = ids[r];
                 }
                 else {
-                    this.push(new NumberDeclaration(type,params[p].params,identifier,p,elem.className,elem.className),paramTable,id);
+                    num = randomData.getNumber();
                 }
+            }
+            // when the parameter is of type Number, the number
+            // itself becomes the identifier
+            identifiers.push(num);
+            if(!first) {
+                paramTable[key].push(num);
             }
         }
     }
-    this.stack.push(elem.translate(identifiers));
+    this.stack.push({elem:elem,identifiers:identifiers});
 }
 
 Test.prototype.show = function() {
-    console.log(this.stack)
+//    console.log(this.stack)
 }
 
 exports.generate = function(classes,className,index) {

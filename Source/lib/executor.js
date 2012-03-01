@@ -331,56 +331,8 @@ Executor.prototype.showTest = function() {
 }
 
 Executor.prototype.covered = function() {
-    return (this.coverage.filter(function(x) {
-        return x;
-    })).length;
+    return (this.coverage.filter(_.identity)).length;
 }
-
-/*Executor.prototype.addProxyMethod = function() {
-    var m = "Proxy.proxy = function(o,className,methodName,paramIndex) {";
-            m += "o.__proto__.__proto__ = ";
-            m += "Proxy.create(new Handler(className,methodName,paramIndex));";
-            m += "var 0"
-            m += "return o;}";
-    return m;
-}
-
-Executor.prototype.getProxies = function(classes) {
-    var proxyList = [];
-    var p = "var TEST = {};";
-    proxyList.push(p);
-    for (var Class in classes) {
-        var p = "TEST.get"+Class+" = function(args,className,methodName,paramIndex) {";
-                p += "return function() {"
-                p += "var _"+Class+" = {};";
-                p += "for (var p in "+Class+".prototype) {";
-                    p += "_"+Class+"[p] = { value: "+Class+".prototype[p], enumerable: true };";
-                p += "}";
-                p += "var construct"+Class+" = (function(){";
-                    p += "function F(args) {";
-                        p += "return " +Class+ ".apply(this, args);";
-                    p += "}";
-                    p += "F.prototype = "+Class+".prototype;";
-                    p += "return function(args) {";
-                        p += "var r = new F(args);";
-                        p += Class+".prototype = _"+Class+";";
-                        p += "return r;";
-                    p += "}";
-                p += "})();";
-//        p += "log('before',"+Class+".prototype);";
-//        p += "log('before',"+Class+".prototype.test);";
-        p += "var h = new Handler(className,methodName,paramIndex);";
-//        p += "//log(\"h\",h)";
-        p += Class+".prototype = Object.create(Proxy.create(h),_"+Class+");";
-//        p += "log('after',"+Class+".prototype.test);";
-        p += "return construct"+Class+"(args);}()}";
-        proxyList.push(p);
-    }
-    var p = "TEST.getUnknown = function(args,className,methodName,paramIndex)";
-    p += "{return Object.create(Proxy.create(new Handler(className,methodName,paramIndex)),{})}";
-    proxyList.push(p);
-    return proxyList.join('\n\n');
-}*/
 
 Executor.prototype.run = function() {
     var src = this.source + '\n' + this.mut + '\n' + this.test.toExecutorFormat();
