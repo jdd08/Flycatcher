@@ -192,10 +192,18 @@ function translateParams(params,ids,parentType,parentMethod,index,className) {
 }
 
 function Test() {
+    this.unknowns = false;
     this.stack = [];
 }
 
+Test.prototype.hasUnknowns = function() {
+    return this.unknowns;
+}
+
 Test.prototype.push = function(elem,paramTable,key) {
+    if(elem instanceof Declaration && elem.className === "Unknown") {
+        this.unknowns = true;
+    }
     var params = elem.params;
     var ids = [];
     var identifiers = [];

@@ -19,7 +19,7 @@ var EventEmitter = require('events').EventEmitter;
 
 var Executor = module.exports.Executor = function(src,classes,className) 
 {
-    this.test = "";
+    this.test = {};
     this.nodes = [];
     this.coverage = [];
     this.nodeNum = 0;
@@ -258,11 +258,16 @@ Executor.prototype.setupContext = function(classes) {
     var self = this;
     var stack = [];
 
-    context[self.names.call] = function(i) {
-        var node = self.nodes[i];
-        stack.unshift(node);
-        self.emit('node', node, stack);
+    // we are only interested in the coverage of tests
+    // which are usable i.e. those that have resolved
+    // all of their types, so we test for test.hasUnknowns()
 
+    context[self.names.call] = function(i) {
+        if (!self.test.hasUnknowns()) {
+            var node = self.nodes[i];
+            stack.unshift(node);
+            self.emit('node', node, stack);
+        }
         return function(expr) {
             stack.shift();
             return expr;
@@ -270,17 +275,20 @@ Executor.prototype.setupContext = function(classes) {
     };
 
     context[self.names.expr] = function(i) {
-        var node = self.nodes[i];
-        self.emit('node', node, stack);
-
+        if (!self.test.hasUnknowns()) {
+            var node = self.nodes[i];
+            self.emit('node', node, stack);
+        }
         return function(expr) {
             return expr;
         };
     };
 
     context[self.names.stat] = function(i) {
-        var node = self.nodes[i];
-        self.emit('node', node, stack);
+        if (!self.test.hasUnknowns()) {
+            var node = self.nodes[i];
+            self.emit('node', node, stack);            
+        }
     };
 
     this.context = context;
@@ -315,7 +323,7 @@ Executor.prototype.showProxies = function() {
 
 Executor.prototype.showTest = function() {
     console.log('-------------- TEST -------------------');
-    console.log(this.test);
+    console.log(this.test.toExecutorFormat());
     console.log('---------------------------------------');
 
 }
@@ -373,14 +381,17 @@ Executor.prototype.getProxies = function(classes) {
 }*/
 
 Executor.prototype.run = function() {
-    var src = this.source + '\n' + this.mut + '\n' + this.test;
+    var src = this.source + '\n' + this.mut + '\n' + this.test.toExecutorFormat();
     if (!this.mut) {
         console.warn("Warning: Executor.mut is an empty string")
     }
     if (!this.test) {
-        console.warn("Warning: Executor.test is an empty string")
+        console.warn("Warning: Executor.test is empty")
     }
+    console.log()
+    console.log("this.test.hasUnknowns()",this.test.hasUnknowns())    
     var before = this.covered();
+    console.log("before this.covered()",this.covered())
     var res = {};
     try {
         res = vm.runInNewContext(src, this.context);
@@ -390,7 +401,9 @@ Executor.prototype.run = function() {
         console.log("caught " + err);
     }
     var after = this.covered();
+    console.log("after this.covered()",this.covered())
     var good = after > before;
+    console.log("good",good)
     this.emit('cov', after, good);
     return {
         good: good,

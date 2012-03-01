@@ -54,13 +54,13 @@ if (cmd.method) {
     process.stdout.write("method <" + cmd.method + "> from class <" + className + "> : ");
     var goodTestScenarios = [];
     var count = 0;
-    while (exec.getMutCoverage() < cmd.coverage_max && count++<6) {
+    while (exec.getMutCoverage() < cmd.coverage_max && count++<4) {
         var test = randomTest.generate(classes, className);
-        exec.setTest(test.toExecutorFormat());
+        exec.setTest(test);
 //        exec.showTest();
         var res = exec.run();
 
-        if (res.good) {
+        if (res.good && !test.hasUnknowns()) {
             goodTestScenarios.push(test.toUnitTestFormat(res.result, cmd.method));
         }
     }
