@@ -14,11 +14,10 @@ Test.prototype.toExecutorFormat = function() {
 
 Test.prototype.toUnitTestFormat = function(result,testIndex,className,methodName) {
     var test = [];
-    test[0] = "// FLYCATCHER automatically generated test #" + testIndex;
-    test[1] = "// for class <" + className + "> and method <" + methodName + ">";
+    test[0] = "// Test #" + testIndex;
     for (var i = 0; i<this.stack.length; ++i) {
         var testElement = this.stack[i];
-        test[i+2] = testElement.elem.toUnitTestFormat(testElement.identifiers,result);
+        test[i+1] = testElement.elem.toUnitTestFormat(testElement.identifiers,result);
     }
     return test.join('\n');
 }
@@ -134,8 +133,10 @@ function Mut(instanceIdentifier,methodName,params,className) {
         return ret;
     }
     this.toUnitTestFormat = function(ids,result) {        
-        var ret = "assert(" + instanceIdentifier +"."+ this.methodName;
-            ret +=  "(" + executorParamsCut(this.params,ids,className,methodName) + ") === " + result + ");";
+        if (typeof result === "string") result = "\"" + result + "\"";
+        var assertion = instanceIdentifier + "." + this.methodName + "(";
+        assertion += executorParamsCut(this.params,ids,className,methodName) + ") === " + result;
+        var ret = "assert.ok(" + assertion + ",\n         \'" + assertion + "\');";
         return ret;
     }
 }

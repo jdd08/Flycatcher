@@ -65,8 +65,24 @@ if (cmd.method) {
     }
     var fileName = "Flycatcher_" + className + ".js";
     console.log(" (" + res.cov + "\%)\nGeneration succesful. Tests can be found in " + fileName + "\n");
-    fs.writeFileSync(fileName, goodTestScenarios.join('\n\n'));
+
+    fs.writeFileSync(fileName,getFileContent(src,className,cmd.method,goodTestScenarios));
 }
  else {
     // by default generates tests for all of a class' methods
-    }
+}
+
+function getFileContent(src,className,method,tests) {
+    var header = "/*****************************************\n\n";
+    header += "                  FLYCATCHER\n";
+    header += "        AUTOMATIC UNIT TEST GENERATION\n";
+    header += "        ------------------------------\n\n";
+    header += "            CLASS: " + className + "\n";
+    header += "            METHOD: " + method + "\n\n";
+    header += "*******************************************/\n\n"
+    header += "var assert = require('assert');\n\n";
+    var success = "console.log(\"Unit test suite completed with success!\")";
+    var content = header + src +"\n\ntry {\n\n" + tests.join('\n\n') + "\n\n"+ success; 
+    content += "\n}\ncatch(err) {\n    console.log(err.name,err.message)\n}";
+    return content;
+}
