@@ -27,24 +27,24 @@ function CutDeclaration(className,params,id) {
     this.params = params;
     this.id = id;
     this.identifier = className.toLowerCase() + id;
-    this.toExecutorFormat = function(ids) {
+    this.toExecutorFormat = function(identifiers) {
         
         // the CUT might need a different proxying, however it doesn't need proxying
         // for catching erroneous method calls (all its methods are known from the analyser
         // and called specifically)
         
         var ret = "var " + this.identifier + " = new " + this.className
-                         + "(" + executorParamsCut(this.params,ids,this.className,this.className) + ");";
+                         + "(" + toParams(identifiers) + ");";
         return ret;
     }
-    this.toUnitTestFormat = function(ids) {
+    this.toUnitTestFormat = function(identifiers) {
         
         // the CUT might need a different proxying, however it doesn't need proxying
         // for catching erroneous method calls (all its methods are known from the analyser
         // and called specifically)
         
         var ret = "var " + this.identifier + " = new " + this.className
-                         + "(" + executorParamsCut(this.params,ids,this.className,this.className) + ");";
+                         + "(" + toParams(identifiers) + ");";
         return ret;
     }
     this.getIdentifier = function() {
@@ -75,7 +75,7 @@ function Declaration(className,params,identifier,index,parentType,parentMethod) 
         // and called specifically)
         var type = this.className === "Unknown" ? "Object" : this.className;
         var ret = "var " + this.identifier + " = new " +type;
-            ret += unitTestParams(this.params,ids) + ";";
+            ret += "(" + toParams(ids) + ");";
         return ret;
     }
     this.getIdentifier = function() {
@@ -112,12 +112,12 @@ function Call(instanceIdentifier,methodName,params,className) {
     this.params = params;
     this.toExecutorFormat = function(ids) {
         var ret = instanceIdentifier + "." + this.methodName
-                  + "(" + executorParamsCut(this.params,ids,className,this.methodName) + ");"
+                  + "(" + toParams(ids) + ");"
         return ret;
     }
     this.toUnitTestFormat = function(ids) {
         var ret = instanceIdentifier + "." + this.methodName
-                  + "(" + executorParamsCut(this.params,ids,className,this.methodName) + ");"
+                  + "(" + toParams(ids) + ");"
         return ret;
     }
 }
@@ -127,15 +127,15 @@ function Mut(instanceIdentifier,methodName,params,className) {
     this.methodName = methodName;
     this.className = className;
     this.params = params;
-    this.toExecutorFormat = function(ids) {
+    this.toExecutorFormat = function(identifiers) {
         var ret = instanceIdentifier + ".MUT"
-                  + "(" + executorParamsCut(this.params,ids,className,methodName) + ");"
+                  + "(" + toParams(identifiers) + ");"
         return ret;
     }
-    this.toUnitTestFormat = function(ids,result) {        
+    this.toUnitTestFormat = function(identifiers,result) {        
         if (typeof result === "string") result = "\"" + result + "\"";
         var assertion = instanceIdentifier + "." + this.methodName + "(";
-        assertion += executorParamsCut(this.params,ids,className,methodName) + ") === " + result;
+        assertion += toParams(identifiers) + ") === " + result;
         var ret = "assert.ok(" + assertion + ",\n         \'" + assertion + "\');";
         return ret;
     }
@@ -152,71 +152,20 @@ function isUnknown(type) { return type === "Unknown"; }
 
 function isUserDefined(type) { return !isUnknown(type) && !isPrimitive(type); }
 
-function executorParamsCut(params,ids,className,methodName) {
-    var ret = "";
-    for (var i in params) {
-        var p = params[i];
-        var type = p.name;
-        if(isPrimitive(type)) {
-            ret += ids[i];
-        }
-        else if (type === "Unknown") {
-            ret += ids[i];
-        }
-        else {
-            ret += ids[i];
-        }
-        if(i < params.length-1) {
-            ret += ",";
-        }
+function toParams(identifiers) {
+    var r = "";
+    for (var i = 0; i<identifiers.length; ++i) {
+        r += identifiers[i];
+        if(i < identifiers.length-1) r += ",";
     }
-    return ret;
+    return r;
 }
 
 function executorParams(params,ids,parentType,parentMethod,index,className) {
-    var ret = "(";
-    for (var i in params) {
-        var p = params[i];
-        var type = p.name;
-        if(isPrimitive(type)) {
-            ret += ids[i];
-        }
-        else if (type === "Unknown") {
-            ret += ids[i];
-        }
-        else {
-            ret += ids[i];
-        }
-        if(i < params.length-1) {
-            ret += ",";
-        }
-    }
-    ret += "),\"" + parentType + "\",\"" + parentMethod + "\"," + index;
+    var ret = "(" + toParams(ids) + "),";
+    ret += "\"" + parentType + "\",\"" + parentMethod + "\"," + index;
     return ret;
 }
-
-function unitTestParams(params,ids) {
-    var ret = "(";
-    for (var i in params) {
-        var p = params[i];
-        var type = p.name;
-        if(isPrimitive(type)) {
-            ret += ids[i];
-        }
-        else if (type === "Unknown") {
-            ret += ids[i];
-        }
-        else {
-            ret += ids[i];
-        }
-        if(i < params.length-1) {
-            ret += ",";
-        }
-    }
-    ret += ")";
-    return ret;
-}
-
 
 function Test() {
     this.unknowns = false;

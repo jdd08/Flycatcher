@@ -58,7 +58,7 @@ var Executor = module.exports.Executor = function(src,classes,className)
 
 Executor.prototype = new EventEmitter;
 
-Executor.prototype.getMutCoverage = function() {
+Executor.prototype.getCoverage = function() {
     return this.currentCov;
 }
 
@@ -352,11 +352,11 @@ Executor.prototype.run = function() {
         console.log("caught " + err);
     }
     var after = this.covered();
-    var good = after > before;
-    this.emit('cov', after, good);
+    var achievedCoverage = after > before;
+    this.emit('cov', after, achievedCoverage);
     return {
-        good: good,
+        achievedCoverage: achievedCoverage,
         result: res,
-        cov: this.currentCov
+        coverage: this.currentCov
     };
 };

@@ -12,8 +12,8 @@ var cmd = require('commander');
 cmd
 .version('1.0')
 .usage('[options] <file path> <class name>')
-.option('-m, --method <name>', 'generate tests for a specific method of the given class')
-.option('-c, --coverage_max <num>', 'maximum percentage for method coverage', Number, 100)
+.option('-m, --method <name>', 'generate tests for a specific method')
+.option('-c, --coverage_max <num>', 'maximum coverage %', Number, 100)
 .parse(process.argv);
 
 if (cmd.args.length !== 2) {
@@ -45,34 +45,39 @@ try {
 }
 
 // method under test has been specified
-if (cmd.method) {
-    var classes = analyser.getClasses(cmd, classContext, className, cmd.method);
-//    console.log(classes['Point'].ctr)
-//    console.log(classes['Point'].methods)
+var method = cmd.method;
+var maxCoverage = cmd.coverage_max;
+if (method) {
+    var classes = analyser.getClasses(cmd, classContext, className, method);
     var exec = new Executor(src, classes, className);
-    process.stdout.write("\nGenerating tests for at least " + cmd.coverage_max + "\% coverage of ");
-    process.stdout.write("method <" + cmd.method + "> from class <" + className + "> :   ");
-    var goodTestScenarios = [];
+    process.stdout.write("Generating tests for at least ");
+    process.stdout.write(maxCoverage + "\% coverage of ");
+    process.stdout.write("method <" + method + "> from class <");
+    process.stdout.write(className + "> :   ");
+    var goodTests = [];
     var count = 0;
-    while (exec.getMutCoverage() < cmd.coverage_max) {
+    while (exec.getCoverage() < maxCoverage) {
         var test = randomTest.generate(classes, className);
         exec.setTest(test);
-        var res = exec.run();
-
-        if (res.good && !test.hasUnknowns()) {
-            goodTestScenarios.push(test.toUnitTestFormat(res.result, ++count, className, cmd.method));
+        var testRun = exec.run();
+        if (testRun.achievedCoverage && !test.hasUnknowns()) {
+            goodTests.push(test.toUnitTestFormat(testRun.result,
+                                                 ++count,
+                                                 className,
+                                                 method));
         }
     }
-    var fileName = "Flycatcher_" + className + ".js";
-    console.log(" (" + res.cov + "\%)\nGeneration succesful. Tests can be found in " + fileName + "\n");
+    var fileName = "Flycatcher_" + className + "_" + method + ".js";
+    process.stdout.write(" (" + testRun.coverage + "\%)\nGeneration succesful.\n");
+    process.stdout.write("Tests can be found in " + fileName + "\n\n");
 
-    fs.writeFileSync(fileName,getFileContent(src,className,cmd.method,goodTestScenarios));
+    fs.writeFileSync(fileName,generateContent(src,className,method,goodTests));
 }
  else {
     // by default generates tests for all of a class' methods
 }
 
-function getFileContent(src,className,method,tests) {
+function generateContent(src,className,method,tests) {
     var header = "/*****************************************\n\n";
     header += "                  FLYCATCHER\n";
     header += "        AUTOMATIC UNIT TEST GENERATION\n";
