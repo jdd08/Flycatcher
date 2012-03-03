@@ -56,15 +56,13 @@ if (method) {
     process.stdout.write(className + "> :   ");
     var goodTests = [];
     var count = 0;
-    while (exec.getCoverage() < maxCoverage) {
+    while (exec.getCoverage() < maxCoverage && count++<3) {
         var test = randomTest.generate(classes, className);
         exec.setTest(test);
+        exec.showTest(test);
         var testRun = exec.run();
         if (testRun.achievedCoverage && !test.hasUnknowns()) {
-            goodTests.push(test.toUnitTestFormat(testRun.result,
-                                                 ++count,
-                                                 className,
-                                                 method));
+            goodTests.push(test.toUnitTestFormat(testRun.result,++count));
         }
     }
     var fileName = "Flycatcher_" + className + "_" + method + ".js";

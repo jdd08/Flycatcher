@@ -254,8 +254,6 @@ Executor.prototype.setupContext = function(classes) {
     }
     context.log = console.log;
 
-//    context.log = console.log;
-
     // adding the instrumentation methods to the runtime context
     var self = this;
     var stack = [];

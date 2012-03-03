@@ -12,7 +12,7 @@ Test.prototype.toExecutorFormat = function() {
     return test.join('\n');
 }
 
-Test.prototype.toUnitTestFormat = function(result,testIndex,className,methodName) {
+Test.prototype.toUnitTestFormat = function(result,testIndex) {
     var test = [];
     test[0] = "// Test #" + testIndex;
     for (var i = 0; i<this.stack.length; ++i) {
@@ -22,18 +22,18 @@ Test.prototype.toUnitTestFormat = function(result,testIndex,className,methodName
     return test.join('\n');
 }
 
-function CutDeclaration(className,params,id) {
-    this.className = className;
+function CutDeclaration(type,params,id) {
+    this.type = type;
     this.params = params;
     this.id = id;
-    this.identifier = className.toLowerCase() + id;
+    this.identifier = type.toLowerCase() + id;
     this.toExecutorFormat = function(identifiers) {
         
         // the CUT might need a different proxying, however it doesn't need proxying
         // for catching erroneous method calls (all its methods are known from the analyser
         // and called specifically)
         
-        var ret = "var " + this.identifier + " = new " + this.className
+        var ret = "var " + this.identifier + " = new " + this.type
                          + "(" + toParams(identifiers) + ");";
         return ret;
     }
@@ -43,7 +43,7 @@ function CutDeclaration(className,params,id) {
         // for catching erroneous method calls (all its methods are known from the analyser
         // and called specifically)
         
-        var ret = "var " + this.identifier + " = new " + this.className
+        var ret = "var " + this.identifier + " = new " + this.type
                          + "(" + toParams(identifiers) + ");";
         return ret;
     }
@@ -52,90 +52,67 @@ function CutDeclaration(className,params,id) {
     }
 }
 
-function Declaration(className,params,identifier,index,parentType,parentMethod) {
-    this.className = className;
+function Declaration(type,params,identifier,parentType,parentMethod,index) {
+    this.type = type;
     this.params = params;
     this.identifier = identifier;
     this.parentType = parentType;
     this.parentMethod = parentMethod;
-    this.toExecutorFormat = function(ids) {
+    this.index = index;
+    this.toExecutorFormat = function(paramIdentifiers) {
         
-        // the CUT might need a different proxying, however it doesn't need proxying
-        // for catching erroneous method calls (all its methods are known from the analyser
-        // and called specifically)
-        var type = this.className === "Unknown" ? "Object" : this.className;
+        // the CUT might need a different proxying, however it doesn't 
+        // need proxying for catching erroneous method calls (all its 
+        // methods are known from the analyser and called specifically)
+        var type = this.type === "Unknown" ? "Object" : this.type;
         var ret = "var " + this.identifier + " = proxy"
-                         + "(new " +type+ executorParams(this.params,ids,parentType,parentMethod,index,className) + ");";
+                         + "(new " +type+ executorParams(paramIdentifiers,
+                                                         parentType,
+                                                         parentMethod,
+                                                         index) + ");";
         return ret;
     }
-    this.toUnitTestFormat = function(ids) {
+    this.toUnitTestFormat = function(paramIdentifiers) {
         
         // the CUT might need a different proxying, however it doesn't need proxying
         // for catching erroneous method calls (all its methods are known from the analyser
         // and called specifically)
-        var type = this.className === "Unknown" ? "Object" : this.className;
-        var ret = "var " + this.identifier + " = new " +type;
-            ret += "(" + toParams(ids) + ");";
-        return ret;
+        var type = this.type === "Unknown" ? "Object" : this.type;
+        var r = "var " + this.identifier + " = new " +type;
+            r += "(" + toParams(paramIdentifiers) + ");";
+        return r;
     }
     this.getIdentifier = function() {
         return this.identifier;
     }
 }
 
-function NumberDeclaration(className,params,identifier,index,parentType,parentMethod,num) {
-    this.className = className;
+function Call(instanceIdentifier,method,params,type) {
+    this.instanceIdentifier = instanceIdentifier;
+    this.method = method;
     this.params = params;
-    this.identifier = identifier;
-    this.parentType = parentType;
-    this.parentMethod = parentMethod;
-    this.toExecutorFormat = function(ids) {
-        var type = this.className === "Unknown" ? "Object" : this.className;
-        var ret = "var " + this.identifier + " = " + num + ";";
-        return ret;
-    }
-    this.toUnitTestFormat = function(ids) {
-        var type = this.className === "Unknown" ? "Object" : this.className;
-        var ret = "var " + this.identifier + " = " + num + ";";
-        return ret;
-    }
-
-    this.getIdentifier = function() {
-        return this.identifier;
+    this.type = type;
+    this.toExecutorFormat = this.toUnitTestFormat = function(paramIdentifiers) {
+        var r = instanceIdentifier + "." + this.method;
+            r += "(" + toParams(paramIdentifiers) + ");"
+        return r;
     }
 }
 
-function Call(instanceIdentifier,methodName,params,className) {
+function Mut(instanceIdentifier,method,params,type) {
     this.instanceIdentifier = instanceIdentifier;
-    this.methodName = methodName;
-    this.className = className;
+    this.method = method;
+    this.type = type;
     this.params = params;
-    this.toExecutorFormat = function(ids) {
-        var ret = instanceIdentifier + "." + this.methodName
-                  + "(" + toParams(ids) + ");"
-        return ret;
-    }
-    this.toUnitTestFormat = function(ids) {
-        var ret = instanceIdentifier + "." + this.methodName
-                  + "(" + toParams(ids) + ");"
-        return ret;
-    }
-}
-
-function Mut(instanceIdentifier,methodName,params,className) {
-    this.instanceIdentifier = instanceIdentifier;
-    this.methodName = methodName;
-    this.className = className;
-    this.params = params;
-    this.toExecutorFormat = function(identifiers) {
+    this.toExecutorFormat = function(paramIdentifiers) {
         var ret = instanceIdentifier + ".MUT"
-                  + "(" + toParams(identifiers) + ");"
+                  + "(" + toParams(paramIdentifiers) + ");"
         return ret;
     }
-    this.toUnitTestFormat = function(identifiers,result) {        
+    this.toUnitTestFormat = function(paramIdentifiers,result) {        
         if (typeof result === "string") result = "\"" + result + "\"";
-        var assertion = instanceIdentifier + "." + this.methodName + "(";
-        assertion += toParams(identifiers) + ") === " + result;
+        var assertion = instanceIdentifier + "." + this.method + "(";
+        assertion += toParams(paramIdentifiers) + ") === " + result;
         var ret = "assert.ok(" + assertion + ",\n         \'" + assertion + "\');";
         return ret;
     }
@@ -161,7 +138,7 @@ function toParams(identifiers) {
     return r;
 }
 
-function executorParams(params,ids,parentType,parentMethod,index,className) {
+function executorParams(ids,parentType,parentMethod,index) {
     var ret = "(" + toParams(ids) + "),";
     ret += "\"" + parentType + "\",\"" + parentMethod + "\"," + index;
     return ret;
@@ -170,93 +147,60 @@ function executorParams(params,ids,parentType,parentMethod,index,className) {
 function Test() {
     this.unknowns = false;
     this.stack = [];
+    this.pool = {};
 }
 
 Test.prototype.hasUnknowns = function() {
     return this.unknowns;
 }
 
-Test.prototype.push = function(elem,paramTable,key) {
-    if(elem.className === "Unknown") {
+Test.prototype.push = function(elem) {
+    var elemType = elem.type;
+    if(elemType === "Unknown") {
         this.unknowns = true;
     }
     var params = elem.params;
-    var ids = [];
     var identifiers = [];
     var numbers = [];
-    var decls = [];
-    var first = paramTable === undefined;
-    var keyExists = false;
-    if(first) {
-        paramTable = [];
-    }
-    else {
-        // the way the test stack works, whenever a statement
-        // is pushed, statements for *its* parameters are immediately
-        //  dealt with, so we need to keep track of whether we have
-        // starte dealing with a statement or not, if we have, then
-        // we can potentially use previous parameters within the
-        // statement for the parameter at hand
-        if(paramTable[key]) {
-            keyExists = true;
-        }
-        else {
-            paramTable[key] = [];
-        }
-    }
     for(var p = 0; p<params.length; ++p) {
-        var type = params[p].name;
-        if (!isPrimitive(type)) {
-            var id;
-            if (keyExists) {
-                id = paramTable[key][p];
-            }
-            else {
-                var length = ids.length;
-                var reuseExisting = length && Math.random() > 0.75;
-                if (reuseExisting) {
-                    var r = Math.floor(Math.random()*length);
-                    var id = ids[r];
-                }
-                else {
-                    id = _.uniqueId();
-                }            
-            }
-            var identifier = type.toLowerCase() + id  + "_" + p;
-            identifiers.push(identifier);
-            ids.push(id);
-            if(!first) {
-                paramTable[key].push(id);
-            }
-            if (elem instanceof Call || elem instanceof Mut) {
-                this.push(new Declaration(type,params[p].params,identifier,p,elem.className,elem.methodName),paramTable,id);            
-            }
-            else {
-                this.push(new Declaration(type,params[p].params,identifier,p,elem.className,elem.className),paramTable,id);            
-            }
+        var paramType = params[p].name;
+        
+        if (!this.pool[paramType]) this.pool[paramType] = [];
+        var pool = this.pool[paramType];
+
+        // when the parameter is of type Number, the number
+        // itself becomes the identifier
+        var id;
+        var length = pool.length;
+        var reuseExisting = length && Math.random() > 0.75;
+        if (reuseExisting) {
+            id = pool[Math.floor(Math.random()*length)];
         }
         else {
-            var num;
-            if (keyExists) {
-                num = paramTable[key][p];
+            if (!isPrimitive(paramType)) id = _.uniqueId();
+            else id = randomData.getNumber();
+        }
+        var identifier = !isPrimitive(paramType) ? 
+                         paramType.toLowerCase() + id + "_" + p: id;
+        identifiers.push(identifier);
+        if (!pool[id]) pool[id] = [];
+        else pool[id].push
+        pool[elemType]
+        if (!isPrimitive(paramType)) {
+            var method;
+            if (elem instanceof Call || elem instanceof Mut) {
+                method = elem.method;
             }
             else {
-                var length = ids.length;
-                var reuseExisting = length && Math.random() > 0.75;
-                if (reuseExisting) {
-                    var r = Math.floor(Math.random()*length);
-                    var num = ids[r];
-                }
-                else {
-                    num = randomData.getNumber();
-                }
+                // this refers to the constructor whose name is the type
+                method = elemType;
             }
-            // when the parameter is of type Number, the number
-            // itself becomes the identifier
-            identifiers.push(num);
-            if(!first) {
-                paramTable[key].push(num);
-            }
+            this.push(new Declaration(paramType,
+                                      params[p].params,
+                                      identifier,
+                                      elemType,
+                                      method,
+                                      p));
         }
     }
     this.stack.push({elem:elem,identifiers:identifiers});
@@ -273,9 +217,6 @@ exports.generate = function(classes,className,index) {
     var t = new Test();    
     var instance = new CutDeclaration(className,parameters,_.uniqueId());
     t.push(instance);
-
-    //console.log()
-    //t.show();
     
     var callSequence = [];
     randomSequenceLength = Math.ceil(Math.random()*MAX_SEQUENCE_LENGTH);
