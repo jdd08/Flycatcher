@@ -1,0 +1,225 @@
+\begin{thebibliography}{10}
+
+\bibitem{allwood2011high}
+{\sc Allwood, T., Cadar, C., and Eisenbach, S.}
+\newblock High coverage testing of haskell programs.
+\newblock In {\em Proceedings of the 2011 International Symposium on Software
+  Testing and Analysis\/} (2011), ACM, pp.~375--385.
+
+\bibitem{anand2007jpf}
+{\sc Anand, S., P{\u{a}}s{\u{a}}reanu, C., and Visser, W.}
+\newblock Jpf--se: A symbolic execution extension to java pathfinder.
+\newblock {\em Tools and Algorithms for the Construction and Analysis of
+  Systems\/} (2007), 134--138.
+
+\bibitem{antoy1994needed}
+{\sc Antoy, S., Echahed, R., and Hanus, M.}
+\newblock A needed narrowing strategy.
+\newblock In {\em Proceedings of the 21st ACM SIGPLAN-SIGACT symposium on
+  Principles of programming languages\/} (1994), ACM, pp.~268--279.
+
+\bibitem{cadar2008klee}
+{\sc Cadar, C., Dunbar, D., and Engler, D.}
+\newblock Klee: Unassisted and automatic generation of high-coverage tests for
+  complex systems programs.
+\newblock In {\em Proceedings of the 8th USENIX conference on Operating systems
+  design and implementation\/} (2008), USENIX Association, pp.~209--224.
+
+\bibitem{cadar2008exe}
+{\sc Cadar, C., Ganesh, V., Pawlowski, P., Dill, D., and Engler, D.}
+\newblock Exe: automatically generating inputs of death.
+\newblock {\em ACM Transactions on Information and System Security (TISSEC)
+  12}, 2 (2008), 10.
+
+\bibitem{ducasse2011challenges}
+{\sc Ducasse, S., Oriol, M., Bergel, A., et~al.}
+\newblock Challenges to support automated random testing for dynamically typed
+  languages.
+
+\bibitem{edvardsson1999survey}
+{\sc Edvardsson, J.}
+\newblock A survey on automatic test data generation.
+\newblock In {\em Proceedings of the 2nd Conference on Computer Science and
+  Engineering\/} (1999), no.~x, pp.~21--28.
+
+\bibitem{flanagan2006javascript}
+{\sc Flanagan, D.}
+\newblock {\em JavaScript: the definitive guide}.
+\newblock O'Reilly Media, 2006.
+
+\bibitem{gallagher1997adtest}
+{\sc Gallagher, M., and Lakshmi~Narasimhan, V.}
+\newblock Adtest: A test data generation suite for ada software systems.
+\newblock {\em Software Engineering, IEEE Transactions on 23}, 8 (1997),
+  473--484.
+
+\bibitem{godefroid2005dart}
+{\sc Godefroid, P., Klarlund, N., and Sen, K.}
+\newblock Dart: directed automated random testing.
+\newblock In {\em ACM Sigplan Notices\/} (2005), vol.~40, ACM, pp.~213--223.
+
+\bibitem{goldberg1994applications}
+{\sc Goldberg, A., Wang, T., and Zimmerman, D.}
+\newblock Applications of feasible path analysis to program testing.
+\newblock In {\em Proceedings of the 1994 ACM SIGSOFT international symposium
+  on Software testing and analysis\/} (1994), ACM, pp.~80--94.
+
+\bibitem{gupta1998automated}
+{\sc Gupta, N., Mathur, A., and Soffa, M.}
+\newblock Automated test data generation using an iterative relaxation method.
+\newblock In {\em ACM SIGSOFT Software Engineering Notes\/} (1998), vol.~23,
+  ACM, pp.~231--244.
+
+\bibitem{han2008empirical}
+{\sc Han, S., and Kwon, Y.}
+\newblock An empirical evaluation of test data generation techniques.
+\newblock {\em Journal of Computing Science and Engineering 2}, 3 (2008),
+  274--300.
+
+\bibitem{king1975new}
+{\sc King, J.}
+\newblock A new approach to program testing.
+\newblock {\em Programming Methodology\/} (1975), 278--290.
+
+\bibitem{king1976symbolic}
+{\sc King, J.}
+\newblock Symbolic execution and program testing.
+\newblock {\em Communications of the ACM 19}, 7 (1976), 385--394.
+
+\bibitem{korel1990automated}
+{\sc Korel, B.}
+\newblock Automated software test data generation.
+\newblock {\em Software Engineering, IEEE Transactions on 16}, 8 (1990),
+  870--879.
+
+\bibitem{lindblad2007property}
+{\sc Lindblad, F.}
+\newblock Property directed generation of first-order test data.
+\newblock {\em TFP 7\/} (2007), 105--123.
+
+\bibitem{website:langpop}
+{\sc LLC, D.}
+\newblock Programming language popularity, 2011.
+
+\bibitem{mahmood2007systematic}
+{\sc Mahmood, S.}
+\newblock A systematic review of automated test data generation techniques.
+\newblock {\em School of Engineering, Blekinge Institute of Technology Box
+  520\/} (2007).
+
+\bibitem{mairhofer2008search}
+{\sc Mairhofer, S.}
+\newblock Search-based software testing and complex test data generation in a
+  dynamic programming language.
+\newblock {\em Master's thesis, Blekinge Institute of Technology\/} (2008).
+
+\bibitem{mcminn2004search}
+{\sc McMinn, P.}
+\newblock Search-based software test data generation: a survey.
+\newblock {\em Software Testing, Verification and Reliability 14}, 2 (2004),
+  105--156.
+
+\bibitem{meudec2001atgen}
+{\sc Meudec, C.}
+\newblock Atgen: automatic test data generation using constraint logic
+  programming and symbolic execution†.
+\newblock {\em Software Testing, Verification and Reliability 11}, 2 (2001),
+  81--96.
+
+\bibitem{michael1998automated}
+{\sc Michael, C., and McGraw, G.}
+\newblock Automated software test data generation for complex programs.
+\newblock In {\em Automated Software Engineering, 1998. Proceedings. 13th IEEE
+  International Conference on\/} (1998), IEEE, pp.~136--146.
+
+\bibitem{michael2001generating}
+{\sc Michael, C., McGraw, G., and Schatz, M.}
+\newblock Generating software test data by evolution.
+\newblock {\em Software Engineering, IEEE Transactions on 27}, 12 (2001),
+  1085--1110.
+
+\bibitem{myers2011art}
+{\sc Myers, G., Sandler, C., and Badgett, T.}
+\newblock {\em The art of software testing}.
+\newblock Wiley, 2011.
+
+\bibitem{offutt1999dynamic}
+{\sc Offutt, A., Jin, Z., and Pan, J.}
+\newblock The dynamic domain reduction procedure for test data generation.
+\newblock {\em Software-Practice and Experience 29}, 2 (1999), 167--194.
+
+\bibitem{păsăreanu2009survey}
+{\sc P{\u{a}}s{\u{a}}reanu, C., and Visser, W.}
+\newblock A survey of new trends in symbolic execution for software testing and
+  analysis.
+\newblock {\em International Journal on Software Tools for Technology Transfer
+  (STTT) 11}, 4 (2009), 339--353.
+
+\bibitem{pluquet2009fast}
+{\sc Pluquet, F., Marot, A., and Wuyts, R.}
+\newblock Fast type reconstruction for dynamically typed programming languages.
+\newblock In {\em ACM SIGPLAN Notices\/} (2009), vol.~44, ACM, pp.~69--78.
+
+\bibitem{prasanna2005survey}
+{\sc Prasanna, M., Sivanandam, S., Venkatesan, R., and Sundarrajan, R.}
+\newblock A survey on automatic test case generation.
+\newblock {\em Academic Open Internet Journal 15\/} (2005), 1--5.
+
+\bibitem{ramamoorthy1976automated}
+{\sc Ramamoorthy, C., Ho, S., and Chen, W.}
+\newblock On the automated generation of program test data.
+\newblock {\em Software Engineering, IEEE Transactions on}, 4 (1976), 293--300.
+
+\bibitem{sai2005address}
+{\sc Sai-ngern, S., Lursinsap, C., and Sophatsathit, P.}
+\newblock An address mapping approach for test data generation of dynamic
+  linked structures.
+\newblock {\em Information and Software Technology 47}, 3 (2005), 199--214.
+
+\bibitem{sen2005cute}
+{\sc Sen, K., Marinov, D., and Agha, G.}
+\newblock {\em CUTE: A concolic unit testing engine for C}, vol.~30.
+\newblock ACM, 2005.
+
+\bibitem{tahbildar2automated}
+{\sc Tahbildar, H., and Kalita, B.}
+\newblock Automated software test data generation: Direction of research.
+\newblock {\em International Journal of Computer Science and Engineering 2\/}.
+
+\bibitem{tillmann2008pex}
+{\sc Tillmann, N., and De~Halleux, J.}
+\newblock Pex--white box test generation for. net.
+\newblock {\em Tests and Proofs\/} (2008), 134--153.
+
+\bibitem{tonella2004evolutionary}
+{\sc Tonella, P.}
+\newblock Evolutionary testing of classes.
+\newblock {\em ACM SIGSOFT Software Engineering Notes 29}, 4 (2004), 119--128.
+
+\bibitem{tracey1998way}
+{\sc Tracey, N., Clark, J., and Mander, K.}
+\newblock The way forward for unifying dynamic test-case generation: The
+  optimisation-based approach.
+\newblock In {\em International Workshop on Dependable Computing and Its
+  Applications (DCIA)\/} (1998), pp.~169--180.
+
+\bibitem{tracey1998automated}
+{\sc Tracey, N., Clark, J., Mander, K., and McDermid, J.}
+\newblock An automated framework for structural test-data generation.
+\newblock In {\em Automated Software Engineering, 1998. Proceedings. 13th IEEE
+  International Conference on\/} (1998), IEEE, pp.~285--288.
+
+\bibitem{visvanathan2002generating}
+{\sc Visvanathan, S., and Gupta, N.}
+\newblock Generating test data for functions with pointer inputs.
+\newblock In {\em Automated Software Engineering, 2002. Proceedings. ASE 2002.
+  17th IEEE International Conference on\/} (2002), IEEE, pp.~149--160.
+
+\bibitem{zhao2007automatic}
+{\sc Zhao, R., and Li, Q.}
+\newblock Automatic test generation for dynamic data structures.
+\newblock In {\em Software Engineering Research, Management \& Applications,
+  2007. SERA 2007. 5th ACIS International Conference on\/} (2007), IEEE,
+  pp.~545--549.
+
+\end{thebibliography}

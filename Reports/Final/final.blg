@@ -1,0 +1,54 @@
+This is BibTeX, Version 0.99d (TeX Live 2010)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: final.aux
+The style file: acm.bst
+Database file #1: final.bib
+Warning--empty journal in ducasse2011challenges
+Warning--there's a number but no series in edvardsson1999survey
+Warning--can't use both volume and number fields in godefroid2005dart
+Warning--can't use both volume and number fields in gupta1998automated
+Warning--can't use both volume and number fields in pluquet2009fast
+Warning--can't use both volume and number fields in sen2005cute
+Warning--empty year in tahbildar2automated
+You've used 39 entries,
+            2253 wiz_defined-function locations,
+            747 strings with 9934 characters,
+and the built_in function-call counts, 13796 in all, are:
+= -- 1383
+> -- 528
+< -- 0
++ -- 231
+- -- 180
+* -- 1038
+:= -- 2119
+add.period$ -- 115
+call.type$ -- 39
+change.case$ -- 203
+chr.to.int$ -- 0
+cite$ -- 46
+duplicate$ -- 545
+empty$ -- 1175
+format.name$ -- 180
+if$ -- 2947
+int.to.chr$ -- 0
+int.to.str$ -- 39
+missing$ -- 41
+newline$ -- 196
+num.names$ -- 78
+pop$ -- 216
+preamble$ -- 1
+purify$ -- 167
+quote$ -- 0
+skip$ -- 382
+stack$ -- 0
+substring$ -- 1018
+swap$ -- 179
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 150
+warning$ -- 7
+while$ -- 152
+width$ -- 41
+write$ -- 400
+(There were 7 warnings)

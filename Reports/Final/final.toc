@@ -1,0 +1,34 @@
+\thispagestyle {empty}
+\contentsline {chapter}{\numberline {1}Introduction}{1}
+\contentsline {chapter}{\numberline {2}Background}{3}
+\contentsline {section}{\numberline {2.1}Dynamic software testing}{3}
+\contentsline {subsection}{\numberline {2.1.1}Overview}{3}
+\contentsline {subsection}{\numberline {2.1.2}Structural testing}{4}
+\contentsline {subsubsection}{Test coverage}{4}
+\contentsline {subsection}{\numberline {2.1.3}Unit testing}{4}
+\contentsline {subsection}{\numberline {2.1.4}Regression testing}{5}
+\contentsline {section}{\numberline {2.2}Automatic test data generation}{5}
+\contentsline {subsection}{\numberline {2.2.1}Overview}{5}
+\contentsline {subsection}{\numberline {2.2.2}Static test data generation}{6}
+\contentsline {subsection}{\numberline {2.2.3}Hybrid test data generation}{7}
+\contentsline {subsection}{\numberline {2.2.4}Dynamic test data generation}{8}
+\contentsline {subsubsection}{Random approach}{8}
+\contentsline {subsubsection}{Search-based approach}{8}
+\contentsline {subsection}{\numberline {2.2.5}Genetic algorithms}{9}
+\contentsline {subsubsection}{Overview}{9}
+\contentsline {subsubsection}{Application to test data generation}{10}
+\contentsline {subsection}{\numberline {2.2.6}Challenges of dynamic languages}{11}
+\contentsline {subsubsection}{Generating test data of the required type}{11}
+\contentsline {subsubsection}{Generating object instances}{11}
+\contentsline {subsubsection}{Identifying bugs}{12}
+\contentsline {subsubsection}{Dealing with dynamically generated code}{12}
+\contentsline {section}{\numberline {2.3}Object-oriented test case generation}{12}
+\contentsline {section}{\numberline {2.4}JavaScript}{13}
+\contentsline {subsection}{\numberline {2.4.1}Overview}{13}
+\contentsline {subsection}{\numberline {2.4.2}Idiosyncratic features}{13}
+\contentsline {subsubsection}{Types}{13}
+\contentsline {subsubsection}{Object-oriented programming}{15}
+\contentsline {section}{\numberline {2.5}Summary}{16}
+\contentsline {chapter}{\numberline {3}Implementation}{17}
+\contentsline {section}{\numberline {3.1}Test}{17}
+\contentsline {subsection}{\numberline {3.1.1}Testtest}{17}
