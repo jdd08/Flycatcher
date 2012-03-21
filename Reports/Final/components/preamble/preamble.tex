@@ -1,0 +1,96 @@
+\title
+{
+	{\Huge \textsf{Flycatcher} \\[0.2cm]}
+	{\large \textsf{Automatic unit test generation for JavaScript}\\[0.5cm]}
+	\begin{figure}[h]
+		\centering
+		\includegraphics[scale=0.3]{./components/preamble/flycatcher.jpg}
+	\end{figure}
+}
+\author
+{	
+	{\emph{Final Report}}\\[6.5cm]
+	%{\large Jerome \textsc{de Lafargue}}\\
+	%\texttt{\scriptsize jdd08@ic.ac.uk}\\[2cm]
+	%{MEng Computing Individual Project}\\
+	%{\emph{Interim Report}}\\[2.2cm]
+%	\textbf{ Author:}
+	{\large \textbf{Jerome \textsc{de Lafargue}}}\\[0.2cm]
+	\emph{supervised by}\\
+	Susan Eisenbach \& Tristan Allwood\\[1cm]
+%	\textbf{ Supervisor:}
+%	{\small Susan \textsc{Eisenbach}}\\
+%	\textbf{ Technical Supervisor:}
+%	{\small Tristan \textsc{Allwood}}\\\\[0.5cm]
+	%\textbf{\small Second Marker:}
+	%{\small John \textsc{Smith}}\\
+	\textsc{\normalsize Department of Computing}\\
+	\textsc{\large Imperial College London}
+}
+
+
+\date{}
+\pagestyle{empty}
+\maketitle
+
+% insert empty page
+
+\newpage
+\mbox{}
+
+\begin{flushright}
+\textsc{\LARGE Abstract}\\[1.4cm]
+\end{flushright}
+
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+\newpage
+\pagestyle{empty}
+\mbox{}
+\newpage
+\mbox{}
+
+\begin{flushright}
+\textsc{\LARGE Acknowledgements}\\[1.4cm]
+\end{flushright}
+
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+\newpage
+\mbox{}
+
+% Format for the TOC and the LOF
+\titleformat{\chapter}[display]
+{\normalfont\Large\filcenter\sffamily\sc}
+{\titlerule[1pt]%
+\vspace{1pt}%
+\titlerule
+\vspace{1pc}%
+\LARGE\MakeUppercase{\chaptertitlename} \thechapter}
+{1pc}
+{\titlerule
+\vspace{1pc}%
+\LARGE}
+
+\addtocontents{toc}{\protect\thispagestyle{empty}}
+\pagestyle{empty}
+\tableofcontents
+\cleardoublepage
+\addtocontents{lof}{\protect\thispagestyle{empty}}
+\pagestyle{empty}
+\listoffigures
+\cleardoublepage
+
+% Format for the chapter headings
+\titleformat{\chapter}[display]
+{\normalfont\Large\filcenter\sffamily\sc}
+{%\titlerule[1pt]%
+\vspace{1pt}%
+\titlerule
+\vspace{1pc}%
+\LARGE\sc{\chaptertitlename} \thechapter}
+{1pc}
+{\titlerule
+\normalfont
+\vspace{1pc}%
+\Huge}
