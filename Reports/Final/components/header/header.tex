@@ -1,6 +1,6 @@
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
-\usepackage{./garamond/garamond}
+\usepackage{./garamond}
 
 \usepackage{titlesec}
 
@@ -8,6 +8,27 @@
 \usepackage{amssymb}
 %\usepackage[margin=2.3cm]{geometry}
 \usepackage{tikz}
+
+
+\usepackage{fancyvrb,fancybox,calc} 
+\definecolor{mylightgray}{rgb}{0.82,0.82,0.82}
+%\definecolor{mylightblue}{rgb}{0.659,0.769,0.941}
+\newenvironment{verbcode}{\VerbatimEnvironment% 
+  \noindent
+  \newline
+  \begin{Sbox}
+%  \color{mylightblue}
+  \begin{minipage}{\linewidth-2\fboxsep-2\fboxrule-4pt}    
+  \begin{Verbatim}
+}{% 
+  \end{Verbatim}  
+  \end{minipage}
+  \end{Sbox}
+  \fcolorbox{mylightgray}{mylightgray}{\TheSbox}
+%  \fcolorbox{black}{black}{\TheSbox} 
+  \newline
+  \newline
+}
 
 \usetikzlibrary{calendar,snakes,calc,trees,positioning,arrows,chains,shapes.geometric,decorations.pathreplacing,decorations.pathmorphing,shapes,matrix,shapes.symbols}
 \tikzset{

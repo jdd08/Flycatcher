@@ -200,17 +200,15 @@ Most of the research on test generation focuses on testing imperative functions,
 
 Because it is impossible to know how the application will use the class/object under test in reality, as many relevant test cases as possible must be tried in order to maximise the likelihood of finding a bug inside the class in question. Test coverage, the assessment measure that is used for our test case generation problem, is a good indicator of the relevance of test cases for a particular class and method under test. Hence, this measure can be used, as for the generation of input \emph{data}, as a search objective to guide the generation of \emph{method call sequences} for our test cases. Tonella was one of the first to use search-based methods for the generation of adequate OO test cases, using genetic algorithms as the search heuristics method \cite{tonella2004evolutionary}. Indeed, the procedure using genetic algorithms to generate input test data for \textsf{Flycatcher} described in~\ref{subsubsec:ga_application} can simply be extended to the generation of object-oriented tests by adapting individuals so that they represent their structure.
 
-The code example below illustrates the type of object-oriented structural unit test that we aim to generate with \textsf{Flycatcher} (assuming a standard linked list implementation):
+The code example below illustrates the type of object-oriented structural unit test that we aim to generate with \textsf{Flycatcher}. It assumes a standard linked list implementation, \texttt{LinkedList} is the class under test and \texttt{size} is the method under test:
 
-\begin{verbatim}
+\begin{verbcode}
 l = new LinkedList
 l.add(true)
 l.remove(true)
 l.add(true)
 assert (l.size == 1)
-\end{verbatim}
-
-where \texttt{LinkedList} is the class under test and \texttt{size} is the method under test.
+\end{verbcode}
 
 %, as well as their inputs and the inputs to the constructor, should all evolve in a way that permits a successful coverage to be achieved. Automatic test \emph{data} generation techniques that maximise coverage have been discussed, but work has also been done on techniques to the evolution of object-oriented tests cases.
 
@@ -232,39 +230,40 @@ For the readers who are not familiar with the language, we present the character
 \subsubsection{Types}
 Types in Javascript can be divided into two categories: \emph{primitive} types and \emph{object} types. The primitive types consist of \emph{Number}, \emph{Boolean} and \emph{String}, as well as \texttt{undefined} and \texttt{null} but the latter are particular as they are the only element of their type. Anything else in JavaScript will have the type \emph{object}. Generally, a JavaScript object is an unordered collection of named values, \emph{properties}, that can be stored or retrieved by name \emph{e.g.}:
 
-\begin{verbatim}
-	var foobar = { `foo' : 1,
-	               `bar' : 2 };
-	foobar.foo // prints 1
-	foobar.bar = 3
-	foobar.bar // prints 3
-\end{verbatim}
+\begin{verbcode}
+var foobar = { `foo' : 1,
+               `bar' : 2 };
+foobar.foo // prints 1
+foobar.bar = 3
+foobar.bar // prints 3
+\end{verbcode}
 
 JavaScript also has specialised objects, namely \emph{Arrays} and \emph{Functions}. Arrays are untyped, ordered collections of elements (primitives or objects) that can be accessed through a numerical index. Although arrays exhibit additional behaviour, they \emph{can} be thought of as mere objects whose properties happen to be integers.
 
 Functions however, although they are treated as first-class objects and can be stored in variables, differ significantly. They are defined as code blocks with parameters, local scope, an invocation context \texttt{this} and may return a value if invoked. Below are examples of a JavaScript function definition:
 
-\begin{verbatim}
+\begin{verbcode}
 function add(a,b) {
     return a + b;
 }
-\end{verbatim}
-\emph{or} equivalently
-\begin{verbatim}
+\end{verbcode}
+\noindent \emph{or} equivalently:
+
+\begin{verbcode}
 var add = function(a,b) {
     return a + b;
 }
-\end{verbatim}
+\end{verbcode}
 
 An important feature of JavaScript however, is that it is dynamically typed, hence a variable cannot imply a type for its value and its type can change over time \emph{i.e.} the code below is correct:
 
-\begin{verbatim}
+\begin{verbcode}
 var foo = "foo?";
 foo = 3;
 foo = [1,2,3];
 foo = function() {return "foo!"};
 foo(); // prints "foo!"
-\end{verbatim}
+\end{verbcode}
 
 Although JavaScript supports the object-oriented paradigm, the way it does so is quite different from most object-oriented languages and we will see that functions play an important part in it.
 
@@ -284,7 +283,7 @@ To summarise, a class in JavaScript is defined by a constructor function\footnot
 
 Below is an example of a simple class definition for a circle, to illustrate our explanation:
 
-\begin{verbatim}
+\begin{verbcode}
 function Circle(radius) {
     // the Circle class has a field named radius
     this.radius = radius;
@@ -301,7 +300,7 @@ var c2 = new Circle(2);
 c1.getCircumference() // prints approx. 6.28
 c2.getCircumference() // prints approx. 12.56
 
-\end{verbatim}
+\end{verbcode}
 
 In the example above, both \texttt{c1} and \texttt{c2} have a \texttt{radius} field (though initialised to different values) and a \texttt{getCircumference} method, as they were initialised with the same constructor --- we can say that they have the same class. In \textsf{Flycatcher}, classes are what we will use as the target unit for generating suites of unit tests.
 

@@ -1,7 +1,7 @@
 var randomData = require('./randomData.js');
-var dump = require('./utils').dump;
 var _ = require('underscore');
 var beautify = require('./beautify-js/beautify.js');
+var util = require('util');
 
 Test.prototype.toExecutorFormat = function() {
     var test = [];
@@ -22,7 +22,7 @@ Test.prototype.toUnitTestFormat = function(result,testIndex) {
     return test.join('\n');
 }
 
-function CutDeclaration(type,params,id) {
+function CutDeclaration(type, params, id) {
     this.type = type;
     this.params = params;
     this.id = id;
@@ -52,10 +52,12 @@ function CutDeclaration(type,params,id) {
     }
 }
 
-function Declaration(type,params,identifier,parentType,parentMethod,index) {
+function Declaration(type,params,identifier,parentType,parentMethod,index,id,reuse) {
+    this.reuse = reuse;
     this.type = type;
     this.params = params;
     this.identifier = identifier;
+    this.id = id;
     this.parentType = parentType;
     this.parentMethod = parentMethod;
     this.index = index;
@@ -155,37 +157,77 @@ Test.prototype.hasUnknowns = function() {
 }
 
 Test.prototype.push = function(elem) {
+    console.log(elem)
     var elemType = elem.type;
+    var elemId = elem.id;
+    var reusing = elem.reuse;
     if(elemType === "Unknown") {
         this.unknowns = true;
     }
     var params = elem.params;
+//    console.log(util.inspect(params, false, null));
     var identifiers = [];
     var numbers = [];
+    
+    if (!this.pool[elemType]) this.pool[elemType] = {};
+    if (!this.pool[elemType][elemId] || this.pool[elemType][elemId].length == 0) {
+        this.pool[elemType][elemId] = [];
+    }    
+
+    console.log(this.pool)    
     for(var p = 0; p<params.length; ++p) {
+        console.log(p)
         var paramType = params[p].name;
-        
-        if (!this.pool[paramType]) this.pool[paramType] = [];
-        var pool = this.pool[paramType];
+//        console.log(util.inspect(paramType, false, null));
+//        console.log("pool",this.pool);
+
+        if (!this.pool[paramType]) this.pool[paramType] = {};
 
         // when the parameter is of type Number, the number
         // itself becomes the identifier
         var id;
-        var length = pool.length;
-        var reuseExisting = length && Math.random() > 0.75;
-        if (reuseExisting) {
-            id = pool[Math.floor(Math.random()*length)];
+        
+        // we can only decide to reuse a param if it is not already
+        // predetermined by the reuse of the parent (elem)
+        var reuseParam = false;
+        // parent is in the pool, we need to use predefined args
+        if(reusing && elem.id){ // checking if not a call
+            console.log("this.pool[elemType]",this.pool[elemType])
+            console.log(elemId)
+            console.log(p)
+            id = this.pool[elemType][elemId][p];
         }
         else {
-            if (!isPrimitive(paramType)) id = _.uniqueId();
-            else id = randomData.getNumber();
+            var keys = Object.keys(this.pool[paramType]);
+            // if not already reusing this parameter by default because
+            // we are reusing the parent, we can decide to reuse the
+            // parameter only
+            var length = keys.length;
+            var reusingParam = length && Math.random() > 0.75;
+            if (reusingParam) {
+                id = keys[Math.floor(Math.random()*length)]-0;
+                console.log("reusing")
+                console.log(id)
+                if(elemId) this.pool[elemType][elemId].push(id); // checking if not call
+            }
+            else {
+                if (!isPrimitive(paramType)) id = _.uniqueId();
+                else id = randomData.getNumber();
+//                var idStr = Number(id).toString();
+                this.pool[paramType][id] = [];
+                this.pool[elemType][elemId].push(id);
+            }
         }
-        var identifier = !isPrimitive(paramType) ? 
+//        console.log(paramType+"Pool",pool);
+//        console.log()
+        var identifier = !isPrimitive(paramType) ?
                          paramType.toLowerCase() + id + "_" + p: id;
         identifiers.push(identifier);
-        if (!pool[id]) pool[id] = [];
+
+/*      if (!pool[id]) pool[id] = [];
         else pool[id].push
         pool[elemType]
+*/
         if (!isPrimitive(paramType)) {
             var method;
             if (elem instanceof Call || elem instanceof Mut) {
@@ -200,9 +242,11 @@ Test.prototype.push = function(elem) {
                                       identifier,
                                       elemType,
                                       method,
-                                      p));
+                                      p,
+                                      id,reusingParam || reusing));
         }
     }
+    //console.log(util.inspect({elem:elem,identifiers:identifiers}, false, null));
     this.stack.push({elem:elem,identifiers:identifiers});
 }
 
@@ -210,48 +254,50 @@ Test.prototype.show = function() {
 //    console.log(this.stack)
 }
 
-exports.generate = function(classes,className,index) {
-    var classInfo = classes[className];
-    MAX_SEQUENCE_LENGTH = 5;
-    var parameters = randomData.inferTypes(classes,classInfo.ctr.params);
+exports.generate = function(classes,CUTname,index) {
+    var CUTinfo = classes[CUTname];
+    MAX_SEQUENCE_LENGTH = 15;
+    var inferredParams = randomData.inferTypes(classes,CUTinfo.ctr.params);
     var t = new Test();    
-    var instance = new CutDeclaration(className,parameters,_.uniqueId());
+    var instance = new CutDeclaration(CUTname,inferredParams,_.uniqueId());
     t.push(instance);
-    
+//    console.log(util.inspect(t, false, null));
+    console.log(t.toExecutorFormat())
+//    process.exit(0);
     var callSequence = [];
     randomSequenceLength = Math.ceil(Math.random()*MAX_SEQUENCE_LENGTH);
-    if (classInfo.methods.length > 1) {
+    if (CUTinfo.methods.length > 1) {
         for (var j = 0; j<randomSequenceLength;j++) {
-            var randomMethod = Math.floor(Math.random()*classInfo.methods.length);
+            var randomMethod = Math.floor(Math.random()*CUTinfo.methods.length);
 
             // TODO: if index is 0 initially FAILS IF CLASS UNDER TEST HAS NO METHODS
-            while ((index && randomMethod === index) || classInfo.methods[randomMethod].mut) {
-                randomMethod = Math.floor(Math.random()*classInfo.methods.length);
+            while ((index && randomMethod === index) || CUTinfo.methods[randomMethod].mut) {
+                randomMethod = Math.floor(Math.random()*CUTinfo.methods.length);
             }
-            var method = classInfo.methods[randomMethod];
+            var method = CUTinfo.methods[randomMethod];
             var call = new Call(instance.getIdentifier(),
                                 method.name,
                                 randomData.inferTypes(classes,method.params),
-                                className);
+                                CUTname);
             t.push(call);
         }
     }
 
     var mutParams = {};
-    var mutName = "";
+    var MUTname = "";
     if (index) {
-        mutName = classInfo.methods[index].name;
-        mutParams = classInfo.methods[index].params;
+        MUTname = CUTinfo.methods[index].name;
+        mutParams = CUTinfo.methods[index].params;
     }
     else {
-        var mut_ = classInfo.methods.filter(function(x){return x.mut})[0];
-        mutName = mut_.name;
+        var mut_ = CUTinfo.methods.filter(function(x){return x.mut})[0];
+        MUTname = mut_.name;
         mutParams = mut_.params;
     }
     var mut = new Mut(instance.getIdentifier(),
-                      mutName,
+                      MUTname,
                       randomData.inferTypes(classes,mutParams),
-                      className);
+                      CUTname);
     t.push(mut);
     return t;
 }

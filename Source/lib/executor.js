@@ -1,7 +1,7 @@
 /*********** DISCLAIMER **************
 
     The code in this file is inspired
-    by/makes use of the unlicensed,
+    by　and makes use of the unlicensed,
     open source code available at the
     time of edition, at:
 
@@ -17,7 +17,7 @@ var _ = require('underscore');
 var beautify = require('./beautify-js/beautify.js');
 var EventEmitter = require('events').EventEmitter;
 
-var Executor = module.exports.Executor = function(src,classes,className) 
+var Executor = module.exports.Executor = function(src,classes,CUTname) 
 {
     this.test = {};
     this.nodes = [];
@@ -34,11 +34,10 @@ var Executor = module.exports.Executor = function(src,classes,className)
         stat: burrito.generateName(6)
     };
 
-    this.source = src;
-    this.setupContext(classes);
-//    this.proxies = this.addProxyMethod();
+    this.original = src;
+    this.context = this.createContext(classes);
+    this.mut = this.createMut(classes[CUTname]);
 
-    this.mut = this.getMut(classes[className]);
     this.on('node',
     function(node) {
         // -1 is because we ignore the first node (the MUT definition)
@@ -62,16 +61,11 @@ Executor.prototype.getCoverage = function() {
     return this.currentCov;
 }
 
-Executor.prototype.addSource = function(src) {
-    this.source = src;
-    return this;
-};
-
 Executor.prototype.setTest = function(test) {
     this.test = test;
 };
 
-Executor.prototype.getMut = function(classInfo, index) {
+Executor.prototype.createMut = function(classInfo, index) {
     var nodes = this.nodes;
     var names = this.names;
     var n = 0;
@@ -129,13 +123,13 @@ Executor.prototype.getMut = function(classInfo, index) {
 
 function createExecHandler(classes) {
 
-    var Handler = function(className, methodName, paramIndex) {
-        this.className = className;
+    var Handler = function(CUTname, methodName, paramIndex) {
+        this.CUTname = CUTname;
         this.methodName = methodName;
         this.paramIndex = paramIndex;
         this.classes = classes;
         this.isConstructorParam = function() {
-            return className === methodName;
+            return CUTname === methodName;
         }
     }
 
@@ -156,12 +150,12 @@ function createExecHandler(classes) {
 //            console.log(name)
             var methodName = this.methodName;
 
-/*            console.log(_.find(this.classes[this.className].methods,function(elem){
+/*            console.log(_.find(this.classes[this.CUTname].methods,function(elem){
                 return elem.name === methodName;
             }))
             console.log(this.isConstructorParam())
 
-            console.log(this.className)
+            console.log(this.CUTname)
             console.log(this.paramIndex)
             console.log("this.methodName",this.methodName)
             console.log("method to add",name)
@@ -169,8 +163,8 @@ function createExecHandler(classes) {
 
             // TODO index this.methodName directly vs filter
             var paramInfo = this.isConstructorParam() ?
-                this.classes[this.className].ctr.params[this.paramIndex] :
-                _.find(this.classes[this.className].methods,function(elem){
+                this.classes[this.CUTname].ctr.params[this.paramIndex] :
+                _.find(this.classes[this.CUTname].methods,function(elem){
                     return elem.name === methodName;
                 }).params[this.paramIndex];
             paramInfo.push(name);
@@ -223,7 +217,7 @@ function createExecHandler(classes) {
     return Handler;
 }
 
-Executor.prototype.setupContext = function(classes) {
+Executor.prototype.createContext = function(classes) {
     var context = {};
     var Handler = createExecHandler(classes);
     function getProperties(o) {
@@ -244,10 +238,10 @@ Executor.prototype.setupContext = function(classes) {
         }
         return {own: own, proto: proto};
     }
-    context.proxy = function(o,className,methodName,paramIndex) {
+    context.proxy = function(o,CUTname,methodName,paramIndex) {
         var p = getProperties(o);
         var prox = Object.create(
-            Object.create(Proxy.create(new Handler(className,methodName,paramIndex)),p.proto),
+            Object.create(Proxy.create(new Handler(CUTname,methodName,paramIndex)),p.proto),
             p.own
         );
         return prox;
@@ -291,13 +285,12 @@ Executor.prototype.setupContext = function(classes) {
         }
     };
 
-    this.context = context;
+    return context;
 };
 
 
 Executor.prototype.show = function() {
-    this.showSource();
-    this.showProxies();
+    this.showOriginal();
     this.showMut();
     this.showTest();
 }
@@ -308,17 +301,10 @@ Executor.prototype.showMut = function() {
     console.log('---------------------------------------');
 }
 
-Executor.prototype.showSource = function() {
+Executor.prototype.showOriginal = function() {
     console.log('-------------- SOURCE -----------------');
-    console.log(this.source);
+    console.log(this.original);
     console.log('---------------------------------------');
-}
-
-Executor.prototype.showProxies = function() {
-    console.log('-------------- PROXIES -----------------');
-//    console.log(beautify.js_beautify(this.proxies));
-    console.log('---------------------------------------');
-
 }
 
 Executor.prototype.showTest = function() {
@@ -333,7 +319,7 @@ Executor.prototype.covered = function() {
 }
 
 Executor.prototype.run = function() {
-    var src = this.source + '\n' + this.mut + '\n' + this.test.toExecutorFormat();
+    var src = this.original + '\n' + this.mut + '\n' + this.test.toExecutorFormat();
     if (!this.mut) {
         console.warn("Warning: Executor.mut is an empty string")
     }
@@ -350,10 +336,10 @@ Executor.prototype.run = function() {
         console.log("caught " + err);
     }
     var after = this.covered();
-    var achievedCoverage = after > before;
-    this.emit('cov', after, achievedCoverage);
+    var newCoverage = after > before;
+    this.emit('cov', after, newCoverage);
     return {
-        achievedCoverage: achievedCoverage,
+        newCoverage: newCoverage,
         result: res,
         coverage: this.currentCov
     };
