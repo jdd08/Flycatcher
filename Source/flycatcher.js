@@ -62,7 +62,7 @@ if (MUTname) {
     while (exec.getCoverage() < maxCoverage) {
         var test = randomTest.generate(classes, CUTname);
         exec.setTest(test);
-        exec.showTest(test);
+        //exec.showTest(test);
         var testRun = exec.run();
         if (testRun.newCoverage && !test.hasUnknowns()) {
             goodTests.push(test.toUnitTestFormat(testRun.result,++count));
