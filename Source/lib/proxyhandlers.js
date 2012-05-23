@@ -31,7 +31,7 @@ exports.analyserHandler = {
         var self = this;
         if (name === "valueOf") {
             return function() {
-                return 1;
+                return 35;
             }
         }
         else {

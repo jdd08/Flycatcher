@@ -9,7 +9,7 @@
 
 ***************************************/
 
-var dump = require('./utils.js').dump;
+var util = require('util');
 
 var burrito = require('burrito');
 var vm = require('vm');
@@ -21,7 +21,7 @@ var Executor = module.exports.Executor = function(src,classes,CUTname)
 {
     this.test = {};
     this.nodes = [];
-    this.coverage = [];
+    this.coverage = {};
     this.nodeNum = 0;
     this.currentCov = 0;
 
@@ -39,17 +39,18 @@ var Executor = module.exports.Executor = function(src,classes,CUTname)
     this.mut = this.createMut(classes[CUTname]);
 
     this.on('node',
-    function(node) {
-        // -1 is because we ignore the first node (the MUT definition)
-        this.coverage[node.id - 1] = true;
+    function(i) {
+//        console.log("node.id",node.id)
+        this.coverage[i] = true;
         //console.log(node.id + ": " + node.source())
     });
 
     this.on('cov',
     function(currentCoverage, good) {
-        this.currentCov = Math.round((currentCoverage / this.nodeNum * 100) *
+        this.currentCov = Math.round((currentCoverage / _.size(this.coverage) * 100) *
         Math.pow(10, 2) / Math.pow(10, 2));
         if (good) {
+            console.log(util.inspect(this.coverage, false, null));
             process.stdout.write("\b\b"+this.currentCov);
         }
     });
@@ -79,47 +80,62 @@ Executor.prototype.createMut = function(classInfo, index) {
         })[0].def;
     }
     var def = classInfo.name + ".prototype.MUT = " + mutDef;
-    var mut = burrito(def,
+    var i = 0;
+    var b = burrito(def,
     function(node) {
-        var i = nodes.length;
+
         if (node.name === 'call') {
-            nodes.push(node);
-            n++;
+            i++;
             node.wrap(names.call + '(' + i + ')(%s)');
+            node.id = i;
         }
         else if (node.name === 'stat' || node.name === 'throw'
         || node.name === 'var') {
-            nodes.push(node);
-            n++;
+            i++;
             node.wrap('{' + names.stat + '(' + i + ');%s}');
+            node.id = i;
         }
         else if (node.name === 'binary') {
-            nodes.push(node);
-            n++;
+            i++;
             node.wrap(names.expr + '(' + i + ')(%s)');
+            node.id = i;
         }
         else if (node.name === 'unary-postfix' || node.name === 'unary-prefix') {
-            nodes.push(node);
-            n++;
+            i++;
             node.wrap(names.expr + '(' + i + ')(%s)');
+            node.id = i;
         }
+    }, names);        
+    
+    var coverage = this.coverage;
+    _.forEach(b.nodeIndexes,function(num){
+        coverage[num] = false;
+    });
+    return b.mut;
+    }
         // if the node does not correspond to any of the node types above
         // (like the very last one) no need to set its id as this node is
         // effectively ignored (it is not pushed onto the nodes array)
-        if (i !== nodes.length) {
-            node.id = i;
-        }
-    });
+//        if (i !== nodes.length) {
+//            node.id = i;
+//            console.log(node.name)
+//            console.log(node.source())
+//            console.log(i)
+//        }
+//        if(node.id === 4 || node.id === 5) console.log(node)
+//        if(node.name === 'call') console.log(node)        
+
     
     // initialising coverage tracker
     // n-- is for ignoring the first node which was for the MUT definition
-    n--;
-    for (var c = 0; c < n; c++) {
+/*    this.coverage[0] = true;
+    for (var c = 1; c < n; c++) {
         this.coverage[c] = false;
     }
-    this.nodeNum = n;
-    return mut;
-}
+*/
+//    console.log(nodes)
+//    console.log(this.coverage)
+//    process.exit(0)
 
 function createExecHandler(classes) {
 
@@ -147,20 +163,19 @@ function createExecHandler(classes) {
 
         // proxy[name] -> any
         get: function(receiver, name) {
-//            console.log(name)
             var methodName = this.methodName;
 
 /*            console.log(_.find(this.classes[this.CUTname].methods,function(elem){
                 return elem.name === methodName;
             }))
             console.log(this.isConstructorParam())
-
-            console.log(this.CUTname)
-            console.log(this.paramIndex)
-            console.log("this.methodName",this.methodName)
-            console.log("method to add",name)
 */
 
+/*            console.log("CUTname",this.CUTname,
+                        "paramIndex",this.paramIndex,
+                        "methodName",this.methodName,
+                        "name",name)
+*/
             // TODO index this.methodName directly vs filter
             var paramInfo = this.isConstructorParam() ?
                 this.classes[this.CUTname].ctr.params[this.paramIndex] :
@@ -173,12 +188,12 @@ function createExecHandler(classes) {
                     return 2;
                 }
             }
-/*            else if (name === "toString") {
+            else if (name === "toString") {
                 return function() {
                     return "HARO!";
                 }
             }
-*/
+
             else {
                 var self = this;
                 return Proxy.createFunction(self,
@@ -190,7 +205,7 @@ function createExecHandler(classes) {
 
         // proxy[name] = value
         set: function(receiver, name, value) {
-            console.log(name)
+//            console.log(name)
             if (canPut(this.target, name)) {
                 // canPut as defined in ES5 8.12.4 [[CanPut]]
                 this.target[name] = value;
@@ -238,6 +253,16 @@ Executor.prototype.createContext = function(classes) {
         }
         return {own: own, proto: proto};
     }
+    
+    // we want to trap only the calls that the "proxy" object
+    // below cannot answer (because the type for it is not
+    // yet correct). hence the proxy is an object who does have
+    // all the methods and fields of the type T we think it is (p.own)
+    // but whose prototype does not only have the properties of the
+    // usual T prototype, but *its* prototype (called when neither the
+    // "proxy"'s direct properties nor its prototype resolve) is an object
+    // of the type Proxy, whose handler is initialised to update the table
+    // for the specific parameter that this "proxy" is supposed to represent
     context.proxy = function(o,CUTname,methodName,paramIndex) {
         var p = getProperties(o);
         var prox = Object.create(
@@ -248,44 +273,44 @@ Executor.prototype.createContext = function(classes) {
     }
     context.log = console.log;
 
-    // adding the instrumentation methods to the runtime context
-    var self = this;
-    var stack = [];
+        // adding the instrumentation methods to the runtime context
+        var self = this;
+        var stack = [];
 
-    // we are only interested in the coverage of tests
-    // which are usable i.e. those that have resolved
-    // all of their types, so we test for test.hasUnknowns()
+        // we are only interested in the coverage of tests
+        // which are usable i.e. those that have resolved
+        // all of their types, so we test for test.hasUnknowns()
 
-    context[self.names.call] = function(i) {
-        if (!self.test.hasUnknowns()) {
-            var node = self.nodes[i];
-            stack.unshift(node);
-            self.emit('node', node, stack);
-        }
-        return function(expr) {
-            stack.shift();
-            return expr;
+        context[self.names.call] = function(i) {
+            if (!self.test.hasUnknowns()) {
+                var node = self.nodes[i];
+                stack.unshift(node);
+                self.emit('node', i);
+            }
+            return function(expr) {
+                stack.shift();
+                return expr;
+            };
         };
-    };
 
-    context[self.names.expr] = function(i) {
-        if (!self.test.hasUnknowns()) {
-            var node = self.nodes[i];
-            self.emit('node', node, stack);
-        }
-        return function(expr) {
-            return expr;
+        context[self.names.expr] = function(i) {
+            if (!self.test.hasUnknowns()) {
+                var node = self.nodes[i];
+                self.emit('node', i);
+            }
+            return function(expr) {
+                return expr;
+            };
         };
-    };
 
-    context[self.names.stat] = function(i) {
-        if (!self.test.hasUnknowns()) {
-            var node = self.nodes[i];
-            self.emit('node', node, stack);            
-        }
-    };
+        context[self.names.stat] = function(i) {
+            if (!self.test.hasUnknowns()) {
+                var node = self.nodes[i];
+                self.emit('node', i);            
+            }
+        };
 
-    return context;
+        return context;
 };
 
 
@@ -315,11 +340,12 @@ Executor.prototype.showTest = function() {
 }
 
 Executor.prototype.covered = function() {
-    return (this.coverage.filter(_.identity)).length;
+    return _.filter(_.values(this.coverage),_.identity).length;
 }
 
 Executor.prototype.run = function() {
     var src = this.original + '\n' + this.mut + '\n' + this.test.toExecutorFormat();
+//    console.log(src)
     if (!this.mut) {
         console.warn("Warning: Executor.mut is an empty string")
     }

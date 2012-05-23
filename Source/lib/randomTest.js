@@ -202,7 +202,7 @@ Test.prototype.push = function(elem) {
                 // when the parameter is of type Number, the number
                 // itself becomes the identifier
                 if (!isPrimitive(paramType)) id = _.uniqueId();
-                else id = randomData.getNumber();
+                else id = randomData.getPrimitive(paramType);
                 // id for the current param is new so *its* parameter array
                 // in the pool needs to be initialised
                 this.pool[paramType][id] = [];

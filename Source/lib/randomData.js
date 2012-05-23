@@ -1,12 +1,23 @@
 var _ = require('underscore');
-var dump = require('./utils').dump;
+var util = require('util');
 
 exports.inferTypes = function(classes,params) {
     function inferType(methods) {
         methods = _.uniq(methods);
 //        console.log(methods)
-        if (methods[0] && methods.length && methods[0] === 'valueOf') {
+/*      if (methods[0] && methods.length && methods[0] === 'valueOf') {
             return {name : "Number", params : []};
+        }
+        else if (methods[0] && methods.length && methods[0] === 'toString') {
+            return {name : "Number", params : []};
+        }
+*/
+//        console.log("methods",methods)
+        if (methods.length && _.all(methods,function(v){ return v === 'valueOf'})) {
+            return {name : "Number", params : []};
+        }
+        else if (methods.length && _.all(methods,function(v){ return v === 'toString'})) {
+            return {name : "String", params : []};
         }
         else {
 //            console.log(methods);
@@ -43,12 +54,24 @@ exports.inferTypes = function(classes,params) {
     for(var i = 0; i<params.length; i++) {
         randomParams[i] = inferType(params[i]);
     }
+//console.log("CLASSES:",util.inspect(classes, false, null));
+//console.log("PARAMS INFERRED:",util.inspect(randomParams, false, null));
     return randomParams;
 }
 
-exports.getNumber = function() {
+exports.getPrimitive = function(type) {
+//    if (type === "Number") {
+    if (Math.random() > 0.5) {
+        return getNumber();
+    }
+    else {
+        return getString();
+    }
+}
+
+var getNumber = function() {
     // returns a number from 0 to 65535
-    MAX_INT = (1 << 16);
+    MAX_INT = (1 << 6);
     return Math.floor(Math.random()*MAX_INT);   
 }
 
@@ -56,7 +79,7 @@ exports.getBool = function() {
     return Math.floor(Math.random()*2) === 1;
 }
 
-exports.getString = function() {
+var getString = function() {
     MAX_LENGTH = 10;
     var string = "";
     var charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

@@ -1,6 +1,6 @@
 #! /usr/bin/env node --harmony_proxies
 
-var dump = require('./lib/utils.js').dump;
+var util = require('util');
 var analyser = require('./lib/analyser.js');
 var randomTest = require('./lib/randomTest.js');
 var Executor = require('./lib/executor.js').Executor;
@@ -35,6 +35,7 @@ try {
 }
 
 var classContext = {};
+classContext.log = console.log;
 try {
     vm.runInNewContext(src, classContext);
 }
@@ -59,15 +60,21 @@ if (MUTname) {
     var goodTests = [];
     var count = 0;
     console.log();
+    console.log("INIT",util.inspect(classes, false, null));
+    console.log();
     while (exec.getCoverage() < maxCoverage) {
         var test = randomTest.generate(classes, CUTname);
         exec.setTest(test);
-        //exec.showTest(test);
+//        exec.showTest(test);
         var testRun = exec.run();
         if (testRun.newCoverage && !test.hasUnknowns()) {
             goodTests.push(test.toUnitTestFormat(testRun.result,++count));
         }
     }
+    /*console.log();
+    console.log("____CLASSES_BEGIN___")
+    console.log(util.inspect(classes, false, null));
+    console.log("____CLASSES_END___\n\n")*/
     var fileName = "Flycatcher_" + CUTname + "_" + MUTname + ".js";
     process.stdout.write(" (" + (testRun ? testRun.coverage : 0) + "\%)\nGeneration succesful.\n");
     process.stdout.write("Tests can be found in " + fileName + "\n\n");
