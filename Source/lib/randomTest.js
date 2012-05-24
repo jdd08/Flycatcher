@@ -1,6 +1,5 @@
 var randomData = require('./randomData.js');
 var _ = require('underscore');
-var beautify = require('./beautify-js/beautify.js');
 var util = require('util');
 
 Test.prototype.toExecutorFormat = function() {

@@ -57,15 +57,13 @@ if (MUTname) {
     process.stdout.write(maxCoverage + "\% coverage of ");
     process.stdout.write("method <" + MUTname + "> from class <");
     process.stdout.write(CUTname + "> :   ");
+    console.log(classes)
     var goodTests = [];
     var count = 0;
-    console.log();
-    console.log("INIT",util.inspect(classes, false, null));
-    console.log();
     while (exec.getCoverage() < maxCoverage) {
         var test = randomTest.generate(classes, CUTname);
         exec.setTest(test);
-//        exec.showTest(test);
+        exec.showTest(test);
         var testRun = exec.run();
         if (testRun.newCoverage && !test.hasUnknowns()) {
             goodTests.push(test.toUnitTestFormat(testRun.result,++count));
@@ -75,7 +73,7 @@ if (MUTname) {
     console.log("____CLASSES_BEGIN___")
     console.log(util.inspect(classes, false, null));
     console.log("____CLASSES_END___\n\n")*/
-    var fileName = "Flycatcher_" + CUTname + "_" + MUTname + ".js";
+    var fileName = "./results/Flycatcher_" + CUTname + "_" + MUTname + ".js";
     process.stdout.write(" (" + (testRun ? testRun.coverage : 0) + "\%)\nGeneration succesful.\n");
     process.stdout.write("Tests can be found in " + fileName + "\n\n");
 

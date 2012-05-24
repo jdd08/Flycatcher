@@ -10,11 +10,11 @@
 ***************************************/
 
 var util = require('util');
+var stackTrace = require('stack-trace');
 
 var burrito = require('burrito');
 var vm = require('vm');
 var _ = require('underscore');
-var beautify = require('./beautify-js/beautify.js');
 var EventEmitter = require('events').EventEmitter;
 
 var Executor = module.exports.Executor = function(src,classes,CUTname) 
@@ -36,7 +36,7 @@ var Executor = module.exports.Executor = function(src,classes,CUTname)
 
     this.original = src;
     this.context = this.createContext(classes);
-    this.mut = this.createMut(classes[CUTname]);
+    this.mut = this.createMUT(classes[CUTname]);
 
     this.on('node',
     function(i) {
@@ -50,10 +50,20 @@ var Executor = module.exports.Executor = function(src,classes,CUTname)
         this.currentCov = Math.round((currentCoverage / _.size(this.coverage) * 100) *
         Math.pow(10, 2) / Math.pow(10, 2));
         if (good) {
-            console.log(util.inspect(this.coverage, false, null));
             process.stdout.write("\b\b"+this.currentCov);
         }
     });
+}
+
+function ExecutorError(CUTname, methodName, paramIndex, classes) {
+    Error.captureStackTrace(this, ExecutorError);
+    this.CUTname = CUTname;
+    this.methodName = methodName;
+    this.paramIndex = paramIndex;
+    this.classes = classes;
+    this.isConstructorParam = function() {
+        return CUTname === methodName;
+    }
 }
 
 Executor.prototype = new EventEmitter;
@@ -66,7 +76,7 @@ Executor.prototype.setTest = function(test) {
     this.test = test;
 };
 
-Executor.prototype.createMut = function(classInfo, index) {
+Executor.prototype.createMUT = function(classInfo, index) {
     var nodes = this.nodes;
     var names = this.names;
     var n = 0;
@@ -177,24 +187,25 @@ function createExecHandler(classes) {
                         "name",name)
 */
             // TODO index this.methodName directly vs filter
-            var paramInfo = this.isConstructorParam() ?
-                this.classes[this.CUTname].ctr.params[this.paramIndex] :
-                _.find(this.classes[this.CUTname].methods,function(elem){
-                    return elem.name === methodName;
-                }).params[this.paramIndex];
-            paramInfo.push(name);
             if (name === "valueOf") {
-                return function() {
-                    return 2;
-                }
+                throw new ExecutorError(this.CUTname,this.methodName,this.paramIndex,this.classes);
             }
-            else if (name === "toString") {
+/*            else if (name === "toString") {
                 return function() {
                     return "HARO!";
                 }
-            }
 
+            }
+*/
             else {
+                
+                var paramInfo = this.isConstructorParam() ?
+                    this.classes[this.CUTname].ctr.params[this.paramIndex] :
+                    _.find(this.classes[this.CUTname].methods,function(elem){
+                        return elem.name === methodName;
+                    }).params[this.paramIndex];
+                paramInfo.push(name);
+                
                 var self = this;
                 return Proxy.createFunction(self,
                     function() {
@@ -345,7 +356,6 @@ Executor.prototype.covered = function() {
 
 Executor.prototype.run = function() {
     var src = this.original + '\n' + this.mut + '\n' + this.test.toExecutorFormat();
-//    console.log(src)
     if (!this.mut) {
         console.warn("Warning: Executor.mut is an empty string")
     }
@@ -358,9 +368,22 @@ Executor.prototype.run = function() {
         res = vm.runInNewContext(src, this.context);
     }
     catch(err) {
-        console.log(err.stack)
-        console.log("caught " + err);
+        var lineNum = stackTrace.parse(err)[1].lineNumber;
+        // shifting to correspond to correct array index
+        var line = src.split('\n')[lineNum - 1];
+        console.log(line);
+//        process.exit(0);
+//       var trace = 
+//        console.log("err.stack",stackTrace.get())
+        
+        var paramInfo = err.isConstructorParam() ?
+            err.classes[err.CUTname].ctr.params[err.paramIndex] :
+            _.find(err.classes[err.CUTname].methods,function(elem){
+                return elem.name === err.methodName;
+            }).params[err.paramIndex];
+        paramInfo.push();
     }
+
     var after = this.covered();
     var newCoverage = after > before;
     this.emit('cov', after, newCoverage);

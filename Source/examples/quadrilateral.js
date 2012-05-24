@@ -47,7 +47,8 @@ function Quadrilateral(topRight,topLeft,bottomRight,bottomLeft) {
     
     // If a primitive operation is executed on a proxy parameter
     // this leads to a valueOf() call which is trapped and returns
-    // the number 1. As can be seen below, no primitive operation
+    // a function that returns the number 1. 
+    // As can be seen below, no primitive operation
     // throws an exception when used with a primitive number,
     // which enables the constructor to execute till the end
     // and yield constructor and method signatures for all classes
