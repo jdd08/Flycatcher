@@ -1,5 +1,7 @@
 var fs = require('fs');
 var vm = require('vm');
+var util = require('util');
+
 var handler = {
 
     delete: function(name) {
@@ -63,6 +65,15 @@ var handler = {
     }
 };
 
+function getParamNames(func) {
+    var reg = /\(([\s\S]*?)\)/;
+    var params = reg.exec(func);
+    if (params) 
+        return params[1].split(',');
+    else
+        return [];
+ }
+
 exports.getClasses = function(cmd,classContext,cutName,mutName) {
 
     var classes = {};
@@ -78,34 +89,36 @@ exports.getClasses = function(cmd,classContext,cutName,mutName) {
         if(typeof classContext[className] === "function") {
             // retrieving constructor for the class under test
             var constructor = classContext[className];
+            
             var ctrParams = [];
             for (var i = 0; i<constructor.length; i++) {
                 ctrParams.push([]);
             }
             var ctr = {def: constructor, params: ctrParams};
+
+            var construct = (function() {
+                function F(args) {
+                    return constructor.apply(this, args);
+                }
+                F.prototype = constructor.prototype;
+                return function(args) {
+                    return new F(args);
+                }
+            })();
+            
+            var emptyParams = [];
+            var len = constructor.length;
+            for (var i = 0; i < len; i++) {
+                // we use empty proxy parameters because we are not interested in
+                // what the constructor methods achieve atm, just the class's methods
+                emptyParams[i] = Proxy.create(handler);
+            }
+
             // an instance of the class under test needs to be created in order
             // to retrieve the class's method signatures
             var c = {};
             try {
-                var C = ctr.def;
-                var constructC = (function() {
-                    function F(args) {
-                        return C.apply(this, args);
-                    }
-                    F.prototype = C.prototype;
-                    return function(args) {
-                        return new F(args);
-                    }
-                })();
-                
-                var emptyParams = [];
-                var len = C.length;
-                for (var i = 0; i < len; i++) {
-                    // we use empty proxy parameters because we are not interested in
-                    // what the constructor methods achieve atm, just the class's methods
-                    emptyParams[i] = Proxy.create(handler);
-                }
-                c = constructC(emptyParams);
+                c = construct(emptyParams);
             }
             catch (err) {
                 console.error("Error in class constructor/function definition <" + className + "> :");

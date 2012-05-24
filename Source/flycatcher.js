@@ -34,8 +34,13 @@ try {
     process.exit(1);
 }
 
+// TODO remove log from the classContext and add options to specify the type
+// of environment that the test programs should be run, adding the appropriate
+// context objects
 var classContext = {};
-classContext.log = console.log;
+Object.defineProperty(classContext,"log", {get : function() {return console.log},
+                                           enumerable : false});
+
 try {
     vm.runInNewContext(src, classContext);
 }
@@ -57,10 +62,10 @@ if (MUTname) {
     process.stdout.write(maxCoverage + "\% coverage of ");
     process.stdout.write("method <" + MUTname + "> from class <");
     process.stdout.write(CUTname + "> :   ");
-    console.log(classes)
+    console.log(util.inspect(classes, false, null));
     var goodTests = [];
     var count = 0;
-    while (exec.getCoverage() < maxCoverage) {
+    while (exec.getCoverage() < maxCoverage && ++count<3) {
         var test = randomTest.generate(classes, CUTname);
         exec.setTest(test);
         exec.showTest(test);

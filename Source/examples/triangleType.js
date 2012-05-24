@@ -1,14 +1,8 @@
 
-function Triangle(a,b,c,d,e) {
+function Triangle(a,b,c) {
     this.a = a;
     this.b = b;
     this.c = c;
-    
-    var a = "AWE";
-    a += d;
-    a += e;
-//    var f = [d,e].toString();
-//    log(f);
 }
 
 Triangle.prototype.setA = function(a) {

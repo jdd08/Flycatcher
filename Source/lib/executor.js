@@ -17,7 +17,7 @@ var vm = require('vm');
 var _ = require('underscore');
 var EventEmitter = require('events').EventEmitter;
 
-var Executor = module.exports.Executor = function(src,classes,CUTname) 
+var Executor = module.exports.Executor = function(originalSrc,classes,CUTname) 
 {
     this.test = {};
     this.nodes = [];
@@ -34,7 +34,7 @@ var Executor = module.exports.Executor = function(src,classes,CUTname)
         stat: burrito.generateName(6)
     };
 
-    this.original = src;
+    this.original = originalSrc;
     this.context = this.createContext(classes);
     this.mut = this.createMUT(classes[CUTname]);
 
@@ -149,11 +149,12 @@ Executor.prototype.createMUT = function(classInfo, index) {
 
 function createExecHandler(classes) {
 
-    var Handler = function(CUTname, methodName, paramIndex) {
+    var Handler = function(CUTname, methodName, paramIndex, exec) {
         this.CUTname = CUTname;
         this.methodName = methodName;
         this.paramIndex = paramIndex;
         this.classes = classes;
+        this.exec = exec;
         this.isConstructorParam = function() {
             return CUTname === methodName;
         }
@@ -188,7 +189,31 @@ function createExecHandler(classes) {
 */
             // TODO index this.methodName directly vs filter
             if (name === "valueOf") {
-                throw new ExecutorError(this.CUTname,this.methodName,this.paramIndex,this.classes);
+                try {
+                    throw new ExecutorError(this.CUTname,this.methodName,this.paramIndex,this.classes);
+                }
+                catch(err) {
+                    var lineNum = stackTrace.parse(err)[1].lineNumber;
+                    // shifting to correspond to correct array index
+                    var line = this.exec.src.split('\n')[lineNum - 1];
+
+                    var paramInfo = err.isConstructorParam() ?
+                        err.classes[err.CUTname].ctr.params[err.paramIndex] :
+                        _.find(err.classes[err.CUTname].methods,function(elem){
+                            return elem.name === err.methodName;
+                        }).params[err.paramIndex];
+                    console.log(line);    
+                    for (var op=0; op < operators.length; op++) {
+                        if (line.indexOf(operators[op]) !== -1) {
+                            paramInfo.push(operators[op]);
+                            console.log(util.inspect(paramInfo, false, null));
+                            break;
+                        }
+                    };
+                }
+                return function() {
+                    return 123;
+                }
             }
 /*            else if (name === "toString") {
                 return function() {
@@ -274,10 +299,11 @@ Executor.prototype.createContext = function(classes) {
     // "proxy"'s direct properties nor its prototype resolve) is an object
     // of the type Proxy, whose handler is initialised to update the table
     // for the specific parameter that this "proxy" is supposed to represent
+    var exec = this;
     context.proxy = function(o,CUTname,methodName,paramIndex) {
         var p = getProperties(o);
         var prox = Object.create(
-            Object.create(Proxy.create(new Handler(CUTname,methodName,paramIndex)),p.proto),
+            Object.create(Proxy.create(new Handler(CUTname,methodName,paramIndex,exec)),p.proto),
             p.own
         );
         return prox;
@@ -354,8 +380,35 @@ Executor.prototype.covered = function() {
     return _.filter(_.values(this.coverage),_.identity).length;
 }
 
+// important for the operators which are superstrings of others
+// to come earlier in the array
+var operators = [ "++",
+                  "+",
+                  "--",
+                  "-",
+                  "*",
+                  "/",
+                  "%",
+                  ">>>",
+                  ">>",
+                  "<<",
+                  "~",
+                  "^",
+                  "||",
+                  "|",
+                  "&&",
+                  "&",
+                  "==",
+                  "!=",
+                  "!",
+                  ">=",
+                  ">",
+                  "<=",
+                  "<"                  
+                  ];
+
 Executor.prototype.run = function() {
-    var src = this.original + '\n' + this.mut + '\n' + this.test.toExecutorFormat();
+    this.src = this.original + '\n' + this.mut + '\n' + this.test.toExecutorFormat();
     if (!this.mut) {
         console.warn("Warning: Executor.mut is an empty string")
     }
@@ -365,23 +418,10 @@ Executor.prototype.run = function() {
     var before = this.covered();
     var res = {};
     try {
-        res = vm.runInNewContext(src, this.context);
+        res = vm.runInNewContext(this.src, this.context);
     }
     catch(err) {
-        var lineNum = stackTrace.parse(err)[1].lineNumber;
-        // shifting to correspond to correct array index
-        var line = src.split('\n')[lineNum - 1];
-        console.log(line);
-//        process.exit(0);
-//       var trace = 
-//        console.log("err.stack",stackTrace.get())
-        
-        var paramInfo = err.isConstructorParam() ?
-            err.classes[err.CUTname].ctr.params[err.paramIndex] :
-            _.find(err.classes[err.CUTname].methods,function(elem){
-                return elem.name === err.methodName;
-            }).params[err.paramIndex];
-        paramInfo.push();
+        console.log(err.stack);
     }
 
     var after = this.covered();

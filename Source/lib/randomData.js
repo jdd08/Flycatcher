@@ -12,12 +12,9 @@ exports.inferTypes = function(classes,params) {
             return {name : "Number", params : []};
         }
 */
-//        console.log("methods",methods)
+    console.log("methods",methods)
         if (methods.length && _.all(methods,function(v){ return v === 'valueOf'})) {
             return {name : "Number", params : []};
-        }
-        else if (methods.length && _.all(methods,function(v){ return v === 'toString'})) {
-            return {name : "String", params : []};
         }
         else {
 //            console.log(methods);
