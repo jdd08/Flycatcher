@@ -197,16 +197,15 @@ function createExecHandler(classes) {
                     // shifting to correspond to correct array index
                     var line = this.exec.src.split('\n')[lineNum - 1];
 
-                    var paramInfo = err.isConstructorParam() ?
+                    var called = err.isConstructorParam() ?
                         err.classes[err.CUTname].ctr.params[err.paramIndex] :
                         _.find(err.classes[err.CUTname].methods,function(elem){
                             return elem.name === err.methodName;
-                        }).params[err.paramIndex];
+                        }).params[err.paramIndex].called;
                     console.log(line);    
                     for (var op=0; op < operators.length; op++) {
                         if (line.indexOf(operators[op]) !== -1) {
-                            paramInfo.push(operators[op]);
-                            console.log(util.inspect(paramInfo, false, null));
+                            called.push(operators[op]);
                             break;
                         }
                     };
@@ -382,30 +381,30 @@ Executor.prototype.covered = function() {
 
 // important for the operators which are superstrings of others
 // to come earlier in the array
-var operators = [ "++",
-                  "+",
-                  "--",
-                  "-",
-                  "*",
-                  "/",
-                  "%",
-                  ">>>",
-                  ">>",
-                  "<<",
-                  "~",
-                  "^",
-                  "||",
-                  "|",
-                  "&&",
-                  "&",
-                  "==",
-                  "!=",
-                  "!",
-                  ">=",
-                  ">",
-                  "<=",
-                  "<"                  
-                  ];
+var operators = exports.operators = [ "++",
+                                      "+",
+                                      "--",
+                                      "-",
+                                      "*",
+                                      "/",
+                                      "%",
+                                      ">>>",
+                                      ">>",
+                                      "<<",
+                                      "~",
+                                      "^",
+                                      "||",
+                                      "|",
+                                      "&&",
+                                      "&",
+                                      "==",
+                                      "!=",
+                                      "!",
+                                      ">=",
+                                      ">",
+                                      "<=",
+                                      "<"                  
+                                      ];
 
 Executor.prototype.run = function() {
     this.src = this.original + '\n' + this.mut + '\n' + this.test.toExecutorFormat();

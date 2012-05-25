@@ -17,7 +17,9 @@ function Calculator(poing,doiung){
 }
 
 Calculator.prototype.add = function(a,b) {
-    return a<b+3
+    a--;
+    b-2;
+    return a+b;
 }
 
 try {

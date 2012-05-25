@@ -92,7 +92,8 @@ exports.getClasses = function(cmd,classContext,cutName,mutName) {
             
             var ctrParams = [];
             for (var i = 0; i<constructor.length; i++) {
-                ctrParams.push([]);
+                ctrParams.push({name: getParamNames(constructor)[i],
+                                called: []});
             }
             var ctr = {def: constructor, params: ctrParams};
 
@@ -132,7 +133,8 @@ exports.getClasses = function(cmd,classContext,cutName,mutName) {
                 if(typeof member == "function") {
                     var methodParams = [];
                     for (var i = 0; i<member.length; i++) {
-                        methodParams.push([]);
+                        methodParams.push({name: getParamNames(member)[i],
+                                           called: []});
                     }
                     var isMut = className === cutName && m === mutName;
                     if (isMut) {

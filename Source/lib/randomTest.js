@@ -241,8 +241,23 @@ Test.prototype.show = function() {
 exports.generate = function(classes,CUTname,index) {
     var CUTinfo = classes[CUTname];
     MAX_SEQUENCE_LENGTH = 5;
+    
+    
+    // classes.updateInferences();
+    // each param entry should have a type which gets updated
+    // -> starts out as Unknown
+    // -> maybe a few runs should leave it as unknown until
+    // => this can be decided upon whether:
+    //      - there is enough data to make a confident decision
+    //      - a counter in "classes" has reach a certain amount
+    //        and we don't think we will get any more information
+    // TODO: classes can be made from an array to a Class
+    
     var inferredParams = randomData.inferTypes(classes,CUTinfo.ctr.params);
-    var t = new Test();    
+    var t = new Test();
+    console.log();
+    console.log("inferredParam",inferredParams);
+    console.log();
     var instance = new CUTdeclaration(CUTname,inferredParams,_.uniqueId());
     t.push(instance);
     var callSequence = [];

@@ -1,31 +1,78 @@
 var _ = require('underscore');
 var util = require('util');
+var operators = require('./executor.js').operators;
 
 exports.inferTypes = function(classes,params) {
+    
+    function operatorToPrimitive(operator,primitive) {
+        switch(operator) {
+            case "++" :
+            case "--" : primitive.num += 100;
+                        break;
+
+            case "+" :  primitive.num += 1;
+                        primitive.string += 1;
+                        break;
+
+            case "-" :
+            case "*" :
+            case "/" :
+            case "%" :
+            case ">>>" :
+            case ">>" :
+            case "<<" :
+            case "~" :
+            case "^" :
+            case "|" :
+            case "&" :  primitive.num += 1;
+                        break;
+
+            case "||" :            
+            case "&&" :
+            case "==" :
+            case "!=" :
+            case "!" :  primitive.num += 1;
+                        primitive.string += 1;
+                        primitive.bool += 1;
+                        break;
+            case ">=" :
+            case ">" :
+            case "<=" :
+            case "<":   primitive.num += 2;
+                        primitive.string += 1;
+                        break;
+        }
+    }
+    
     function inferType(methods) {
-        methods = _.uniq(methods);
-//        console.log(methods)
-/*      if (methods[0] && methods.length && methods[0] === 'valueOf') {
-            return {name : "Number", params : []};
+
+        var primitive = {
+            num : 0,
+            string : 0,
+            bool : 0
         }
-        else if (methods[0] && methods.length && methods[0] === 'toString') {
-            return {name : "Number", params : []};
-        }
-*/
-    console.log("methods",methods)
-        if (methods.length && _.all(methods,function(v){ return v === 'valueOf'})) {
-            return {name : "Number", params : []};
-        }
-        else {
-//            console.log(methods);
+        var memberFunctions = [];
+        _.map(methods,function(value,key) {
+            if(_.include(operators,value)) {
+                operatorToPrimitive(value,primitive);
+            }
+            else {
+                memberFunctions.push(value);
+            }
+        })
+        
+        // if we have but one member function call
+        // this rules out the possibility that the type
+        // is a primitive
+        if (memberFunctions.length) {
             var currentMatches = 0;
             var name = "";
-            var map = _.map(classes,function(num,key){
+            var map = _.map(classes,function(value,key){
                 return {
                     name:key,
-                    params:num.ctr.params,
+                    params:value.ctr.params,
                     count: function(){
-                        var names = _.pluck(num.methods,"name");
+                        var names = _.pluck(value.methods,"name");
                         return _.intersection(names,methods).length;
                     }()
                 }
@@ -36,23 +83,21 @@ exports.inferTypes = function(classes,params) {
             var type = max.count > 0 ? max : {name: "Unknown", params : []};
             var pars = type.params;
             var paramTypes = [];
-    //        console.log(type)
-    //        console.log(pars.length)
-    //        console.log(pars[p])
             for (var p = 0; p < pars.length; ++p) {
                 paramTypes.push(inferType(pars[p]));
             }
-    //        console.log({name : type.name, params : paramTypes});
-            return {name : type.name, params : paramTypes};
+            return {name : type.name, params : paramTypes};            
+        }
+        else {
+            // TODO: return the primitive type with the largest score
         }
     }
     
     var randomParams = [];
     for(var i = 0; i<params.length; i++) {
-        randomParams[i] = inferType(params[i]);
+        console.log(params);
+        randomParams[i] = inferType(params[i].called);
     }
-//console.log("CLASSES:",util.inspect(classes, false, null));
-//console.log("PARAMS INFERRED:",util.inspect(randomParams, false, null));
     return randomParams;
 }
 
