@@ -56,17 +56,16 @@ var maxCoverage = cmd.coverage_max;
 
 if (MUTname) {
 // if method under test has been specified
-    var classes = analyser.getClasses(cmd, classContext, CUTname, MUTname);
-    var exec = new Executor(src, classes, CUTname);
+    var pgmInfo = analyser.getProgramInfo(cmd, classContext, CUTname, MUTname);
+    var exec = new Executor(src, pgmInfo);
     process.stdout.write("Generating tests for at least ");
     process.stdout.write(maxCoverage + "\% coverage of ");
     process.stdout.write("method <" + MUTname + "> from class <");
     process.stdout.write(CUTname + "> :   ");
-    console.log(util.inspect(classes, false, null));
     var goodTests = [];
     var count = 0;
     while (exec.getCoverage() < maxCoverage && ++count<3) {
-        var test = randomTest.generate(classes, CUTname);
+        var test = randomTest.generate(pgmInfo, CUTname);
         exec.setTest(test);
         exec.showTest(test);
         var testRun = exec.run();
@@ -74,10 +73,6 @@ if (MUTname) {
             goodTests.push(test.toUnitTestFormat(testRun.result,++count));
         }
     }
-    /*console.log();
-    console.log("____CLASSES_BEGIN___")
-    console.log(util.inspect(classes, false, null));
-    console.log("____CLASSES_END___\n\n")*/
     var fileName = "./results/Flycatcher_" + CUTname + "_" + MUTname + ".js";
     process.stdout.write(" (" + (testRun ? testRun.coverage : 0) + "\%)\nGeneration succesful.\n");
     process.stdout.write("Tests can be found in " + fileName + "\n\n");

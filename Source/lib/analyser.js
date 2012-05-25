@@ -1,6 +1,7 @@
 var fs = require('fs');
 var vm = require('vm');
 var util = require('util');
+var _ = require('underscore');
 
 var handler = {
 
@@ -72,14 +73,178 @@ function getParamNames(func) {
         return params[1].split(',');
     else
         return [];
- }
+}
 
-exports.getClasses = function(cmd,classContext,cutName,mutName) {
+function ParamInfo(name) {
+    this.called = [];
+    this.inferredType = "Unknown";
+}
 
-    var classes = {};
+ParamInfo.prototype.update = function() {
+    // only start updating when we have enough
+    // data to make a wise inference
+    if (this.called.length >= 0) {
+        var called = this.called;
+        var primitive = {
+            num : 0,
+            string : 0,
+            bool : 0
+        }
+        var memberFunctions = [];
+        _.map(called,function(value,key) {
+            if(_.include(operators,value)) {
+                operatorToPrimitive(value,primitive);
+            }
+            else {
+                memberFunctions.push(value);
+            }
+        })
 
-    if (!classContext[cutName]){
-        console.error("Error: specified class <" + cutName + "> was not found");
+        // if we have but one member function call
+        // this rules out the possibility that the type
+        // is a primitive
+        if (memberFunctions.length) {
+            console.log("MEMBERS");
+            var currentMatches = 0;
+            var name = "";
+            var map = _.map(classes,function(value,key){
+                return {
+                    name:key,
+                    params:value.ctr.params,
+                    count: function(){
+                        var names = _.pluck(value.methods,"name");
+                        return _.intersection(names,called).length;
+                    }()
+                }
+            });
+            var max = _.max(map,function(elem){
+                return elem.count;
+            });        
+            if (max.count > 0) {
+                this.currentType = max.name;
+            }
+        }
+        else {
+            console.log("PRIMITIVE");
+//            console.log(_.max(primitive,function(value) { return value; }));
+            this.currentType = "num";
+        }
+    }
+}
+
+function operatorToPrimitive(operator,primitive) {
+    switch(operator) {
+        case "++" :
+        case "--" : primitive.num += 100;
+                    break;
+        case "+" :  primitive.num += 1;
+                    primitive.string += 1;
+                    break;
+        case "-" :
+        case "*" :
+        case "/" :
+        case "%" :
+        case ">>>" :
+        case ">>" :
+        case "<<" :
+        case "~" :
+        case "^" :
+        case "|" :
+        case "&" :  primitive.num += 1;
+                    break;
+        case "||" :            
+        case "&&" :
+        case "==" :
+        case "!=" :
+        case "!" :  primitive.num += 1;
+                    primitive.string += 1;
+                    primitive.bool += 1;
+                    break;
+        case ">=" :
+        case ">" :
+        case "<=" :
+        case "<":   primitive.num += 2;
+                    primitive.string += 1;
+                    break;
+    }
+}
+
+function MethodInfo(name, def, params, isMUT) {
+    this.name = name;
+    this.def = def;
+    this.params = params;
+    this.isMUT = isMUT || false;
+}
+
+MethodInfo.prototype.update = function() {
+    for (var p=0; p < this.params.length; p++) {
+        this.params[p].update();
+    };
+}
+
+function ClassInfo(name, ctr, methods) {
+    this.name = name;
+    this.ctr = ctr;
+    this.methods = methods;
+}
+
+ClassInfo.prototype.update = function() {
+    this.ctr.update();
+    for (var m=0; m < this.methods.length; m++) {
+        this.methods[m].update();
+    };
+}
+
+function ProgramInfo(CUTname, MUTname) {
+    this.classes = [];
+    this.CUTname = CUTname;
+    this.MUTname = MUTname;
+}
+
+ProgramInfo.prototype.getCUTname = function() {
+    return this.CUTname;
+}
+
+ProgramInfo.prototype.getMUTdefinition = function(className) {
+    return _.filter(this.classes[this.CUTname].methods,
+                    function(x){ return x.isMUT})[0].def;
+}
+
+ProgramInfo.prototype.addClassInfo = function(className,classInfo) {
+    this.classes[className] = classInfo ;
+}
+
+ProgramInfo.prototype.getClassInfo = function(className) {
+    return this.classes[className];
+}
+
+ProgramInfo.prototype.update = function() {
+    for(var c in this.classes) {
+        this.classes[c].update();
+    };
+}
+
+ProgramInfo.prototype.getConstructorParams = function(className) {
+    switch(className) {
+        case "num":
+        case "string":
+        case "bool":
+        case "unknown": return [];
+        default: return _.pluck(
+            this.classes[className].ctr.params,'inferredType');
+    }
+}
+
+ProgramInfo.prototype.getMethods = function(className) {
+    return this.classes[className].methods;
+}
+
+exports.getProgramInfo = function(cmd, classContext, CUTname, MUTname) {
+
+    var pgmInfo = new ProgramInfo(CUTname, MUTname);
+
+    if (!classContext[CUTname]){
+        console.error("Error: specified class <" + CUTname + "> was not found");
         console.error("(see README for information on recognised class definitions)");
         console.info(cmd.helpInformation());
         process.exit(1);
@@ -92,10 +257,9 @@ exports.getClasses = function(cmd,classContext,cutName,mutName) {
             
             var ctrParams = [];
             for (var i = 0; i<constructor.length; i++) {
-                ctrParams.push({name: getParamNames(constructor)[i],
-                                called: []});
+                ctrParams.push(new ParamInfo(getParamNames(constructor)[i]));
             }
-            var ctr = {def: constructor, params: ctrParams};
+            var ctr = new MethodInfo(className, constructor, ctrParams);
 
             var construct = (function() {
                 function F(args) {
@@ -133,24 +297,23 @@ exports.getClasses = function(cmd,classContext,cutName,mutName) {
                 if(typeof member == "function") {
                     var methodParams = [];
                     for (var i = 0; i<member.length; i++) {
-                        methodParams.push({name: getParamNames(member)[i],
-                                           called: []});
+                        methodParams.push(new ParamInfo(getParamNames(member)[i]));
                     }
-                    var isMut = className === cutName && m === mutName;
-                    if (isMut) {
+                    var isMUT = className === CUTname && m === MUTname;
+                    if (isMUT) {
                         mutDefined = true;
                     };
-                    methods.push({name: m, def: c[m], params: methodParams, mut: isMut});
+                    methods.push(new MethodInfo(m, c[m], methodParams, isMUT));
                 }
             }
-            classes[className] = {name : className, ctr : ctr, methods : methods};
+            pgmInfo.addClassInfo(className,new ClassInfo(className, ctr, methods));
         }
     }
     if(!mutDefined) {
-        console.error("Error: specified method <" + mutName + "> was not found in class <"+ cutName +">");
+        console.error("Error: specified method <" + MUTname + "> was not found in class <"+ CUTname +">");
         console.error("(see README for information on recognised class definitions)");
         console.info(cmd.helpInformation());
         process.exit(1);
     }
-    return classes;
+    return pgmInfo;
 }

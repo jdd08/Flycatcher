@@ -17,7 +17,7 @@ var vm = require('vm');
 var _ = require('underscore');
 var EventEmitter = require('events').EventEmitter;
 
-var Executor = module.exports.Executor = function(originalSrc,classes,CUTname) 
+var Executor = module.exports.Executor = function(src, pgmInfo) 
 {
     this.test = {};
     this.nodes = [];
@@ -25,24 +25,18 @@ var Executor = module.exports.Executor = function(originalSrc,classes,CUTname)
     this.nodeNum = 0;
     this.currentCov = 0;
 
-    // only used when the mut is not specified
-    this.mutIndex = 0;
-
     this.names = {
         call: burrito.generateName(6),
         expr: burrito.generateName(6),
         stat: burrito.generateName(6)
     };
 
-    this.original = originalSrc;
-    this.context = this.createContext(classes);
-    this.mut = this.createMUT(classes[CUTname]);
+    this.source = src;
+    this.context = this.createContext(pgmInfo);
+    this.wrappedMUT = this.wrapMUT(pgmInfo);
 
-    this.on('node',
-    function(i) {
-//        console.log("node.id",node.id)
+    this.on('node', function(i) {
         this.coverage[i] = true;
-        //console.log(node.id + ": " + node.source())
     });
 
     this.on('cov',
@@ -55,12 +49,12 @@ var Executor = module.exports.Executor = function(originalSrc,classes,CUTname)
     });
 }
 
-function ExecutorError(CUTname, methodName, paramIndex, classes) {
+function ExecutorError(CUTname, methodName, paramIndex, pgmInfo) {
     Error.captureStackTrace(this, ExecutorError);
     this.CUTname = CUTname;
     this.methodName = methodName;
     this.paramIndex = paramIndex;
-    this.classes = classes;
+    this.pgmInfo = pgmInfo;
     this.isConstructorParam = function() {
         return CUTname === methodName;
     }
@@ -76,23 +70,8 @@ Executor.prototype.setTest = function(test) {
     this.test = test;
 };
 
-Executor.prototype.createMUT = function(classInfo, index) {
-    var nodes = this.nodes;
-    var names = this.names;
-    var n = 0;
-    var mutDef = "";
-    if (index) {
-        mutDef = classInfo.methods[index].def;
-    }
-    else {
-        mutDef = classInfo.methods.filter(function(x) {
-            return x.mut
-        })[0].def;
-    }
-    var def = classInfo.name + ".prototype.MUT = " + mutDef;
-    var i = 0;
-    var b = burrito(def,
-    function(node) {
+Executor.prototype.wrapMUT = function(pgmInfo) {
+    function wrapper(node) {
 
         if (node.name === 'call') {
             i++;
@@ -115,45 +94,32 @@ Executor.prototype.createMUT = function(classInfo, index) {
             node.wrap(names.expr + '(' + i + ')(%s)');
             node.id = i;
         }
-    }, names);        
+    }    
+    
+    var nodes = this.nodes;
+    var names = this.names;
+    var n = 0;
+    
+    var MUTdeclaration = pgmInfo.getCUTname() +
+                         ".prototype.MUT = "  +
+                         pgmInfo.getMUTdefinition();
+    var i = 0;
+    var wrapped = burrito(MUTdeclaration, wrapper, names);
     
     var coverage = this.coverage;
-    _.forEach(b.nodeIndexes,function(num){
+    _.forEach(wrapped.nodeIndexes,function(num){
         coverage[num] = false;
     });
-    return b.mut;
-    }
-        // if the node does not correspond to any of the node types above
-        // (like the very last one) no need to set its id as this node is
-        // effectively ignored (it is not pushed onto the nodes array)
-//        if (i !== nodes.length) {
-//            node.id = i;
-//            console.log(node.name)
-//            console.log(node.source())
-//            console.log(i)
-//        }
-//        if(node.id === 4 || node.id === 5) console.log(node)
-//        if(node.name === 'call') console.log(node)        
+    return wrapped.MUT;
+}
 
-    
-    // initialising coverage tracker
-    // n-- is for ignoring the first node which was for the MUT definition
-/*    this.coverage[0] = true;
-    for (var c = 1; c < n; c++) {
-        this.coverage[c] = false;
-    }
-*/
-//    console.log(nodes)
-//    console.log(this.coverage)
-//    process.exit(0)
-
-function createExecHandler(classes) {
+function createExecHandler(pgmInfo) {
 
     var Handler = function(CUTname, methodName, paramIndex, exec) {
         this.CUTname = CUTname;
         this.methodName = methodName;
         this.paramIndex = paramIndex;
-        this.classes = classes;
+        this.pgmInfo = pgmInfo;
         this.exec = exec;
         this.isConstructorParam = function() {
             return CUTname === methodName;
@@ -190,16 +156,16 @@ function createExecHandler(classes) {
             // TODO index this.methodName directly vs filter
             if (name === "valueOf") {
                 try {
-                    throw new ExecutorError(this.CUTname,this.methodName,this.paramIndex,this.classes);
+                    throw new ExecutorError(this.CUTname,this.methodName,this.paramIndex,this.pgmInfo);
                 }
                 catch(err) {
                     var lineNum = stackTrace.parse(err)[1].lineNumber;
                     // shifting to correspond to correct array index
-                    var line = this.exec.src.split('\n')[lineNum - 1];
+                    var line = this.exec.vmSource.split('\n')[lineNum - 1];
 
                     var called = err.isConstructorParam() ?
-                        err.classes[err.CUTname].ctr.params[err.paramIndex] :
-                        _.find(err.classes[err.CUTname].methods,function(elem){
+                        err.pgmInfo.getConstructorParams(err.CUTname)[err.paramIndex] :
+                        _.find(err.pgmInfo.getMethods(err.CUTname),function(elem){
                             return elem.name === err.methodName;
                         }).params[err.paramIndex].called;
                     console.log(line);    
@@ -224,8 +190,8 @@ function createExecHandler(classes) {
             else {
                 
                 var paramInfo = this.isConstructorParam() ?
-                    this.classes[this.CUTname].ctr.params[this.paramIndex] :
-                    _.find(this.classes[this.CUTname].methods,function(elem){
+                    this.pgmInfo.getConstructorParams(this.CUTname)[this.paramIndex] :
+                    _.find(this.pgmInfo.getMethods[this.CUTname],function(elem){
                         return elem.name === methodName;
                     }).params[this.paramIndex];
                 paramInfo.push(name);
@@ -267,9 +233,9 @@ function createExecHandler(classes) {
     return Handler;
 }
 
-Executor.prototype.createContext = function(classes) {
+Executor.prototype.createContext = function(pgmInfo) {
     var context = {};
-    var Handler = createExecHandler(classes);
+    var Handler = createExecHandler(pgmInfo);
     function getProperties(o) {
         var own = {};
         var proto = {};
@@ -352,19 +318,19 @@ Executor.prototype.createContext = function(classes) {
 
 Executor.prototype.show = function() {
     this.showOriginal();
-    this.showMut();
+    this.showMUT();
     this.showTest();
 }
 
-Executor.prototype.showMut = function() {
+Executor.prototype.showMUT = function() {
     console.log('-------------- MUT --------------------');
-    console.log(this.mut);
+    console.log(this.wrappedMUT);
     console.log('---------------------------------------');
 }
 
 Executor.prototype.showOriginal = function() {
     console.log('-------------- SOURCE -----------------');
-    console.log(this.original);
+    console.log(this.source);
     console.log('---------------------------------------');
 }
 
@@ -407,8 +373,8 @@ var operators = exports.operators = [ "++",
                                       ];
 
 Executor.prototype.run = function() {
-    this.src = this.original + '\n' + this.mut + '\n' + this.test.toExecutorFormat();
-    if (!this.mut) {
+    this.vmSource = this.source + '\n' + this.wrappedMUT + '\n' + this.test.toExecutorFormat();
+    if (!this.wrappedMUT) {
         console.warn("Warning: Executor.mut is an empty string")
     }
     if (!this.test) {
@@ -417,7 +383,7 @@ Executor.prototype.run = function() {
     var before = this.covered();
     var res = {};
     try {
-        res = vm.runInNewContext(this.src, this.context);
+        res = vm.runInNewContext(this.vmSource, this.context);
     }
     catch(err) {
         console.log(err.stack);
