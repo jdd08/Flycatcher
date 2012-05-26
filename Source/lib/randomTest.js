@@ -65,7 +65,7 @@ function Declaration(type,params,identifier,parentType,parentMethod,index,id,reu
         // the CUT might need a different proxying, however it doesn't 
         // need proxying for catching erroneous method calls (all its 
         // methods are known from the analyser and called specifically)
-        var type = this.type === "Unknown" ? "Object" : this.type;
+        var type = this.type === "unknown" ? "Object" : this.type;
         var ret = "var " + this.identifier + " = proxy"
                          + "(new " +type+ executorParams(paramIdentifiers,
                                                          parentType,
@@ -78,7 +78,7 @@ function Declaration(type,params,identifier,parentType,parentMethod,index,id,reu
         // the CUT might need a different proxying, however it doesn't need proxying
         // for catching erroneous method calls (all its methods are known from the analyser
         // and called specifically)
-        var type = this.type === "Unknown" ? "Object" : this.type;
+        var type = this.type === "unknown" ? "Object" : this.type;
         var r = "var " + this.identifier + " = new " +type;
             r += "(" + toParams(paramIdentifiers) + ");";
         return r;
@@ -121,12 +121,12 @@ function MUTcall(instanceIdentifier,method,params,type) {
 
 
 function isPrimitive(type) {
-    return type === "Number" ||
-           type === "String" ||
-           type === "Boolean";
+    return type === "num" ||
+           type === "string" ||
+           type === "bool";
 }
 
-function isUnknown(type) { return type === "Unknown"; }
+function isUnknown(type) { return type === "unknown"; }
 
 function isUserDefined(type) { return !isUnknown(type) && !isPrimitive(type); }
 
@@ -161,7 +161,7 @@ Test.prototype.push = function(elem) {
     var elemType = elem.type;
     var elemId = elem.id;
     var reusingParent = elem.reuse;
-    if(elemType === "Unknown") {
+    if(elemType === "unknown") {
         this.unknowns = true;
     }
     var params = elem.params;
@@ -238,55 +238,47 @@ Test.prototype.show = function() {
 //    console.log(this.stack)
 }
 
+// maximum number of CUT method calls before calling the MUT
+var MAX_CALLS_BEFORE_MUT = 5;
+
 exports.generate = function(pgmInfo) {
+    var CUTname = pgmInfo.getCUTname();
+    var MUTname = pgmInfo.getMUTname();
 
-    console.log(util.inspect(pgmInfo, false, null));
+//    console.log(util.inspect(pgmInfo, false, null));
     pgmInfo.update();
-    
-    var CUTinfo = classes[CUTname];
-    MAX_SEQUENCE_LENGTH = 5;
-    
-    var inferredParams = randomData.inferTypes(classes,CUTinfo.ctr.params);
-    var t = new Test();
-    console.log();
-    console.log("inferredParam",inferredParams);
-    console.log();
-    var instance = new CUTdeclaration(CUTname,inferredParams,_.uniqueId());
-    t.push(instance);
-    var callSequence = [];
-    randomSequenceLength = Math.ceil(Math.random()*MAX_SEQUENCE_LENGTH);
-    if (CUTinfo.methods.length > 1) {
-        for (var j = 0; j<randomSequenceLength;j++) {
-            var randomMethod = Math.floor(Math.random()*CUTinfo.methods.length);
 
-            // TODO: if index is 0 initially FAILS IF CLASS UNDER TEST HAS NO METHODS
-            while ((index && randomMethod === index) || CUTinfo.methods[randomMethod].mut) {
-                randomMethod = Math.floor(Math.random()*CUTinfo.methods.length);
-            }
-            var method = CUTinfo.methods[randomMethod];
-            var call = new Call(instance.getIdentifier(),
-                                method.name,
-                                randomData.inferTypes(classes,method.params),
-                                CUTname);
-            t.push(call);
+    var test = new Test();
+    var instance = new CUTdeclaration(CUTname,
+                                      pgmInfo.getRecursiveConstructorParams(CUTname),
+                                      _.uniqueId());
+    test.push(instance);
+    var callSequence = [];
+    randomSequenceLength = Math.ceil(Math.random()*MAX_CALLS_BEFORE_MUT);
+    
+    // the MUT must only be called once, at the end, so we filter it out
+    var CUTmethods = _.filter(pgmInfo.getMethods(CUTname),function(m){
+        return !m.isMUT;
+    });
+    var numCUTmethods = CUTmethods.length;
+    // we check that there are other CUT methods than the MUT
+    if (numCUTmethods) {
+        for (var j = 0; j<randomSequenceLength;j++) {
+            var randomMethod = Math.floor(Math.random()*numCUTmethods);
+            var CUTmethod = CUTmethods[randomMethod];
+//            console.log(pgmInfo.getRecursiveMethodParams(CUTname,randomMethod));
+            var CUTmethodCall = new Call(instance.getIdentifier(),
+                                         CUTmethod.name,
+                                         pgmInfo.getRecursiveMethodParams(CUTname,randomMethod),
+                                         CUTname);
+            test.push(CUTmethodCall);
         }
     }
-
-    var mutParams = {};
-    var MUTname = "";
-    if (index) {
-        MUTname = CUTinfo.methods[index].name;
-        mutParams = CUTinfo.methods[index].params;
-    }
-    else {
-        var mut_ = CUTinfo.methods.filter(function(x){return x.mut})[0];
-        MUTname = mut_.name;
-        mutParams = mut_.params;
-    }
-    var mut = new MUTcall(instance.getIdentifier(),
+    
+    var MUT = new MUTcall(instance.getIdentifier(),
                           MUTname,
-                          randomData.inferTypes(classes,mutParams),
+                          pgmInfo.getRecursiveMUTparams(),
                           CUTname);
-    t.push(mut);
-    return t;
+    test.push(MUT);
+    return test;
 }

@@ -2,112 +2,28 @@ var _ = require('underscore');
 var util = require('util');
 var operators = require('./executor.js').operators;
 
-exports.inferTypes = function(classes,params) {
-    
-    function operatorToPrimitive(operator,primitive) {
-        switch(operator) {
-            case "++" :
-            case "--" : primitive.num += 100;
-                        break;
-
-            case "+" :  primitive.num += 1;
-                        primitive.string += 1;
-                        break;
-
-            case "-" :
-            case "*" :
-            case "/" :
-            case "%" :
-            case ">>>" :
-            case ">>" :
-            case "<<" :
-            case "~" :
-            case "^" :
-            case "|" :
-            case "&" :  primitive.num += 1;
-                        break;
-
-            case "||" :            
-            case "&&" :
-            case "==" :
-            case "!=" :
-            case "!" :  primitive.num += 1;
-                        primitive.string += 1;
-                        primitive.bool += 1;
-                        break;
-            case ">=" :
-            case ">" :
-            case "<=" :
-            case "<":   primitive.num += 2;
-                        primitive.string += 1;
-                        break;
-        }
+exports.getRandomPrimitive = function() {
+    var r = Math.random();
+    if (r > 0.5) {
+        return getNumber();
     }
-    
-    function inferType(methods) {
-
-        var primitive = {
-            num : 0,
-            string : 0,
-            bool : 0
-        }
-        var memberFunctions = [];
-        _.map(methods,function(value,key) {
-            if(_.include(operators,value)) {
-                operatorToPrimitive(value,primitive);
-            }
-            else {
-                memberFunctions.push(value);
-            }
-        })
-        
-        // if we have but one member function call
-        // this rules out the possibility that the type
-        // is a primitive
-        if (memberFunctions.length) {
-            var currentMatches = 0;
-            var name = "";
-            var map = _.map(classes,function(value,key){
-                return {
-                    name:key,
-                    params:value.ctr.params,
-                    count: function(){
-                        var names = _.pluck(value.methods,"name");
-                        return _.intersection(names,methods).length;
-                    }()
-                }
-            });
-            var max = _.max(map,function(elem){
-                return elem.count;
-            });        
-            var type = max.count > 0 ? max : {name: "Unknown", params : []};
-            var pars = type.params;
-            var paramTypes = [];
-            for (var p = 0; p < pars.length; ++p) {
-                paramTypes.push(inferType(pars[p]));
-            }
-            return {name : type.name, params : paramTypes};            
-        }
-        else {
-            // TODO: return the primitive type with the largest score
-        }
+    else if (r > 0.25) {
+        return getString();        
     }
-    
-    var randomParams = [];
-    for(var i = 0; i<params.length; i++) {
-        console.log(params);
-        randomParams[i] = inferType(params[i].called);
+    else {
+        return getBool();
     }
-    return randomParams;
 }
 
 exports.getPrimitive = function(type) {
-//    if (type === "Number") {
-    if (Math.random() > 0.5) {
+    if (type === "num") {
         return getNumber();
     }
-    else {
+    else if (type === "string") {
         return getString();
+    }
+    else if (type === "bool") {
+        return getBool();
     }
 }
 
@@ -117,7 +33,7 @@ var getNumber = function() {
     return Math.floor(Math.random()*MAX_INT);   
 }
 
-exports.getBool = function() {
+var getBool = function() {
     return Math.floor(Math.random()*2) === 1;
 }
 

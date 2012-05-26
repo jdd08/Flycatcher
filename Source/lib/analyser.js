@@ -3,6 +3,33 @@ var vm = require('vm');
 var util = require('util');
 var _ = require('underscore');
 
+// important for the operators which are superstrings of others
+// to come earlier in the array
+var operators = exports.operators = [ "++",
+                                      "+",
+                                      "--",
+                                      "-",
+                                      "*",
+                                      "/",
+                                      "%",
+                                      ">>>",
+                                      ">>",
+                                      "<<",
+                                      "~",
+                                      "^",
+                                      "||",
+                                      "|",
+                                      "&&",
+                                      "&",
+                                      "==",
+                                      "!=",
+                                      "!",
+                                      ">=",
+                                      ">",
+                                      "<=",
+                                      "<"                  
+                                      ];
+
 var handler = {
 
     delete: function(name) {
@@ -77,13 +104,14 @@ function getParamNames(func) {
 
 function ParamInfo(name) {
     this.called = [];
-    this.inferredType = "Unknown";
+    this.inferredType = "unknown";
+    this.SUFFICIENT_UPDATES = 15;
 }
 
 ParamInfo.prototype.update = function() {
     // only start updating when we have enough
     // data to make a wise inference
-    if (this.called.length >= 0) {
+    if (this.called.length >= this.SUFFICIENT_UPDATES) {
         var called = this.called;
         var primitive = {
             num : 0,
@@ -121,13 +149,13 @@ ParamInfo.prototype.update = function() {
                 return elem.count;
             });        
             if (max.count > 0) {
-                this.currentType = max.name;
+                this.inferredType = max.name;
             }
         }
         else {
-            console.log("PRIMITIVE");
+            // TODO: return primitive type with biggest score
 //            console.log(_.max(primitive,function(value) { return value; }));
-            this.currentType = "num";
+            this.inferredType = "num";
         }
     }
 }
@@ -205,13 +233,22 @@ ProgramInfo.prototype.getCUTname = function() {
     return this.CUTname;
 }
 
+ProgramInfo.prototype.getMUTname = function() {
+    return this.MUTname;
+}
+
+ProgramInfo.prototype.getMUT = function() {
+    return _.filter(this.classes[this.CUTname].methods,
+                    function(x){ return x.isMUT})[0];    
+}
+
 ProgramInfo.prototype.getMUTdefinition = function(className) {
     return _.filter(this.classes[this.CUTname].methods,
                     function(x){ return x.isMUT})[0].def;
 }
 
 ProgramInfo.prototype.addClassInfo = function(className,classInfo) {
-    this.classes[className] = classInfo ;
+    this.classes[className] = classInfo;
 }
 
 ProgramInfo.prototype.getClassInfo = function(className) {
@@ -224,14 +261,57 @@ ProgramInfo.prototype.update = function() {
     };
 }
 
+ProgramInfo.prototype.getRecursiveMUTparams = function() {
+    var methodParams = this.getMUT().params;
+    var recursiveParams = [];
+    for (var p=0; p < methodParams.length; p++) {
+        var inferredType = methodParams[p].inferredType;
+        recursiveParams.push({name: inferredType,
+                              params: this.getRecursiveConstructorParams(inferredType)})
+    };
+    return recursiveParams;
+}
+
+ProgramInfo.prototype.getRecursiveMethodParams = function(className,methodIndex) {
+    var methodParams = _.filter(this.classes[className].methods,function(x){
+        return !x.isMUT;
+    })[methodIndex].params;
+    var recursiveParams = [];
+    for (var p=0; p < methodParams.length; p++) {
+        var inferredType = methodParams[p].inferredType;
+        recursiveParams.push({name: inferredType,
+                              params: this.getRecursiveConstructorParams(inferredType)})
+    };
+    return recursiveParams;
+}
+
+ProgramInfo.prototype.getRecursiveConstructorParams = function(className) {
+    if (className === "string" ||
+        className === "num"    ||
+        className === "bool"   ||
+        className === "unknown")
+    {
+        return [];
+    }
+    else {
+        var constructorParams = this.classes[className].ctr.params;
+        var recursiveParams = [];
+        for (var p=0; p < constructorParams.length; p++) {
+            var inferredType = constructorParams[p].inferredType;
+            recursiveParams.push({name: inferredType,
+                                  params: this.getRecursiveConstructorParams(inferredType)})
+        };
+        return recursiveParams;   
+    }
+}
+
 ProgramInfo.prototype.getConstructorParams = function(className) {
     switch(className) {
         case "num":
         case "string":
         case "bool":
         case "unknown": return [];
-        default: return _.pluck(
-            this.classes[className].ctr.params,'inferredType');
+        default: return this.classes[className].ctr.params;
     }
 }
 

@@ -64,10 +64,10 @@ if (MUTname) {
     process.stdout.write(CUTname + "> :   ");
     var goodTests = [];
     var count = 0;
-    while (exec.getCoverage() < maxCoverage && ++count<3) {
-        var test = randomTest.generate(pgmInfo, CUTname);
+    while (exec.getCoverage() < maxCoverage) {
+        var test = randomTest.generate(pgmInfo);
         exec.setTest(test);
-        exec.showTest(test);
+        //exec.showTest(test);
         var testRun = exec.run();
         if (testRun.newCoverage && !test.hasUnknowns()) {
             goodTests.push(test.toUnitTestFormat(testRun.result,++count));

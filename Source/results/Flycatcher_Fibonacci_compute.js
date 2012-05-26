@@ -28,17 +28,18 @@ Fibonacci.prototype.compute = function(n) {
     }
 }
 
+
 try {
 
 // Test #1
-var fibonacci2 = new Fibonacci();
-assert.ok(fibonacci2.compute("koc") === 0,
-         'fibonacci2.compute("koc") === 0');
+var fibonacci16 = new Fibonacci();
+assert.ok(fibonacci16.compute(21) === 10946,
+         'fibonacci16.compute(21) === 10946');
 
 // Test #2
-var fibonacci5 = new Fibonacci();
-assert.ok(fibonacci5.compute(17) === 1597,
-         'fibonacci5.compute(17) === 1597');
+var fibonacci30 = new Fibonacci();
+assert.ok(fibonacci30.compute(1) === 1,
+         'fibonacci30.compute(1) === 1');
 
 console.log("Unit test suite completed with success!")
 }

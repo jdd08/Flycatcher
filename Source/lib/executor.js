@@ -16,6 +16,9 @@ var burrito = require('burrito');
 var vm = require('vm');
 var _ = require('underscore');
 var EventEmitter = require('events').EventEmitter;
+var randomData = require('./randomData.js');
+
+var operators = require('./analyser.js').operators;
 
 var Executor = module.exports.Executor = function(src, pgmInfo) 
 {
@@ -49,15 +52,9 @@ var Executor = module.exports.Executor = function(src, pgmInfo)
     });
 }
 
-function ExecutorError(CUTname, methodName, paramIndex, pgmInfo) {
+function ExecutorError(proxyContext) {
     Error.captureStackTrace(this, ExecutorError);
-    this.CUTname = CUTname;
-    this.methodName = methodName;
-    this.paramIndex = paramIndex;
-    this.pgmInfo = pgmInfo;
-    this.isConstructorParam = function() {
-        return CUTname === methodName;
-    }
+    this.context = proxyContext;
 }
 
 Executor.prototype = new EventEmitter;
@@ -113,7 +110,23 @@ Executor.prototype.wrapMUT = function(pgmInfo) {
     return wrapped.MUT;
 }
 
+var TrapThresholdExceeded = function (){};
+
 function createExecHandler(pgmInfo) {
+
+    // Represents the number of traps after which
+    // we throw away a proxy, because when operations
+    // are trapped, the resulting behaviour is non-determistic,
+    // as valueOf traps return random primtive values
+    // which can lead to unintended behaviour such as looping
+    //  forever (in recursive or traditional loop scenarios 
+    // where the termination condition is not met in either
+    // case due to the non-deterministic behaviour).
+    // Moreover, in the case of non-unknown type proxies,
+    // the very fact that they are traps means that we have
+    // not yet inferred the correct type and it is in our interest
+    // to update sooner than later to achieve coverage
+    var TRAP_THRESHOLD = 10;
 
     var Handler = function(CUTname, methodName, paramIndex, exec) {
         this.CUTname = CUTname;
@@ -124,6 +137,7 @@ function createExecHandler(pgmInfo) {
         this.isConstructorParam = function() {
             return CUTname === methodName;
         }
+        this.trapCount = 0;
     }
 
     Handler.prototype = {
@@ -140,6 +154,11 @@ function createExecHandler(pgmInfo) {
 
         // proxy[name] -> any
         get: function(receiver, name) {
+            this.trapCount++;
+            console.log(this.trapCount);
+            if (this.trapCount > TRAP_THRESHOLD) {
+                throw new TrapThresholdExceeded();
+            }
             var methodName = this.methodName;
 
 /*            console.log(_.find(this.classes[this.CUTname].methods,function(elem){
@@ -156,28 +175,28 @@ function createExecHandler(pgmInfo) {
             // TODO index this.methodName directly vs filter
             if (name === "valueOf") {
                 try {
-                    throw new ExecutorError(this.CUTname,this.methodName,this.paramIndex,this.pgmInfo);
+                    throw new ExecutorError(this);
                 }
                 catch(err) {
                     var lineNum = stackTrace.parse(err)[1].lineNumber;
                     // shifting to correspond to correct array index
-                    var line = this.exec.vmSource.split('\n')[lineNum - 1];
+                    var line = err.context.exec.vmSource.split('\n')[lineNum - 1];
+                    var called = err.context.isConstructorParam() ?
+                        err.context.pgmInfo.getConstructorParams(err.context.CUTname)[err.context.paramIndex].called :
+                        _.find(err.context.pgmInfo.getMethods(err.context.CUTname),function(elem){
+                            return elem.name === err.context.methodName;
+                        }).params[err.context.paramIndex].called;
 
-                    var called = err.isConstructorParam() ?
-                        err.pgmInfo.getConstructorParams(err.CUTname)[err.paramIndex] :
-                        _.find(err.pgmInfo.getMethods(err.CUTname),function(elem){
-                            return elem.name === err.methodName;
-                        }).params[err.paramIndex].called;
-                    console.log(line);    
                     for (var op=0; op < operators.length; op++) {
                         if (line.indexOf(operators[op]) !== -1) {
                             called.push(operators[op]);
                             break;
                         }
                     };
+                    console.log(called);
                 }
                 return function() {
-                    return 123;
+                    return randomData.getRandomPrimitive();
                 }
             }
 /*            else if (name === "toString") {
@@ -318,11 +337,11 @@ Executor.prototype.createContext = function(pgmInfo) {
 
 Executor.prototype.show = function() {
     this.showOriginal();
-    this.showMUT();
+    this.showMut();
     this.showTest();
 }
 
-Executor.prototype.showMUT = function() {
+Executor.prototype.showMut = function() {
     console.log('-------------- MUT --------------------');
     console.log(this.wrappedMUT);
     console.log('---------------------------------------');
@@ -345,33 +364,6 @@ Executor.prototype.covered = function() {
     return _.filter(_.values(this.coverage),_.identity).length;
 }
 
-// important for the operators which are superstrings of others
-// to come earlier in the array
-var operators = exports.operators = [ "++",
-                                      "+",
-                                      "--",
-                                      "-",
-                                      "*",
-                                      "/",
-                                      "%",
-                                      ">>>",
-                                      ">>",
-                                      "<<",
-                                      "~",
-                                      "^",
-                                      "||",
-                                      "|",
-                                      "&&",
-                                      "&",
-                                      "==",
-                                      "!=",
-                                      "!",
-                                      ">=",
-                                      ">",
-                                      "<=",
-                                      "<"                  
-                                      ];
-
 Executor.prototype.run = function() {
     this.vmSource = this.source + '\n' + this.wrappedMUT + '\n' + this.test.toExecutorFormat();
     if (!this.wrappedMUT) {
@@ -386,7 +378,9 @@ Executor.prototype.run = function() {
         res = vm.runInNewContext(this.vmSource, this.context);
     }
     catch(err) {
-        console.log(err.stack);
+        err instanceof TrapThresholdExceeded ?
+        console.info("Trap threshold exceeded. Updating program info and generating new test.") :
+        console.warn("ERROR: vm error in executor.js",err.stack);
     }
 
     var after = this.covered();
