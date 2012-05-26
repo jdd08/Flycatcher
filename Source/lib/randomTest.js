@@ -266,7 +266,6 @@ exports.generate = function(pgmInfo) {
         for (var j = 0; j<randomSequenceLength;j++) {
             var randomMethod = Math.floor(Math.random()*numCUTmethods);
             var CUTmethod = CUTmethods[randomMethod];
-//            console.log(pgmInfo.getRecursiveMethodParams(CUTname,randomMethod));
             var CUTmethodCall = new Call(instance.getIdentifier(),
                                          CUTmethod.name,
                                          pgmInfo.getRecursiveMethodParams(CUTname,randomMethod),

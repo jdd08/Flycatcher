@@ -14,7 +14,7 @@ function Circle(radius)
 
     this.radius = radius;    
     this.getPerimeter = getPerimeter;
-    this.getDiameter = function(two) { return radius * two; };
+    this.getDiameter = function(two) { return this.radius * two; };
 }
 
 Circle.prototype.getArea = function(pi,twosquared){ return this.radius * pi * twosquared };

@@ -155,7 +155,7 @@ function createExecHandler(pgmInfo) {
         // proxy[name] -> any
         get: function(receiver, name) {
             this.trapCount++;
-            console.log(this.trapCount);
+            //console.log(this.trapCount);
             if (this.trapCount > TRAP_THRESHOLD) {
                 throw new TrapThresholdExceeded();
             }
@@ -178,7 +178,14 @@ function createExecHandler(pgmInfo) {
                     throw new ExecutorError(this);
                 }
                 catch(err) {
-                    var lineNum = stackTrace.parse(err)[1].lineNumber;
+                    var lineNum = _.find(stackTrace.parse(err), function(value){
+                        // we want the line number to correspond the line in
+                        // the vm script, not the one in the Flycatcher source,
+                        // nor within any native code: the first entry with
+                        // the fileName set to evalmachine.<anonymous> will
+                        // return that line
+                        return value.fileName === "evalmachine.<anonymous>";
+                    }).lineNumber;
                     // shifting to correspond to correct array index
                     var line = err.context.exec.vmSource.split('\n')[lineNum - 1];
                     var called = err.context.isConstructorParam() ?
@@ -193,7 +200,7 @@ function createExecHandler(pgmInfo) {
                             break;
                         }
                     };
-                    console.log(called);
+                    //console.log(called);
                 }
                 return function() {
                     return randomData.getRandomPrimitive();

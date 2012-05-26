@@ -80,41 +80,47 @@ Triangle.prototype.getType = function() {
 try {
 
 // Test #1
-var triangle94 = new Triangle(0,19,27);
-triangle94.setC(2);
-assert.ok(triangle94.getType() === "PLAIN",
-         'triangle94.getType() === "PLAIN"');
+var triangle75 = new Triangle(25,10,5);
+triangle75.setA(25);
+triangle75.setA(5);
+assert.ok(triangle75.getType() === "PLAIN",
+         'triangle75.getType() === "PLAIN"');
 
 // Test #2
-var triangle98 = new Triangle(23,14,12);
-triangle98.setC(23);
-triangle98.setC(23);
-assert.ok(triangle98.getType() === "PLAIN",
-         'triangle98.getType() === "PLAIN"');
+var triangle76 = new Triangle(19,7,19);
+triangle76.setB(19);
+triangle76.setB(14);
+assert.ok(triangle76.getType() === "PLAIN",
+         'triangle76.getType() === "PLAIN"');
 
 // Test #3
-var triangle103 = new Triangle(17,17,5);
-triangle103.setB(3);
-assert.ok(triangle103.getType() === "INVALID",
-         'triangle103.getType() === "INVALID"');
+var triangle77 = new Triangle(31,16,31);
+triangle77.setA(20);
+triangle77.setA(8);
+assert.ok(triangle77.getType() === "PLAIN",
+         'triangle77.getType() === "PLAIN"');
 
 // Test #4
-var triangle108 = new Triangle(9,9,30);
-triangle108.setB(24);
-triangle108.setA(24);
-triangle108.setB(9);
-triangle108.setB(24);
-triangle108.setC(19);
-assert.ok(triangle108.getType() === "ISOCELES",
-         'triangle108.getType() === "ISOCELES"');
+var triangle78 = new Triangle(7,15,16);
+triangle78.setC(15);
+triangle78.setB(7);
+triangle78.setC(7);
+triangle78.setC(15);
+assert.ok(triangle78.getType() === "ISOCELES",
+         'triangle78.getType() === "ISOCELES"');
 
 // Test #5
-var triangle285 = new Triangle(5,16,5);
-triangle285.setC(24);
-triangle285.setB(24);
-triangle285.setA(24);
-assert.ok(triangle285.getType() === "EQUILATERAL",
-         'triangle285.getType() === "EQUILATERAL"');
+var triangle109 = new Triangle(29,2,19);
+triangle109.setC(15);
+assert.ok(triangle109.getType() === "INVALID",
+         'triangle109.getType() === "INVALID"');
+
+// Test #6
+var triangle183 = new Triangle(17,28,26);
+triangle183.setC(28);
+triangle183.setA(28);
+assert.ok(triangle183.getType() === "EQUILATERAL",
+         'triangle183.getType() === "EQUILATERAL"');
 
 console.log("Unit test suite completed with success!")
 }

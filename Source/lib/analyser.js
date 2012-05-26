@@ -374,7 +374,7 @@ exports.getProgramInfo = function(cmd, classContext, CUTname, MUTname) {
             var methods = [];
             for(var m in c) {
                 var member = c[m];
-                if(typeof member == "function") {
+                if(typeof member === "function") {
                     var methodParams = [];
                     for (var i = 0; i<member.length; i++) {
                         methodParams.push(new ParamInfo(getParamNames(member)[i]));
