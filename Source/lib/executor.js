@@ -138,10 +138,25 @@ function createExecHandler(pgmInfo) {
             return CUTname === methodName;
         }
         this.trapCount = 0;
+        this.registerMemberAccess = function(name) {
+            var handler = this;
+            var paramInfo = this.isConstructorParam() ?
+                this.pgmInfo.getConstructorParams(this.CUTname)[this.paramIndex].membersAccessed :
+                _.find(this.pgmInfo.getMethods(this.CUTname),function(elem){
+                    return elem.name === handler.methodName;
+                }).params[this.paramIndex].membersAccessed;
+            paramInfo.push(name);
+        }
     }
 
     Handler.prototype = {
-        
+
+        getPropertyDescriptor: function(name) {
+            this.registerMemberAccess(name);
+            //console.log("INSIDE GET PROP DESC CALLS");
+            return undefined;
+        },
+
         // delete proxy[name] -> boolean
         delete: function(name) {
             return delete this.target[name];
@@ -154,6 +169,7 @@ function createExecHandler(pgmInfo) {
 
         // proxy[name] -> any
         get: function(receiver, name) {
+            //console.log("INSIDE GET");
             this.trapCount++;
             //console.log(this.trapCount);
             if (this.trapCount > TRAP_THRESHOLD) {
@@ -174,6 +190,7 @@ function createExecHandler(pgmInfo) {
 */
             // TODO index this.methodName directly vs filter
             if (name === "valueOf") {
+                //console.log("INSIDE VALUEOF");
                 try {
                     throw new ExecutorError(this);
                 }
@@ -188,19 +205,18 @@ function createExecHandler(pgmInfo) {
                     }).lineNumber;
                     // shifting to correspond to correct array index
                     var line = err.context.exec.vmSource.split('\n')[lineNum - 1];
-                    var called = err.context.isConstructorParam() ?
-                        err.context.pgmInfo.getConstructorParams(err.context.CUTname)[err.context.paramIndex].called :
+                    var operatorsCalled = err.context.isConstructorParam() ?
+                        err.context.pgmInfo.getConstructorParams(err.context.CUTname)[err.context.paramIndex].operatorsCalled :
                         _.find(err.context.pgmInfo.getMethods(err.context.CUTname),function(elem){
                             return elem.name === err.context.methodName;
-                        }).params[err.context.paramIndex].called;
+                        }).params[err.context.paramIndex].operatorsCalled;
 
                     for (var op=0; op < operators.length; op++) {
                         if (line.indexOf(operators[op]) !== -1) {
-                            called.push(operators[op]);
+                            operatorsCalled.push(operators[op]);
                             break;
                         }
                     };
-                    //console.log(called);
                 }
                 return function() {
                     return randomData.getRandomPrimitive();
@@ -214,13 +230,8 @@ function createExecHandler(pgmInfo) {
             }
 */
             else {
-                
-                var paramInfo = this.isConstructorParam() ?
-                    this.pgmInfo.getConstructorParams(this.CUTname)[this.paramIndex] :
-                    _.find(this.pgmInfo.getMethods[this.CUTname],function(elem){
-                        return elem.name === methodName;
-                    }).params[this.paramIndex];
-                paramInfo.push(name);
+                //console.log("INSIDE MEMBER CALLS");
+                this.registerMemberAccess(name);
                 
                 var self = this;
                 return Proxy.createFunction(self,
@@ -232,7 +243,8 @@ function createExecHandler(pgmInfo) {
 
         // proxy[name] = value
         set: function(receiver, name, value) {
-//            console.log(name)
+            //console.log("INSIDE SET");
+            //console.log(name)
             if (canPut(this.target, name)) {
                 // canPut as defined in ES5 8.12.4 [[CanPut]]
                 this.target[name] = value;

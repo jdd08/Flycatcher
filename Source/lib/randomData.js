@@ -16,15 +16,17 @@ exports.getRandomPrimitive = function() {
 }
 
 exports.getPrimitive = function(type) {
+    var v;
     if (type === "num") {
-        return getNumber();
+        v = getNumber();
     }
     else if (type === "string") {
-        return getString();
+        v = getString();
     }
     else if (type === "bool") {
-        return getBool();
+        v = getBool();
     }
+    return v;
 }
 
 var getNumber = function() {

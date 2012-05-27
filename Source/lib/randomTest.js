@@ -195,7 +195,7 @@ Test.prototype.push = function(elem) {
             var length = keys.length;
             reusingParam = length && Math.random() > 0.75;
             if (reusingParam) {
-                id = keys[Math.floor(Math.random()*length)]-0;
+                id = keys[Math.floor(Math.random()*length)];
             }
             else {
                 // when the parameter is of type Number, the number
@@ -214,7 +214,7 @@ Test.prototype.push = function(elem) {
         
         // TODO: regroup identifier generation
         var paramId = !isPrimitive(paramType) ?
-                         paramType.toLowerCase() + id + "_" + p: id;
+                       (paramType.toLowerCase() + id + "_" + p) : id;
         paramIds.push(paramId);
         
         if (!isPrimitive(paramType)) {
@@ -239,7 +239,7 @@ Test.prototype.show = function() {
 }
 
 // maximum number of CUT method calls before calling the MUT
-var MAX_CALLS_BEFORE_MUT = 5;
+var MAX_CALLS_BEFORE_MUT = 10;
 
 exports.generate = function(pgmInfo) {
     var CUTname = pgmInfo.getCUTname();

@@ -46,7 +46,7 @@ try {
 }
  catch(err) {
     console.error("Syntax error while parsing source <" + filePath + ">");
-    console.error(err.toString());
+    console.log(err.stack);
     process.exit(1);
 }
 
@@ -67,7 +67,7 @@ if (MUTname) {
     while (exec.getCoverage() < maxCoverage) {
         var test = randomTest.generate(pgmInfo);
         exec.setTest(test);
-        //exec.showTest(test);
+        exec.showTest(test);
         var testRun = exec.run();
         if (testRun.newCoverage && !test.hasUnknowns()) {
             goodTests.push(test.toUnitTestFormat(testRun.result,++count));

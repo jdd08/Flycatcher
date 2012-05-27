@@ -103,60 +103,80 @@ function getParamNames(func) {
 }
 
 function ParamInfo(name) {
-    this.called = [];
+    this.name = name;
+    this.operatorsCalled = [];
+    this.membersAccessed = [];
     this.inferredType = "unknown";
-    this.SUFFICIENT_UPDATES = 15;
+    this.updateCount = 0;
 }
 
-ParamInfo.prototype.update = function() {
+ParamInfo.prototype.totalCalls = function() {
+    return this.operatorsCalled.length +
+           this.membersAccessed.length;
+}
+
+ParamInfo.CALL_LOWER_LIMIT = 5;
+ParamInfo.COUNT_LOWER_LIMIT = 50;
+
+ParamInfo.prototype.update = function(pgmInfo) {
+    this.updateCount++;
     // only start updating when we have enough
     // data to make a wise inference
-    if (this.called.length >= this.SUFFICIENT_UPDATES) {
-        var called = this.called;
+    // OR
+    // we have attempted so many updates without success
+    // that we believe this particular parameter is never
+    // accessed/called in the present test circumstances
+    // and it is worth trying to guess a random primitive
+    if (this.totalCalls() >= ParamInfo.CALL_LOWER_LIMIT) {
+        var opsCalled = this.operatorsCalled;
         var primitive = {
             num : 0,
             string : 0,
             bool : 0
         }
-        var memberFunctions = [];
-        _.map(called,function(value,key) {
-            if(_.include(operators,value)) {
-                operatorToPrimitive(value,primitive);
-            }
-            else {
-                memberFunctions.push(value);
-            }
-        })
+        _.map(opsCalled,function(value,key) {
+            operatorToPrimitive(value,primitive);
+        });
 
-        // if we have but one member function call
-        // this rules out the possibility that the type
+        // for the member function calls we are interested
+        // in the names only not the number of calls
+        var membersAccessed = _.uniq(this.membersAccessed);
+        // even having just one member function call
+        // rules out the possibility that the type
         // is a primitive
-        if (memberFunctions.length) {
-            console.log("MEMBERS");
+        if (membersAccessed.length) {
             var currentMatches = 0;
             var name = "";
-            var map = _.map(classes,function(value,key){
+            var map = _.map(pgmInfo.classes,function(value,key){
                 return {
                     name:key,
                     params:value.ctr.params,
                     count: function(){
-                        var names = _.pluck(value.methods,"name");
-                        return _.intersection(names,called).length;
+                        var names = _.union(_.pluck(value.methods,"name"),
+                                            value.fields);
+                        return _.intersection(names,membersAccessed).length;
                     }()
                 }
             });
+
             var max = _.max(map,function(elem){
                 return elem.count;
-            });        
+            });
             if (max.count > 0) {
                 this.inferredType = max.name;
             }
         }
         else {
             // TODO: return primitive type with biggest score
-//            console.log(_.max(primitive,function(value) { return value; }));
+            console.log(_.max(primitive,function(value,key) { console.log(key); console.log(value); return value; }));
             this.inferredType = "num";
         }
+    }
+    else if (this.updateCount >= ParamInfo.COUNT_LOWER_LIMIT &&
+             this.inferredType === "unknown") {
+        var rand = Math.random();
+        this.inferredType = rand > 0.66 ? "num" :
+                            (rand > 0.33 ? "string" : "bool");
     }
 }
 
@@ -204,27 +224,28 @@ function MethodInfo(name, def, params, isMUT) {
     this.isMUT = isMUT || false;
 }
 
-MethodInfo.prototype.update = function() {
+MethodInfo.prototype.update = function(pgmInfo) {
     for (var p=0; p < this.params.length; p++) {
-        this.params[p].update();
+        this.params[p].update(pgmInfo);
     };
 }
 
-function ClassInfo(name, ctr, methods) {
+function ClassInfo(name, ctr, methods, fields) {
     this.name = name;
     this.ctr = ctr;
     this.methods = methods;
+    this.fields = fields;
 }
 
-ClassInfo.prototype.update = function() {
-    this.ctr.update();
+ClassInfo.prototype.update = function(pgmInfo) {
+    this.ctr.update(pgmInfo);
     for (var m=0; m < this.methods.length; m++) {
-        this.methods[m].update();
+        this.methods[m].update(pgmInfo);
     };
 }
 
 function ProgramInfo(CUTname, MUTname) {
-    this.classes = [];
+    this.classes = {};
     this.CUTname = CUTname;
     this.MUTname = MUTname;
 }
@@ -257,7 +278,7 @@ ProgramInfo.prototype.getClassInfo = function(className) {
 
 ProgramInfo.prototype.update = function() {
     for(var c in this.classes) {
-        this.classes[c].update();
+        this.classes[c].update(this);
     };
 }
 
@@ -370,8 +391,9 @@ exports.getProgramInfo = function(cmd, classContext, CUTname, MUTname) {
                 console.error(err.toString());
                 process.exit(1);
             }
-            // retrieving methods
+            // retrieving class members
             var methods = [];
+            var fields = [];
             for(var m in c) {
                 var member = c[m];
                 if(typeof member === "function") {
@@ -385,8 +407,11 @@ exports.getProgramInfo = function(cmd, classContext, CUTname, MUTname) {
                     };
                     methods.push(new MethodInfo(m, c[m], methodParams, isMUT));
                 }
+                else {
+                    fields.push(m);
+                }
             }
-            pgmInfo.addClassInfo(className,new ClassInfo(className, ctr, methods));
+            pgmInfo.addClassInfo(className,new ClassInfo(className, ctr, methods, fields));
         }
     }
     if(!mutDefined) {
