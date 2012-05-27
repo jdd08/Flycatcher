@@ -54,6 +54,8 @@ try {
 var MUTname = cmd.method;
 var maxCoverage = cmd.coverage_max;
 
+
+var fileName = "./results/Flycatcher_" + CUTname + "_" + MUTname + ".js";
 if (MUTname) {
 // if method under test has been specified
     var pgmInfo = analyser.getProgramInfo(cmd, classContext, CUTname, MUTname);
@@ -70,11 +72,12 @@ if (MUTname) {
         exec.showTest(test);
         var testRun = exec.run();
         if (testRun.newCoverage && !test.hasUnknowns()) {
-            goodTests.push(test.toUnitTestFormat(testRun.result,++count));
+            goodTests.push(test.toUnitTestFormat(testRun.result,
+                                                 testRun.error,
+                                                 ++count));
         }
     }
-    var fileName = "./results/Flycatcher_" + CUTname + "_" + MUTname + ".js";
-    process.stdout.write(" (" + (testRun ? testRun.coverage : 0) + "\%)\nGeneration succesful.\n");
+//    process.stdout.write(" (" + (testRun ? testRun.coverage : 0) + "\%)\nGeneration succesful.\n");
     process.stdout.write("Tests can be found in " + fileName + "\n\n");
 
     fs.writeFileSync(fileName,generateContent(src,CUTname,MUTname,goodTests));

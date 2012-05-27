@@ -148,6 +148,28 @@ function createExecHandler(pgmInfo) {
             paramInfo.push(name);
         }
     }
+    
+    var doNothingHandler = {
+        get: function(receiver, name) {
+            // returning a random value for primitive
+            // can be seen as doing nothing, again the
+            // main objective is not to crash so that
+            // more info can be collected during this run
+            if(name === "valueOf") {
+                return randomData.getRandomPrimitive();                
+            }
+            // if a function is called or a member is accessed
+            // on a proxy that does nothing we return another
+            // proxy that does nothing
+            else {
+                var self = this;
+                return Proxy.createFunction(self,
+                    function() {
+                        return Proxy.create(self)
+                });
+            }
+        }
+    }
 
     Handler.prototype = {
 
@@ -203,20 +225,35 @@ function createExecHandler(pgmInfo) {
                         // return that line
                         return value.fileName === "evalmachine.<anonymous>";
                     }).lineNumber;
+                    //console.log(stackTrace.parse(err));
                     // shifting to correspond to correct array index
                     var line = err.context.exec.vmSource.split('\n')[lineNum - 1];
+                    console.log();
+                    console.log(err.context.pgmInfo.getConstructorParams(err.context.CUTname)[err.context.paramIndex]);
+                    console.log(util.inspect(_.find(err.context.pgmInfo.getMethods(err.context.CUTname),function(elem){
+                        return elem.name === err.context.methodName;
+                    }), false, null));
+                    console.log(line);
+                    console.log();
                     var operatorsCalled = err.context.isConstructorParam() ?
                         err.context.pgmInfo.getConstructorParams(err.context.CUTname)[err.context.paramIndex].operatorsCalled :
                         _.find(err.context.pgmInfo.getMethods(err.context.CUTname),function(elem){
                             return elem.name === err.context.methodName;
                         }).params[err.context.paramIndex].operatorsCalled;
-
+                    
                     for (var op=0; op < operators.length; op++) {
                         if (line.indexOf(operators[op]) !== -1) {
                             operatorsCalled.push(operators[op]);
                             break;
                         }
                     };
+                    console.log();
+                    console.log(err.context.pgmInfo.getConstructorParams(err.context.CUTname)[err.context.paramIndex]);
+                    console.log(util.inspect(_.find(err.context.pgmInfo.getMethods(err.context.CUTname),function(elem){
+                        return elem.name === err.context.methodName;
+                    }), false, null));
+                    console.log(line);
+                    console.log();
                 }
                 return function() {
                     return randomData.getRandomPrimitive();
@@ -233,10 +270,18 @@ function createExecHandler(pgmInfo) {
                 //console.log("INSIDE MEMBER CALLS");
                 this.registerMemberAccess(name);
                 
-                var self = this;
-                return Proxy.createFunction(self,
+                // FIXME: this is wrong we want to return a proxy with the capability
+                // of trapping etc. but NOT ONE that pretends/proxies it is the same object
+                // that got trapped in the first place because it isn't: it is the
+                // object resulting from that initial trap (which we don't know the type
+                // of since we trapped its parent)
+                
+                // return a proxy with a handler that does nothing so that we can avoid
+                // crashing and keep collecting data for the other parameters during this
+                // run if possible
+                return Proxy.createFunction(doNothingHandler,
                     function() {
-                        return Proxy.create(self)
+                        return Proxy.create(doNothingHandler)
                 });
             }
         },
@@ -393,6 +438,7 @@ Executor.prototype.run = function() {
     }
     var before = this.covered();
     var res = {};
+    var e = null;
     try {
         res = vm.runInNewContext(this.vmSource, this.context);
     }
@@ -400,14 +446,29 @@ Executor.prototype.run = function() {
         err instanceof TrapThresholdExceeded ?
         console.info("Trap threshold exceeded. Updating program info and generating new test.") :
         console.warn("ERROR: vm error in executor.js",err.stack);
-    }
+        // in cases where there are still unknowns the result won't be displayed because the test
+        // will be dismissed, where there are no longer unknowns, if we get an exception, it means
+        // that the program, with the parameters that we have carefully inferred for it, crashes,
+        // in which cases we should notify of this in displaying the test result (as opposed to
+        // looping forever which is what could happen if we did not accept the result of an execution
+        // that fails even if there are no longer unknowns) - in the case where less than 100% of the
+        // code coverage is desire this approach could work and *not* lead to looping forever (by
+        // waiting for a path that does not contain an error, if there is one, to be executed and help
+        // achieve the desire coverage) but it is *probably better* to let the user know that his
+        // program fails after we have made the best possible guess for the type of the parameters
+        // we have produced in the tests
 
+        // also display res if TrapThresholdExceeded?
+        res = err.toString();
+        e = true;
+    }
     var after = this.covered();
     var newCoverage = after > before;
     this.emit('cov', after, newCoverage);
     return {
         newCoverage: newCoverage,
         result: res,
-        coverage: this.currentCov
+        coverage: this.currentCov,
+        error: e
     };
 };

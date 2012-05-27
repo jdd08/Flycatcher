@@ -11,12 +11,12 @@ Test.prototype.toExecutorFormat = function() {
     return test.join('\n');
 }
 
-Test.prototype.toUnitTestFormat = function(result,testIndex) {
+Test.prototype.toUnitTestFormat = function(result,error,testIndex) {
     var test = [];
     test[0] = "// Test #" + testIndex;
     for (var i = 0; i<this.stack.length; ++i) {
         var testElement = this.stack[i];
-        test[i+1] = testElement.elem.toUnitTestFormat(testElement.paramIds,result);
+        test[i+1] = testElement.elem.toUnitTestFormat(testElement.paramIds,result,error);
     }
     return test.join('\n');
 }
@@ -110,11 +110,18 @@ function MUTcall(instanceIdentifier,method,params,type) {
                   + "(" + toParams(paramIdentifiers) + ");"
         return ret;
     }
-    this.toUnitTestFormat = function(paramIdentifiers,result) {        
-        if (typeof result === "string") result = "\"" + result + "\"";
-        var assertion = instanceIdentifier + "." + this.method + "(";
-        assertion += toParams(paramIdentifiers) + ") === " + result;
-        var ret = "assert.ok(" + assertion + ",\n         \'" + assertion + "\');";
+    this.toUnitTestFormat = function(paramIdentifiers, result, error) {
+        var ret;
+        if (error) {
+            ret = "// Despite Flycatcher's best attempt to infer the correct types for parameters,\n";
+            ret += "// this test has resulted in a " + result;
+        }
+        else {
+            if (typeof result === "string") result = "\"" + result + "\"";
+            var assertion = instanceIdentifier + "." + this.method + "(";
+            assertion += toParams(paramIdentifiers) + ") === " + result;
+            ret = "assert.ok(" + assertion + ",\n         \'" + assertion + "\');";
+        }
         return ret;
     }
 }

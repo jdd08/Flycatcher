@@ -119,6 +119,8 @@ ParamInfo.CALL_LOWER_LIMIT = 5;
 ParamInfo.COUNT_LOWER_LIMIT = 50;
 
 ParamInfo.prototype.update = function(pgmInfo) {
+    console.log(this.name,this.operatorsCalled);
+    console.log(this.name,this.membersAccessed);
     this.updateCount++;
     // only start updating when we have enough
     // data to make a wise inference
@@ -172,7 +174,14 @@ ParamInfo.prototype.update = function(pgmInfo) {
             this.inferredType = "num";
         }
     }
-    else if (this.updateCount >= ParamInfo.COUNT_LOWER_LIMIT &&
+    
+    // we make this an if so that if there have been accesses
+    // but that they are not operators, but member accesses,
+    // and after a while none correspond to a particular class
+    // we give up (TODO: this could lead to generating proxy
+    // "interfaces" as an extenstion, using the collected
+    // methods that don't match)
+    if (this.updateCount >= ParamInfo.COUNT_LOWER_LIMIT &&
              this.inferredType === "unknown") {
         var rand = Math.random();
         this.inferredType = rand > 0.66 ? "num" :
