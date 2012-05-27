@@ -174,15 +174,10 @@ ParamInfo.prototype.update = function(pgmInfo) {
             this.inferredType = "num";
         }
     }
-    
-    // we make this an if so that if there have been accesses
-    // but that they are not operators, but member accesses,
-    // and after a while none correspond to a particular class
-    // we give up (TODO: this could lead to generating proxy
-    // "interfaces" as an extenstion, using the collected
-    // methods that don't match)
-    if (this.updateCount >= ParamInfo.COUNT_LOWER_LIMIT &&
+
+    else if (this.updateCount >= ParamInfo.COUNT_LOWER_LIMIT &&
              this.inferredType === "unknown") {
+        console.log("NOTFOUND",this.name);
         var rand = Math.random();
         this.inferredType = rand > 0.66 ? "num" :
                             (rand > 0.33 ? "string" : "bool");

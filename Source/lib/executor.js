@@ -223,11 +223,13 @@ function createExecHandler(pgmInfo) {
                         // nor within any native code: the first entry with
                         // the fileName set to evalmachine.<anonymous> will
                         // return that line
-                        return value.fileName === "evalmachine.<anonymous>";
+                        return value.fileName && // ignore if it is null
+                               value.fileName.indexOf("evalmachine") !== -1;
                     }).lineNumber;
                     //console.log(stackTrace.parse(err));
                     // shifting to correspond to correct array index
                     var line = err.context.exec.vmSource.split('\n')[lineNum - 1];
+                    console.log(stackTrace.parse(err));
                     console.log();
                     console.log(err.context.pgmInfo.getConstructorParams(err.context.CUTname)[err.context.paramIndex]);
                     console.log(util.inspect(_.find(err.context.pgmInfo.getMethods(err.context.CUTname),function(elem){
@@ -267,15 +269,7 @@ function createExecHandler(pgmInfo) {
             }
 */
             else {
-                //console.log("INSIDE MEMBER CALLS");
                 this.registerMemberAccess(name);
-                
-                // FIXME: this is wrong we want to return a proxy with the capability
-                // of trapping etc. but NOT ONE that pretends/proxies it is the same object
-                // that got trapped in the first place because it isn't: it is the
-                // object resulting from that initial trap (which we don't know the type
-                // of since we trapped its parent)
-                
                 // return a proxy with a handler that does nothing so that we can avoid
                 // crashing and keep collecting data for the other parameters during this
                 // run if possible
