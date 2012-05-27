@@ -31,7 +31,7 @@ exports.getPrimitive = function(type) {
 
 var getNumber = function() {
     // returns a number from 0 to 65535
-    MAX_INT = (1 << 5);
+    MAX_INT = (1 << 6);
     return Math.floor(Math.random()*MAX_INT);   
 }
 

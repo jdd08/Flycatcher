@@ -37,19 +37,25 @@ Calculator.prototype.setB = function(b) {
 try {
 
 // Test #1
-var calculator0 = new Calculator(20,12);
-calculator0.setA(12);
-calculator0.setA(20);
-calculator0.setA(20);
-assert.ok(calculator0.add(15,18) === 65,
-         'calculator0.add(15,18) === 65');
+var calculator85 = new Calculator(24,24);
+calculator85.setB(24);
+calculator85.setA(24);
+calculator85.setA(19);
+calculator85.setB(24);
+calculator85.setB(27);
+calculator85.setB(24);
+calculator85.setA(29);
+assert.ok(calculator85.add(22,23) === 98,
+         'calculator85.add(22,23) === 98');
 
 // Test #2
-var calculator1 = new Calculator(13,30);
-calculator1.setA(6);
-calculator1.setA(21);
-assert.ok(calculator1.add(21,6) === 78,
-         'calculator1.add(21,6) === 78');
+var calculator87 = new Calculator(31,31);
+calculator87.setA(15);
+calculator87.setB(2);
+calculator87.setA(31);
+calculator87.setA(21);
+assert.ok(calculator87.add(17,14) === 54,
+         'calculator87.add(17,14) === 54');
 
 console.log("Unit test suite completed with success!")
 }

@@ -32,14 +32,14 @@ Fibonacci.prototype.compute = function(n) {
 try {
 
 // Test #1
-var fibonacci16 = new Fibonacci();
-assert.ok(fibonacci16.compute(21) === 10946,
-         'fibonacci16.compute(21) === 10946');
+var fibonacci6 = new Fibonacci();
+assert.ok(fibonacci6.compute(0) === 0,
+         'fibonacci6.compute(0) === 0');
 
 // Test #2
-var fibonacci30 = new Fibonacci();
-assert.ok(fibonacci30.compute(1) === 1,
-         'fibonacci30.compute(1) === 1');
+var fibonacci7 = new Fibonacci();
+assert.ok(fibonacci7.compute(36) === 14930352,
+         'fibonacci7.compute(36) === 14930352');
 
 console.log("Unit test suite completed with success!")
 }

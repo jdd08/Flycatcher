@@ -190,79 +190,126 @@ function ParamInfo(name) {
     this.name = name;
     this.operatorsCalled = [];
     this.membersAccessed = [];
+    this.memberAccesses = 0;
     this.inferredType = "unknown";
+    this.primitiveScore = {
+        num : 0,
+        string : 0,
+        bool : 0        
+    }
     this.updateCount = 0;
 }
 
-ParamInfo.prototype.totalCalls = function() {
-    return this.operatorsCalled.length +
-           this.membersAccessed.length;
-}
+ParamInfo.prototype.startUpdating = function() {
+    
+    // This number needs to be sum of the number of
+    // individual operator calls and each individual
+    // member access - we CANNOT impose a lower a limit
+    // on the variety of these operator calls and member
+    // accesses as this would be making too strong
+    // assumptions about the program. The purpose of this
+    // lower limit however is to wait for a number of
+    // indviduals operations in order to strengthen the 
+    // confidence of our type estimate
+    MIN_CALLS_BEFORE_UPDATING = 3;
 
-ParamInfo.CALL_LOWER_LIMIT = 5;
-ParamInfo.COUNT_LOWER_LIMIT = 50;
+    // This lower limit is for when we have attempted so many
+    // updates without gaining sufficient information to infer
+    // a type that we try and infer something with the info
+    // we have (if there is any even though below call threshold)
+    // or if there is none we use a random primitive.
+    // The latter case means the parameter is never
+    // accessed/called in the present test circumstances
+    MIN_CALLS_BEFORE_WEAK_GUESS = 50;
+    
+    return (this.operatorsCalled.length + this.memberAccesses >=
+            MIN_CALLS_BEFORE_UPDATING) ||
+            (this.updateCount >= MIN_CALLS_BEFORE_WEAK_GUESS &&
+             this.inferredType === "unknown");
+};
 
 ParamInfo.prototype.update = function(pgmInfo) {
+
+    // before we make the members accessed unique for performance
+    // purposes we add them up to use in the comparison 
+    // with MIN_CALLS_BEFORE_UPDATING
+    this.memberAccesses += this.membersAccessed.length;
+
+    // for the member function calls we are interested
+    // in the names only not the number of calls
+    var membersAccessed = _.uniq(this.membersAccessed);
+    this.membersAccessed = membersAccessed;    
+        
     this.updateCount++;
     // only start updating when we have enough
-    // data to make a wise inference
-    // OR
-    // we have attempted so many updates without success
-    // that we believe this particular parameter is never
-    // accessed/called in the present test circumstances
-    // and it is worth trying to guess a random primitive
-    if (this.totalCalls() >= ParamInfo.CALL_LOWER_LIMIT) {
-        var opsCalled = this.operatorsCalled;
-        var primitive = {
-            num : 0,
-            string : 0,
-            bool : 0
-        }
-        _.map(opsCalled,function(value,key) {
-            operatorToPrimitive(value,primitive);
-        });
-
-        // for the member function calls we are interested
-        // in the names only not the number of calls
-        var membersAccessed = _.uniq(this.membersAccessed);
-        // even having just one member function call
-        // rules out the possibility that the type
-        // is a primitive
+    // data to make a wise inference or we give up
+    // and do with what we have / or at random
+    if (this.startUpdating()) {
+        // If we have made MIN_CALLS_BEFORE_WEAK_GUESS attempts
+        // this if means that we have *some* member access data.
+        // Otherwise we see whether we have gained any new info,
+        // this if statement comes before the operator inference
+        // because even having just one member function call
+        // rules out the possibility that the type is a primitive
+        // (TODO: later look at native types and their member function calls)
         if (membersAccessed.length) {
             var currentMatches = 0;
             var name = "";
-            var map = _.map(pgmInfo.classes,function(value,key){
+            var map = _.map(pgmInfo.classes,function(value, key){
                 return {
                     name:key,
                     params:value.ctr.params,
                     count: function(){
-                        var names = _.union(_.pluck(value.methods,"name"),
+                        var names = _.union(_.pluck(value.methods, "name"),
                                             value.fields);
-                        return _.intersection(names,membersAccessed).length;
+                        return _.intersection(names, membersAccessed).length;
                     }()
                 }
             });
 
-            var max = _.max(map,function(elem){
+            var max = _.max(map, function(elem){
                 return elem.count;
             });
             if (max.count > 0) {
                 this.inferredType = max.name;
             }
         }
-        else {
-            // TODO: return primitive type with biggest score
-            // console.log(_.max(primitive,function(value,key) {
-            //    console.log(key); console.log(value); return value; }));
-            this.inferredType = "num";
+        
+        // If we have made MIN_CALLS_BEFORE_WEAK_GUESS attempts
+        // this means that there are *some* operator calls (accumulated
+        // overall previous rounds i.e. there have never been more)
+        // to work with - even though less than MIN_CALLS_BEFORE_UPDATING.
+        // Otherwise it is only worth updating primitiveScore if there is
+        // anything to update it with.
+        else if(this.operatorsCalled.length) {
+            var self = this;
+            _.map(this.operatorsCalled,function(value,key) {
+                operatorToPrimitive(value,
+                                    self.primitiveScore);
+            });
+
+            var max = 0;
+            var t;
+            _.each(this.primitiveScore, function(value, key) {
+                if(value > max) {
+                    t = key;
+                    max = value;
+                }
+            });
+            console.log(t);
+
+            // once the primitive score has been calculated
+            // reset the array of operators called
+            this.operatorsCalled = [];
+            this.inferredType = t;
         }
-    }
-    else if (this.updateCount >= ParamInfo.COUNT_LOWER_LIMIT &&
-             this.inferredType === "unknown") {
-        console.log("NOTFOUND",this.name);
-        var rand = Math.random();
-        this.inferredType = rand > 0.66 ? "num" :
-                            (rand > 0.33 ? "string" : "bool");
+        else if (this.inferredType === "unknown") {
+            console.warn("\nWarning: insufficient info to infer param "
+                          + this.name + ", inferring random primitive");
+            var rand = Math.random();
+            this.inferredType = rand > 0.66 ? "num" :
+                                (rand > 0.33 ? "string" : "bool");
+        }
     }
 }
 
@@ -367,13 +414,13 @@ function getParamNames(func) {
         return [];
 }
 
-function operatorToPrimitive(operator,primitive) {
+function operatorToPrimitive(operator, primitiveScore) {
     switch(operator) {
         case "++" :
-        case "--" : primitive.num += 100;
+        case "--" : primitiveScore.num += 100;
                     break;
-        case "+" :  primitive.num += 1;
-                    primitive.string += 1;
+        case "+" :  primitiveScore.num += 1;
+                    primitiveScore.string += 2;
                     break;
         case "-" :
         case "*" :
@@ -385,21 +432,21 @@ function operatorToPrimitive(operator,primitive) {
         case "~" :
         case "^" :
         case "|" :
-        case "&" :  primitive.num += 1;
+        case "&" :  primitiveScore.num += 1;
                     break;
         case "||" :            
         case "&&" :
         case "==" :
         case "!=" :
-        case "!" :  primitive.num += 1;
-                    primitive.string += 1;
-                    primitive.bool += 1;
+        case "!" :  primitiveScore.num += 1;
+                    primitiveScore.string += 1;
+                    primitiveScore.bool += 1;
                     break;
         case ">=" :
         case ">" :
         case "<=" :
-        case "<":   primitive.num += 2;
-                    primitive.string += 1;
+        case "<":   primitiveScore.num += 2;
+                    primitiveScore.string += 1;
                     break;
     }
 }

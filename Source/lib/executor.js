@@ -187,13 +187,11 @@ function createExecHandler(pgmInfo) {
 
         // proxy[name] -> any
         get: function(receiver, name) {
-            //console.log("INSIDE GET");
             this.trapCount++;
             if (this.trapCount > TRAP_THRESHOLD) {
                 throw new TrapThresholdExceeded();
             }
             if (name === "valueOf") {
-                //console.log("INSIDE VALUEOF");
                 try {
                     throw new ValueOfTrap(this.exec.vmSource,this.operatorsCalled);
                 }
