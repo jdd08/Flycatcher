@@ -69,7 +69,7 @@ if (MUTname) {
     while (exec.getCoverage() < maxCoverage) {
         var test = randomTest.generate(pgmInfo);
         exec.setTest(test);
-        exec.showTest(test);
+        //exec.showTest(test);
         var testRun = exec.run();
         if (testRun.newCoverage && !test.hasUnknowns()) {
             goodTests.push(test.toUnitTestFormat(testRun.result,
@@ -78,7 +78,7 @@ if (MUTname) {
         }
     }
 //    process.stdout.write(" (" + (testRun ? testRun.coverage : 0) + "\%)\nGeneration succesful.\n");
-    process.stdout.write("Tests can be found in " + fileName + "\n\n");
+    process.stdout.write("\nTests can be found in " + fileName + "\n\n");
 
     fs.writeFileSync(fileName,generateContent(src,CUTname,MUTname,goodTests));
 }

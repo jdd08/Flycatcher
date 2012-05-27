@@ -80,47 +80,64 @@ Triangle.prototype.getType = function() {
 try {
 
 // Test #1
-var triangle75 = new Triangle(25,10,5);
-triangle75.setA(25);
-triangle75.setA(5);
-assert.ok(triangle75.getType() === "PLAIN",
-         'triangle75.getType() === "PLAIN"');
+var triangle79 = new Triangle(25,2,2);
+triangle79.setA(25);
+triangle79.setA(13);
+triangle79.setA(4);
+assert.ok(triangle79.getType() === "INVALID",
+         'triangle79.getType() === "INVALID"');
 
 // Test #2
-var triangle76 = new Triangle(19,7,19);
-triangle76.setB(19);
-triangle76.setB(14);
-assert.ok(triangle76.getType() === "PLAIN",
-         'triangle76.getType() === "PLAIN"');
+var triangle80 = new Triangle(19,11,28);
+triangle80.setA(24);
+triangle80.setA(24);
+triangle80.setC(21);
+triangle80.setA(31);
+assert.ok(triangle80.getType() === "PLAIN",
+         'triangle80.getType() === "PLAIN"');
 
 // Test #3
-var triangle77 = new Triangle(31,16,31);
-triangle77.setA(20);
-triangle77.setA(8);
-assert.ok(triangle77.getType() === "PLAIN",
-         'triangle77.getType() === "PLAIN"');
+var triangle82 = new Triangle(25,25,21);
+triangle82.setA(19);
+triangle82.setC(18);
+triangle82.setA(2);
+triangle82.setC(18);
+triangle82.setA(19);
+triangle82.setA(18);
+triangle82.setA(21);
+assert.ok(triangle82.getType() === "PLAIN",
+         'triangle82.getType() === "PLAIN"');
 
 // Test #4
-var triangle78 = new Triangle(7,15,16);
-triangle78.setC(15);
-triangle78.setB(7);
-triangle78.setC(7);
-triangle78.setC(15);
-assert.ok(triangle78.getType() === "ISOCELES",
-         'triangle78.getType() === "ISOCELES"');
+var triangle83 = new Triangle(15,10,4);
+triangle83.setB(0);
+triangle83.setA(22);
+triangle83.setC(0);
+triangle83.setB(0);
+triangle83.setC(4);
+triangle83.setA(10);
+triangle83.setB(10);
+assert.ok(triangle83.getType() === "ISOCELES",
+         'triangle83.getType() === "ISOCELES"');
 
 // Test #5
-var triangle109 = new Triangle(29,2,19);
-triangle109.setC(15);
-assert.ok(triangle109.getType() === "INVALID",
-         'triangle109.getType() === "INVALID"');
+var triangle85 = new Triangle(31,11,31);
+triangle85.setA(1);
+triangle85.setA(11);
+triangle85.setB(16);
+triangle85.setC(6);
+triangle85.setC(3);
+triangle85.setC(30);
+triangle85.setC(15);
+assert.ok(triangle85.getType() === "PLAIN",
+         'triangle85.getType() === "PLAIN"');
 
 // Test #6
-var triangle183 = new Triangle(17,28,26);
-triangle183.setC(28);
-triangle183.setA(28);
-assert.ok(triangle183.getType() === "EQUILATERAL",
-         'triangle183.getType() === "EQUILATERAL"');
+var triangle177 = new Triangle(11,2,16);
+triangle177.setB(16);
+triangle177.setA(16);
+assert.ok(triangle177.getType() === "EQUILATERAL",
+         'triangle177.getType() === "EQUILATERAL"');
 
 console.log("Unit test suite completed with success!")
 }

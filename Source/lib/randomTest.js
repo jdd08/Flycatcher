@@ -249,15 +249,17 @@ Test.prototype.show = function() {
 var MAX_CALLS_BEFORE_MUT = 10;
 
 exports.generate = function(pgmInfo) {
-    var CUTname = pgmInfo.getCUTname();
-    var MUTname = pgmInfo.getMUTname();
+    var CUTname = pgmInfo.CUTname;
+    var MUTname = pgmInfo.MUTname;
 
 //    console.log(util.inspect(pgmInfo, false, null));
     pgmInfo.update();
 
     var test = new Test();
+    var ctrParams = pgmInfo.getConstructorParams(CUTname);
     var instance = new CUTdeclaration(CUTname,
-                                      pgmInfo.getRecursiveConstructorParams(CUTname),
+                                      pgmInfo.getRecursiveParams(
+                                          _.pluck(ctrParams, "inferredType")),
                                       _.uniqueId());
     test.push(instance);
     var callSequence = [];
@@ -275,15 +277,18 @@ exports.generate = function(pgmInfo) {
             var CUTmethod = CUTmethods[randomMethod];
             var CUTmethodCall = new Call(instance.getIdentifier(),
                                          CUTmethod.name,
-                                         pgmInfo.getRecursiveMethodParams(CUTname,randomMethod),
+                                         pgmInfo.getRecursiveParams(
+                                             _.pluck(CUTmethod.params, "inferredType")),
                                          CUTname);
             test.push(CUTmethodCall);
         }
     }
     
+    var MUTparams = pgmInfo.getMUT().params;
     var MUT = new MUTcall(instance.getIdentifier(),
                           MUTname,
-                          pgmInfo.getRecursiveMUTparams(),
+                          pgmInfo.getRecursiveParams(
+                              _.pluck(MUTparams, "inferredType")),
                           CUTname);
     test.push(MUT);
     return test;

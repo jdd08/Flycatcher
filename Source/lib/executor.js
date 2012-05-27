@@ -52,9 +52,10 @@ var Executor = module.exports.Executor = function(src, pgmInfo)
     });
 }
 
-function ExecutorError(proxyContext) {
-    Error.captureStackTrace(this, ExecutorError);
-    this.context = proxyContext;
+function ValueOfTrap(vmSource, operatorsCalled) {
+    Error.captureStackTrace(this, ValueOfTrap);
+    this.vmSource = vmSource;
+    this.operatorsCalled = operatorsCalled;
 }
 
 Executor.prototype = new EventEmitter;
@@ -97,9 +98,9 @@ Executor.prototype.wrapMUT = function(pgmInfo) {
     var names = this.names;
     var n = 0;
     
-    var MUTdeclaration = pgmInfo.getCUTname() +
+    var MUTdeclaration = pgmInfo.CUTname +
                          ".prototype.MUT = "  +
-                         pgmInfo.getMUTdefinition();
+                         pgmInfo.getMUT().def;
     var i = 0;
     var wrapped = burrito(MUTdeclaration, wrapper, names);
     
@@ -128,25 +129,20 @@ function createExecHandler(pgmInfo) {
     // to update sooner than later to achieve coverage
     var TRAP_THRESHOLD = 10;
 
-    var Handler = function(CUTname, methodName, paramIndex, exec) {
-        this.CUTname = CUTname;
-        this.methodName = methodName;
-        this.paramIndex = paramIndex;
-        this.pgmInfo = pgmInfo;
+    var Handler = function(className, methodName, paramIndex, exec) {
+        // exec reference needed to have a handle on the vm source
         this.exec = exec;
-        this.isConstructorParam = function() {
-            return CUTname === methodName;
-        }
+        // depends on whether the method that the parameter being proxied belongs
+        // to is a constructor or a member function
+        this.membersAccessed =
+            className === methodName ? // is a constructor
+            pgmInfo.getConstructorParamInfo(className, paramIndex).membersAccessed :
+            pgmInfo.getMethodParamInfo(className, methodName, paramIndex).membersAccessed;
+        this.operatorsCalled =
+            className === methodName ? // is a constructor  
+            pgmInfo.getConstructorParamInfo(className, paramIndex).operatorsCalled :
+            pgmInfo.getMethodParamInfo(className, methodName, paramIndex).operatorsCalled;
         this.trapCount = 0;
-        this.registerMemberAccess = function(name) {
-            var handler = this;
-            var paramInfo = this.isConstructorParam() ?
-                this.pgmInfo.getConstructorParams(this.CUTname)[this.paramIndex].membersAccessed :
-                _.find(this.pgmInfo.getMethods(this.CUTname),function(elem){
-                    return elem.name === handler.methodName;
-                }).params[this.paramIndex].membersAccessed;
-            paramInfo.push(name);
-        }
     }
     
     var doNothingHandler = {
@@ -174,7 +170,7 @@ function createExecHandler(pgmInfo) {
     Handler.prototype = {
 
         getPropertyDescriptor: function(name) {
-            this.registerMemberAccess(name);
+            this.membersAccessed.push(name);
             //console.log("INSIDE GET PROP DESC CALLS");
             return undefined;
         },
@@ -193,28 +189,13 @@ function createExecHandler(pgmInfo) {
         get: function(receiver, name) {
             //console.log("INSIDE GET");
             this.trapCount++;
-            //console.log(this.trapCount);
             if (this.trapCount > TRAP_THRESHOLD) {
                 throw new TrapThresholdExceeded();
             }
-            var methodName = this.methodName;
-
-/*            console.log(_.find(this.classes[this.CUTname].methods,function(elem){
-                return elem.name === methodName;
-            }))
-            console.log(this.isConstructorParam())
-*/
-
-/*            console.log("CUTname",this.CUTname,
-                        "paramIndex",this.paramIndex,
-                        "methodName",this.methodName,
-                        "name",name)
-*/
-            // TODO index this.methodName directly vs filter
             if (name === "valueOf") {
                 //console.log("INSIDE VALUEOF");
                 try {
-                    throw new ExecutorError(this);
+                    throw new ValueOfTrap(this.exec.vmSource,this.operatorsCalled);
                 }
                 catch(err) {
                     var lineNum = _.find(stackTrace.parse(err), function(value){
@@ -226,36 +207,15 @@ function createExecHandler(pgmInfo) {
                         return value.fileName && // ignore if it is null
                                value.fileName.indexOf("evalmachine") !== -1;
                     }).lineNumber;
-                    //console.log(stackTrace.parse(err));
+
                     // shifting to correspond to correct array index
-                    var line = err.context.exec.vmSource.split('\n')[lineNum - 1];
-                    console.log(stackTrace.parse(err));
-                    console.log();
-                    console.log(err.context.pgmInfo.getConstructorParams(err.context.CUTname)[err.context.paramIndex]);
-                    console.log(util.inspect(_.find(err.context.pgmInfo.getMethods(err.context.CUTname),function(elem){
-                        return elem.name === err.context.methodName;
-                    }), false, null));
-                    console.log(line);
-                    console.log();
-                    var operatorsCalled = err.context.isConstructorParam() ?
-                        err.context.pgmInfo.getConstructorParams(err.context.CUTname)[err.context.paramIndex].operatorsCalled :
-                        _.find(err.context.pgmInfo.getMethods(err.context.CUTname),function(elem){
-                            return elem.name === err.context.methodName;
-                        }).params[err.context.paramIndex].operatorsCalled;
-                    
+                    var line = err.vmSource.split('\n')[lineNum - 1];
                     for (var op=0; op < operators.length; op++) {
                         if (line.indexOf(operators[op]) !== -1) {
-                            operatorsCalled.push(operators[op]);
+                            err.operatorsCalled.push(operators[op]);
                             break;
                         }
                     };
-                    console.log();
-                    console.log(err.context.pgmInfo.getConstructorParams(err.context.CUTname)[err.context.paramIndex]);
-                    console.log(util.inspect(_.find(err.context.pgmInfo.getMethods(err.context.CUTname),function(elem){
-                        return elem.name === err.context.methodName;
-                    }), false, null));
-                    console.log(line);
-                    console.log();
                 }
                 return function() {
                     return randomData.getRandomPrimitive();
@@ -269,7 +229,7 @@ function createExecHandler(pgmInfo) {
             }
 */
             else {
-                this.registerMemberAccess(name);
+                this.membersAccessed.push(name);
                 // return a proxy with a handler that does nothing so that we can avoid
                 // crashing and keep collecting data for the other parameters during this
                 // run if possible
@@ -342,10 +302,11 @@ Executor.prototype.createContext = function(pgmInfo) {
     // of the type Proxy, whose handler is initialised to update the table
     // for the specific parameter that this "proxy" is supposed to represent
     var exec = this;
-    context.proxy = function(o,CUTname,methodName,paramIndex) {
+    context.proxy = function(o,className,methodName,paramIndex) {
         var p = getProperties(o);
         var prox = Object.create(
-            Object.create(Proxy.create(new Handler(CUTname,methodName,paramIndex,exec)),p.proto),
+            Object.create(Proxy.create(
+                new Handler(className,methodName,paramIndex,exec)),p.proto),
             p.own
         );
         return prox;
@@ -423,7 +384,8 @@ Executor.prototype.covered = function() {
 }
 
 Executor.prototype.run = function() {
-    this.vmSource = this.source + '\n' + this.wrappedMUT + '\n' + this.test.toExecutorFormat();
+    this.vmSource = this.source + '\n' + this.wrappedMUT + '\n' 
+                                + this.test.toExecutorFormat();
     if (!this.wrappedMUT) {
         console.warn("Warning: Executor.mut is an empty string")
     }
