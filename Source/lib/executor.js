@@ -418,6 +418,7 @@ Executor.prototype.run = function() {
     }
     var after = this.covered();
     var newCoverage = after > before;
+    console.log(after);
     this.emit('cov', after, newCoverage);
     return {
         newCoverage: newCoverage,

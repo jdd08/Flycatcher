@@ -13,7 +13,7 @@ cmd
 .version('1.0')
 .usage('[options] <file path> <class name>')
 .option('-m, --method <name>', 'generate tests for a specific method')
-.option('-c, --coverage_max <num>', 'maximum coverage %', Number, 100)
+.option('-c, --coverage <num>', 'expected coverage %', Number, 100)
 .parse(process.argv);
 
 if (cmd.args.length !== 2) {
@@ -52,7 +52,7 @@ try {
 
 // mut: method under test
 var MUTname = cmd.method;
-var maxCoverage = cmd.coverage_max;
+var expectedCoverage = cmd.coverage;
 
 
 var fileName = "./results/Flycatcher_" + CUTname + "_" + MUTname + ".js";
@@ -61,20 +61,27 @@ if (MUTname) {
     var pgmInfo = analyser.getProgramInfo(cmd, classContext, CUTname, MUTname);
     var exec = new Executor(src, pgmInfo);
     process.stdout.write("Generating tests for at least ");
-    process.stdout.write(maxCoverage + "\% coverage of ");
+    process.stdout.write(expectedCoverage + "\% coverage of ");
     process.stdout.write("method <" + MUTname + "> from class <");
     process.stdout.write(CUTname + "> :   ");
     var goodTests = [];
     var count = 0;
-    while (exec.getCoverage() < maxCoverage) {
-        var test = randomTest.generate(pgmInfo);
-        exec.setTest(test);
-        //exec.showTest(test);
-        var testRun = exec.run();
-        if (testRun.newCoverage && !test.hasUnknowns()) {
-            goodTests.push(test.toUnitTestFormat(testRun.result,
-                                                 testRun.error,
-                                                 ++count));
+    console.log();
+    while (exec.getCoverage() < expectedCoverage) {
+        try {
+            var test = randomTest.generate(pgmInfo);
+            exec.setTest(test);
+            //exec.showTest(test);
+            var testRun = exec.run();
+            if (testRun.newCoverage && !test.hasUnknowns()) {
+                goodTests.push(test.toUnitTestFormat(testRun.result,
+                                                     testRun.error,
+                                                     ++count));
+            }
+        }
+        catch(err) {
+            console.error(err.toString());
+            process.exit(1);
         }
     }
 //    process.stdout.write(" (" + (testRun ? testRun.coverage : 0) + "\%)\nGeneration succesful.\n");

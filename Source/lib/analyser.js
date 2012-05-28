@@ -211,7 +211,7 @@ ParamInfo.prototype.startUpdating = function() {
     // lower limit however is to wait for a number of
     // indviduals operations in order to strengthen the 
     // confidence of our type estimate
-    MIN_CALLS_BEFORE_UPDATING = 3;
+    MIN_CALLS_BEFORE_UPDATING = 5;
 
     // This lower limit is for when we have attempted so many
     // updates without gaining sufficient information to infer
@@ -229,7 +229,10 @@ ParamInfo.prototype.startUpdating = function() {
 };
 
 ParamInfo.prototype.update = function(pgmInfo) {
-
+    console.log();
+    console.log(this.name);
+    console.log("this.membersAccessed",this.membersAccessed);
+    console.log("this.operatorsCalled",this.operatorsCalled);
     // before we make the members accessed unique for performance
     // purposes we add them up to use in the comparison 
     // with MIN_CALLS_BEFORE_UPDATING
@@ -245,6 +248,7 @@ ParamInfo.prototype.update = function(pgmInfo) {
     // data to make a wise inference or we give up
     // and do with what we have / or at random
     if (this.startUpdating()) {
+        console.log("UPDATING");
         // If we have made MIN_CALLS_BEFORE_WEAK_GUESS attempts
         // this if means that we have *some* member access data.
         // Otherwise we see whether we have gained any new info,
@@ -253,6 +257,7 @@ ParamInfo.prototype.update = function(pgmInfo) {
         // rules out the possibility that the type is a primitive
         // (TODO: later look at native types and their member function calls)
         if (membersAccessed.length) {
+            console.log("inside members");
             var currentMatches = 0;
             var name = "";
             var map = _.map(pgmInfo.classes,function(value, key){
@@ -282,6 +287,7 @@ ParamInfo.prototype.update = function(pgmInfo) {
         // Otherwise it is only worth updating primitiveScore if there is
         // anything to update it with.
         else if(this.operatorsCalled.length) {
+            console.log("inside operators");
             var self = this;
             _.map(this.operatorsCalled,function(value,key) {
                 operatorToPrimitive(value,
@@ -296,21 +302,54 @@ ParamInfo.prototype.update = function(pgmInfo) {
                     max = value;
                 }
             });
-            console.log(t);
 
             // once the primitive score has been calculated
             // reset the array of operators called
             this.operatorsCalled = [];
             this.inferredType = t;
         }
-        else if (this.inferredType === "unknown") {
+        
+        // the reason this if is inside of the startUpdating()
+        // if is that if we reach MIN_CALLS_BEFORE_WEAK_GUESS we want
+        // to try and infer with the little data we have (if we have
+        // any) even if it is below our MIN_CALLS_BEFORE_UPDATING
+        // threshold - but if there are no member accesses and no
+        // operators (or these sets of data are inconclusive) in the
+        // two if/else if above -> then we infer at random to avoid
+        // looping forever
+        if (this.inferredType === "unknown" &&
+            this.updateCount >= MIN_CALLS_BEFORE_WEAK_GUESS) {
             console.warn("\nWarning: insufficient info to infer param "
-                          + this.name + ", inferring random primitive");
-            var rand = Math.random();
-            this.inferredType = rand > 0.66 ? "num" :
-                                (rand > 0.33 ? "string" : "bool");
+                          + this.name + ", attempting to infer random primitive.");
+                          
+            // no point in inferring a primitive if we have member accesses,
+            // this will just cause an error which may prevent coverage
+            // and cause looping forever (note: if there is only one operator, we 
+            // shouldn't enter this if at all because they should always resolve
+            // to some primitive i.e. no operator yields a 0 score)
+            if (membersAccessed.length) {
+                throw new function InaccessibleClass(membersAccessed) {
+                    this.membersAccessed = membersAccessed;
+                    Error.captureStackTrace(this, InaccessibleClass);
+                    this.toString = function() {
+                        var msg = "Warning: Couldn't infer primitive, param has member accesses.\n";
+                        msg += "         Object likely belongs to a class which is not accessible.\n";
+                        msg += "         The member accesses are:\n";
+                        for (var i=0; i < this.membersAccessed.length; i++) {
+                            msg += "            " + this.membersAccessed[i];
+                        };
+                        return msg;
+                    }
+                }(membersAccessed);
+            }
+            else {
+                var rand = Math.random();
+                this.inferredType = rand > 0.66 ? "num" :
+                                    (rand > 0.33 ? "string" : "bool");                
+            }
         }
     }
+    console.log(this.inferredType);
 }
 
 // AUXILLIARY
