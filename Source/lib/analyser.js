@@ -46,12 +46,12 @@ ProgramInfo.prototype.getRecursiveParams = function(inferences) {
     return recursiveParams;
 }
 
-// used in the proxy handlers to access operatorsCalled and membersAccessed
+// used in the proxy handlers to access ParamInfo fields
 ProgramInfo.prototype.getConstructorParamInfo = function(className, paramIndex) {
     return this.getConstructorParams(className)[paramIndex];
 }
 
-// used in the proxy handlers to access operatorsCalled and membersAccessed
+// used in the proxy handlers to access ParamInfo fields
 ProgramInfo.prototype.getMethodParamInfo = function(className, methodName, paramIndex) {
     return _.find(this.getMethods(className), function(elem){
         return elem.name === methodName;
@@ -188,7 +188,6 @@ MethodInfo.prototype.update = function(pgmInfo) {
 
 function ParamInfo(name) {
     this.name = name;
-    this.operatorsCalled = [];
     this.membersAccessed = [];
     this.memberAccesses = 0;
     this.inferredType = "unknown";
@@ -198,6 +197,11 @@ function ParamInfo(name) {
         bool : 0        
     }
     this.updateCount = 0;
+}
+
+function sumValues(obj) {
+    _.reduce(obj,
+        function(memo, num){ return memo + num; }, 0);
 }
 
 ParamInfo.prototype.startUpdating = function() {
@@ -212,6 +216,10 @@ ParamInfo.prototype.startUpdating = function() {
     // indviduals operations in order to strengthen the 
     // confidence of our type estimate
     MIN_CALLS_BEFORE_UPDATING = 5;
+    
+    // similarly a minimum is required for the most confident
+    // primitive score
+    MIN_SCORE_BEFORE_UPDATING = 5;
 
     // This lower limit is for when we have attempted so many
     // updates without gaining sufficient information to infer
@@ -220,19 +228,22 @@ ParamInfo.prototype.startUpdating = function() {
     // or if there is none we use a random primitive.
     // The latter case means the parameter is never
     // accessed/called in the present test circumstances
-    MIN_CALLS_BEFORE_WEAK_GUESS = 50;
+    MIN_CALLS_BEFORE_WEAK_GUESS = 60;
     
-    return (this.operatorsCalled.length + this.memberAccesses >=
-            MIN_CALLS_BEFORE_UPDATING) ||
-            (this.updateCount >= MIN_CALLS_BEFORE_WEAK_GUESS &&
-             this.inferredType === "unknown");
+    return (_.max(this.primitiveScore) >= MIN_SCORE_BEFORE_UPDATING) ||
+           (this.memberAccesses >= MIN_CALLS_BEFORE_UPDATING) ||
+           (this.updateCount >= MIN_CALLS_BEFORE_WEAK_GUESS && this.isUnknown());
 };
 
+ParamInfo.prototype.isUnknown = function() {
+    return this.inferredType === "unknown";
+}
+
 ParamInfo.prototype.update = function(pgmInfo) {
-    console.log();
+    /*console.log();
     console.log(this.name);
-    console.log("this.membersAccessed",this.membersAccessed);
-    console.log("this.operatorsCalled",this.operatorsCalled);
+    console.log(this.membersAccessed);
+    console.log(this.primitiveScore);*/
     // before we make the members accessed unique for performance
     // purposes we add them up to use in the comparison 
     // with MIN_CALLS_BEFORE_UPDATING
@@ -248,7 +259,6 @@ ParamInfo.prototype.update = function(pgmInfo) {
     // data to make a wise inference or we give up
     // and do with what we have / or at random
     if (this.startUpdating()) {
-        console.log("UPDATING");
         // If we have made MIN_CALLS_BEFORE_WEAK_GUESS attempts
         // this if means that we have *some* member access data.
         // Otherwise we see whether we have gained any new info,
@@ -257,7 +267,7 @@ ParamInfo.prototype.update = function(pgmInfo) {
         // rules out the possibility that the type is a primitive
         // (TODO: later look at native types and their member function calls)
         if (membersAccessed.length) {
-            console.log("inside members");
+            //console.log("inside members");
             var currentMatches = 0;
             var name = "";
             var map = _.map(pgmInfo.classes,function(value, key){
@@ -286,14 +296,11 @@ ParamInfo.prototype.update = function(pgmInfo) {
         // to work with - even though less than MIN_CALLS_BEFORE_UPDATING.
         // Otherwise it is only worth updating primitiveScore if there is
         // anything to update it with.
-        else if(this.operatorsCalled.length) {
-            console.log("inside operators");
-            var self = this;
-            _.map(this.operatorsCalled,function(value,key) {
-                operatorToPrimitive(value,
-                                    self.primitiveScore);
-            });
-
+        else if(_.any(this.primitiveScore)) {
+//            console.log();
+//           console.log(this.name);
+//            console.log(this.primitiveScore);
+//            console.log(this.primitiveScore);
             var max = 0;
             var t;
             _.each(this.primitiveScore, function(value, key) {
@@ -302,10 +309,7 @@ ParamInfo.prototype.update = function(pgmInfo) {
                     max = value;
                 }
             });
-
-            // once the primitive score has been calculated
-            // reset the array of operators called
-            this.operatorsCalled = [];
+            console.log("inferredType",t);
             this.inferredType = t;
         }
         
@@ -348,38 +352,11 @@ ParamInfo.prototype.update = function(pgmInfo) {
                                     (rand > 0.33 ? "string" : "bool");                
             }
         }
+        //console.log(this.inferredType);
     }
-    console.log(this.inferredType);
 }
 
 // AUXILLIARY
-
-// important for the operators which are superstrings of others
-// to come earlier in the array
-var operators = exports.operators = [ "++",
-                                      "+",
-                                      "--",
-                                      "-",
-                                      "*",
-                                      "/",
-                                      "%",
-                                      ">>>",
-                                      ">>",
-                                      "<<",
-                                      "~",
-                                      "^",
-                                      "||",
-                                      "|",
-                                      "&&",
-                                      "&",
-                                      "==",
-                                      "!=",
-                                      "!",
-                                      ">=",
-                                      ">",
-                                      "<=",
-                                      "<"                  
-                                      ];
 
 var analyserHandler = {
 
@@ -451,41 +428,4 @@ function getParamNames(func) {
         return params[1].split(',');
     else
         return [];
-}
-
-function operatorToPrimitive(operator, primitiveScore) {
-    switch(operator) {
-        case "++" :
-        case "--" : primitiveScore.num += 100;
-                    break;
-        case "+" :  primitiveScore.num += 1;
-                    primitiveScore.string += 2;
-                    break;
-        case "-" :
-        case "*" :
-        case "/" :
-        case "%" :
-        case ">>>" :
-        case ">>" :
-        case "<<" :
-        case "~" :
-        case "^" :
-        case "|" :
-        case "&" :  primitiveScore.num += 1;
-                    break;
-        case "||" :            
-        case "&&" :
-        case "==" :
-        case "!=" :
-        case "!" :  primitiveScore.num += 1;
-                    primitiveScore.string += 1;
-                    primitiveScore.bool += 1;
-                    break;
-        case ">=" :
-        case ">" :
-        case "<=" :
-        case "<":   primitiveScore.num += 2;
-                    primitiveScore.string += 1;
-                    break;
-    }
 }

@@ -18,8 +18,6 @@ var _ = require('underscore');
 var EventEmitter = require('events').EventEmitter;
 var randomData = require('./randomData.js');
 
-var operators = require('./analyser.js').operators;
-
 var Executor = module.exports.Executor = function(src, pgmInfo) 
 {
     this.test = {};
@@ -50,12 +48,43 @@ var Executor = module.exports.Executor = function(src, pgmInfo)
             process.stdout.write("\b\b"+this.currentCov);
         }
     });
+
+    this.valueOfHintRegexp = function(){
+
+        var hints = ['(\\+)(\\+)',     // ++
+                     '(\\+)',          // +
+                     '(--)',           // --
+                     '(-)',            // -
+                     '(\\*)',          // *
+                     '(\\/)',          // /
+                     '(%)',            // %
+//                     '(\\&)(\\&)',     // &&
+                     '(\\&)',          // &
+//                     '(\\|)(\\|)',     // ||
+                     '(\\|)',          // |
+                     '(!)',            // !
+                     '(\\^)',          // ^
+                     '(~)',            // ~
+                     '(<<)',           // <<
+                     '(>>>)',          // >>>
+                     '(>>)',           // >>
+                     '(>)',            // >
+                     '(<)',            // <
+//                   '(\\d+\\.?\\d*)(?!\\))', // TODO: find a way to use number hints without
+                                              // counting the wrapper calls
+                     '(\\")',                 // matches the string quote "
+                     ];
+        var regexp = new RegExp(hints.join("|"),"g")
+        console.log(regexp);
+        return regexp; 
+    }();
 }
 
-function ValueOfTrap(vmSource, operatorsCalled) {
+function ValueOfTrap(vmSource, primitiveScore, hintRegexp) {
     Error.captureStackTrace(this, ValueOfTrap);
     this.vmSource = vmSource;
-    this.operatorsCalled = operatorsCalled;
+    this.primitiveScore = primitiveScore;
+    this.hintRegexp = hintRegexp;
 }
 
 Executor.prototype = new EventEmitter;
@@ -132,16 +161,16 @@ function createExecHandler(pgmInfo) {
     var Handler = function(className, methodName, paramIndex, exec) {
         // exec reference needed to have a handle on the vm source
         this.exec = exec;
-        // depends on whether the method that the parameter being proxied belongs
-        // to is a constructor or a member function
-        this.membersAccessed =
-            className === methodName ? // is a constructor
-            pgmInfo.getConstructorParamInfo(className, paramIndex).membersAccessed :
-            pgmInfo.getMethodParamInfo(className, methodName, paramIndex).membersAccessed;
-        this.operatorsCalled =
-            className === methodName ? // is a constructor  
-            pgmInfo.getConstructorParamInfo(className, paramIndex).operatorsCalled :
-            pgmInfo.getMethodParamInfo(className, methodName, paramIndex).operatorsCalled;
+
+        var paramInfo;
+        className === methodName ? // handler is for a constructor's param
+            paramInfo = pgmInfo.getConstructorParamInfo(className, paramIndex) :
+            paramInfo = pgmInfo.getMethodParamInfo(className, methodName, paramIndex);
+
+        this.name = paramInfo.name;
+        this.primitiveScore = paramInfo.primitiveScore;
+        this.membersAccessed = paramInfo.membersAccessed;
+
         this.trapCount = 0;
     }
     
@@ -171,7 +200,7 @@ function createExecHandler(pgmInfo) {
 
         getPropertyDescriptor: function(name) {
             this.membersAccessed.push(name);
-            //console.log("INSIDE GET PROP DESC CALLS");
+            console.log("INSIDE GET PROP DESC CALLS");
             return undefined;
         },
 
@@ -188,12 +217,17 @@ function createExecHandler(pgmInfo) {
         // proxy[name] -> any
         get: function(receiver, name) {
             this.trapCount++;
+            console.log();
+            console.log("ParamInfo",this.name);
             if (this.trapCount > TRAP_THRESHOLD) {
                 throw new TrapThresholdExceeded();
             }
             if (name === "valueOf") {
                 try {
-                    throw new ValueOfTrap(this.exec.vmSource,this.operatorsCalled);
+                    console.log('valueof');
+                    throw new ValueOfTrap(this.exec.vmSource,
+                                          this.primitiveScore,
+                                          this.exec.valueOfHintRegexp);
                 }
                 catch(err) {
                     var lineNum = _.find(stackTrace.parse(err), function(value){
@@ -208,13 +242,25 @@ function createExecHandler(pgmInfo) {
 
                     // shifting to correspond to correct array index
                     var line = err.vmSource.split('\n')[lineNum - 1];
-                    for (var op=0; op < operators.length; op++) {
-                        if (line.indexOf(operators[op]) !== -1) {
-                            err.operatorsCalled.push(operators[op]);
-                            break;
-                        }
-                    };
+
+                    console.log(line);
+                    var match;
+                    while ((match = err.hintRegexp.exec(line)) != null) {
+                        updatePrimitiveScore(match[0], err.primitiveScore);
+                    }
+
                 }
+                // returning a function that returns a primitive, as expected
+                // when valueOf is called, means that no exception is thrown
+                // and operator collection can continue through that round
+                // *but* for reassignment operators this also means that we
+                // lose the proxy but if we were to try and return a proxy
+                // an exception would be thrown and we wouldn't be able to
+                // keep collecting during this round either - so this is the
+                // lesser of two evils (the only potential solution seems
+                // to be to let the exception be thrown and wrap all operator
+                // reassignment operations in the vm source in try/catches,
+                // which is infeasible)
                 return function() {
                     return randomData.getRandomPrimitive();
                 }
@@ -240,7 +286,7 @@ function createExecHandler(pgmInfo) {
 
         // proxy[name] = value
         set: function(receiver, name, value) {
-            //console.log("INSIDE SET");
+            console.log("INSIDE SET");
             //console.log(name)
             if (canPut(this.target, name)) {
                 // canPut as defined in ES5 8.12.4 [[CanPut]]
@@ -364,6 +410,12 @@ Executor.prototype.showMut = function() {
     console.log('---------------------------------------');
 }
 
+Executor.prototype.showCoverage = function() {
+    console.log('-------------- COVERED --------------------');
+    console.log(this.coverage);
+    console.log('-------------------------------------------');
+}
+
 Executor.prototype.showOriginal = function() {
     console.log('-------------- SOURCE -----------------');
     console.log(this.source);
@@ -418,7 +470,6 @@ Executor.prototype.run = function() {
     }
     var after = this.covered();
     var newCoverage = after > before;
-    console.log(after);
     this.emit('cov', after, newCoverage);
     return {
         newCoverage: newCoverage,
@@ -427,3 +478,41 @@ Executor.prototype.run = function() {
         error: e
     };
 };
+
+
+// AUXILLIARY
+
+function updatePrimitiveScore(hint, primitiveScore) {
+    console.log(hint);
+    console.log(primitiveScore);
+    switch(hint) {
+        case "++" :
+        case "--" : primitiveScore.num += 100;
+                    break;
+        case "+" :  primitiveScore.num += 1;
+                    primitiveScore.string += 2;
+                    break;
+        case "-" :
+        case "*" :
+        case "/" :
+        case "%" :
+        case ">>>" :
+        case ">>" :
+        case "<<" :
+        case "~" :
+        case "^" :
+        case "|" :
+        case "&" :  primitiveScore.num += 1;
+                    break;
+//        case "||" :            
+//        case "&&" :
+        case "!" :  primitiveScore.bool += 1;
+                    break;
+        case ">" :
+        case "<":   primitiveScore.num += 2;
+                    primitiveScore.string += 1;
+                    break;
+        case "\"" :
+                    primitiveScore.string += 5;
+    }
+}

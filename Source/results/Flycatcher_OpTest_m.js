@@ -16,22 +16,16 @@ var assert = require('assert');
 function OpTest(){    
 }
 
-OpTest.prototype.m = function(a,b) {
-
-    a++;
-    a--;
-    b-2;
-    b*4;
-    b/8;        
-    return a+b;
+OpTest.prototype.m = function(acra) {
+    (+acra && ((123-acra*456)*789 >> (121<242) && (151<<acra)) && false) && acra/1235 && acra %5421 && 'gweaek' && "aweawe"
 }
 
 try {
 
 // Test #1
-var optest12 = new OpTest();
-assert.ok(optest12.m(21,21) === 42,
-         'optest12.m(21,21) === 42');
+var optest2 = new OpTest();
+assert.ok(optest2.m(17) === undefined,
+         'optest2.m(17) === undefined');
 
 console.log("Unit test suite completed with success!")
 }

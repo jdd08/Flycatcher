@@ -241,10 +241,6 @@ Test.prototype.push = function(elem) {
     this.stack.push({elem:elem,paramIds:paramIds});
 }
 
-Test.prototype.show = function() {
-//    console.log(this.stack)
-}
-
 // maximum number of CUT method calls before calling the MUT
 var MAX_CALLS_BEFORE_MUT = 10;
 
