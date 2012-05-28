@@ -309,7 +309,6 @@ ParamInfo.prototype.update = function(pgmInfo) {
                     max = value;
                 }
             });
-            console.log("inferredType",t);
             this.inferredType = t;
         }
         

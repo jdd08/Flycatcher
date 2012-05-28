@@ -24,8 +24,8 @@ try {
 
 // Test #1
 var optest2 = new OpTest();
-assert.ok(optest2.m(17) === undefined,
-         'optest2.m(17) === undefined');
+assert.ok(optest2.m(13) === undefined,
+         'optest2.m(13) === undefined');
 
 console.log("Unit test suite completed with success!")
 }

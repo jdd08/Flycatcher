@@ -75,7 +75,6 @@ var Executor = module.exports.Executor = function(src, pgmInfo)
                      '(\\")',                 // matches the string quote "
                      ];
         var regexp = new RegExp(hints.join("|"),"g")
-        console.log(regexp);
         return regexp; 
     }();
 }
@@ -217,14 +216,11 @@ function createExecHandler(pgmInfo) {
         // proxy[name] -> any
         get: function(receiver, name) {
             this.trapCount++;
-            console.log();
-            console.log("ParamInfo",this.name);
             if (this.trapCount > TRAP_THRESHOLD) {
                 throw new TrapThresholdExceeded();
             }
             if (name === "valueOf") {
                 try {
-                    console.log('valueof');
                     throw new ValueOfTrap(this.exec.vmSource,
                                           this.primitiveScore,
                                           this.exec.valueOfHintRegexp);
@@ -242,8 +238,6 @@ function createExecHandler(pgmInfo) {
 
                     // shifting to correspond to correct array index
                     var line = err.vmSource.split('\n')[lineNum - 1];
-
-                    console.log(line);
                     var match;
                     while ((match = err.hintRegexp.exec(line)) != null) {
                         updatePrimitiveScore(match[0], err.primitiveScore);
@@ -483,14 +477,12 @@ Executor.prototype.run = function() {
 // AUXILLIARY
 
 function updatePrimitiveScore(hint, primitiveScore) {
-    console.log(hint);
-    console.log(primitiveScore);
     switch(hint) {
         case "++" :
         case "--" : primitiveScore.num += 100;
                     break;
         case "+" :  primitiveScore.num += 1;
-                    primitiveScore.string += 2;
+                    primitiveScore.string += 1;
                     break;
         case "-" :
         case "*" :

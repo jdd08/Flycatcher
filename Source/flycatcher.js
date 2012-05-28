@@ -71,14 +71,14 @@ if (MUTname) {
         try {
             var test = randomTest.generate(pgmInfo);
             exec.setTest(test);
-            exec.showTest(test);
+//            exec.showTest(test);
             var testRun = exec.run();
             if (testRun.newCoverage && !test.hasUnknowns()) {
                 goodTests.push(test.toUnitTestFormat(testRun.result,
                                                      testRun.error,
                                                      ++count));
             }
-            exec.showCoverage();
+//            exec.showCoverage();
         }
         catch(err) {
             console.error(err.stack);
