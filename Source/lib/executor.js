@@ -394,11 +394,11 @@ Executor.prototype.createContext = function(pgmInfo) {
 
 Executor.prototype.show = function() {
     this.showOriginal();
-    this.showMut();
+    this.showMUT();
     this.showTest();
 }
 
-Executor.prototype.showMut = function() {
+Executor.prototype.showMUT = function() {
     console.log('-------------- MUT --------------------');
     console.log(this.wrappedMUT);
     console.log('---------------------------------------');

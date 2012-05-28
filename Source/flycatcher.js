@@ -7,6 +7,7 @@ var Executor = require('./lib/executor.js').Executor;
 
 var fs = require('fs');
 var vm = require('vm');
+var _ = require('underscore');
 var cmd = require('commander');
 
 cmd
@@ -54,46 +55,73 @@ try {
 var MUTname = cmd.method;
 var expectedCoverage = cmd.coverage;
 
+var pgmInfo = analyser.getProgramInfo(cmd, classContext, CUTname);
+var unitTests = [];
+var CUTmethods = pgmInfo.getMethods(CUTname);
 
-var fileName = "./results/Flycatcher_" + CUTname + "_" + MUTname + ".js";
+// specific method to test was specified
 if (MUTname) {
-// if method under test has been specified
-    var pgmInfo = analyser.getProgramInfo(cmd, classContext, CUTname, MUTname);
+    console.log("Unit tests for " + MUTname + "...");
+    pgmInfo.setMUT(MUTname);
+    _.filter(CUTmethods, function(m) {
+        return m.name === MUTname;
+    })[0].isMUT = true;
+    generateTests(MUTname);
+}
+// otherwise generate tests for all of a class's methods
+else {
+
+    for (var m in CUTmethods) {
+        var MUTname = CUTmethods[m].name;
+        pgmInfo.setMUT(MUTname);
+        CUTmethods[m].isMUT = true;
+        generateTests(MUTname);
+    }
+}
+
+var fileName = "./results/Flycatcher_" + CUTname + ".js";
+process.stdout.write("\nTests can be found in " + fileName + "\n\n");
+fs.writeFileSync(fileName,generateContent(src,CUTname,MUTname,unitTests));
+
+function generateTests(MUTname) {
     var exec = new Executor(src, pgmInfo);
     process.stdout.write("Generating tests for at least ");
     process.stdout.write(expectedCoverage + "\% coverage of ");
     process.stdout.write("method <" + MUTname + "> from class <");
     process.stdout.write(CUTname + "> :   ");
-    var goodTests = [];
     var count = 0;
-    console.log();
     while (exec.getCoverage() < expectedCoverage) {
         try {
             var test = randomTest.generate(pgmInfo);
             exec.setTest(test);
-//            exec.showTest(test);
+            // exec.showTest(test);
+            // exec.showMUT();
             var testRun = exec.run();
             if (testRun.newCoverage && !test.hasUnknowns()) {
-                goodTests.push(test.toUnitTestFormat(testRun.result,
+                unitTests.push(test.toUnitTestFormat(testRun.result,
                                                      testRun.error,
                                                      ++count));
             }
-//            exec.showCoverage();
+            // exec.showCoverage();
         }
         catch(err) {
             console.error(err.stack);
             process.exit(1);
         }
     }
-//    process.stdout.write(" (" + (testRun ? testRun.coverage : 0) + "\%)\nGeneration succesful.\n");
-    process.stdout.write("\nTests can be found in " + fileName + "\n\n");
-
-    fs.writeFileSync(fileName,generateContent(src,CUTname,MUTname,goodTests));
+    console.log("\nGeneration succesful.");
 }
-else {
-// by default generates tests for all of a class's methods    
 
+/* catch MUT not defined
+ if(!mutDefined) {
+    console.error("Error: specified method <" +
+                   MUTname + "> was not found in class <" +
+                   CUTname +">");
+    console.error("(see README for information on recognised class definitions)");
+    console.info(cmd.helpInformation());
+    process.exit(1);
 }
+*/
 
 function generateContent(src,CUTname,MUTname,tests) {
     var header = "/*****************************************\n\n";

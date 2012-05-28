@@ -3,11 +3,14 @@ var vm = require('vm');
 var util = require('util');
 var _ = require('underscore');
 
-function ProgramInfo(CUTname, MUTname) {
+function ProgramInfo(CUTname) {
     this.classes = {};
     this.CUTname = CUTname;
-    this.MUTname = MUTname;
 }
+
+ProgramInfo.prototype.setMUT = function(MUTname) {
+    this.MUTname = MUTname;
+};
 
 // updates the inferences for the parameters
 // of each class (constructor and methods)
@@ -70,9 +73,9 @@ ProgramInfo.prototype.getMethods = function(className) {
 }
 
 // public method used to initialise the ProgramInfo object for a run of Flycatcher
-exports.getProgramInfo = function(cmd, classContext, CUTname, MUTname) {
+exports.getProgramInfo = function(cmd, classContext, CUTname) {
 
-    var pgmInfo = new ProgramInfo(CUTname, MUTname);
+    var pgmInfo = new ProgramInfo(CUTname);
 
     if (!classContext[CUTname]){
         console.error("Error: specified class <" + CUTname + "> was not found");
@@ -132,11 +135,12 @@ exports.getProgramInfo = function(cmd, classContext, CUTname, MUTname) {
                     for (var i = 0; i<member.length; i++) {
                         methodParams.push(new ParamInfo(getParamNames(member)[i]));
                     }
-                    var isMUT = className === CUTname && m === MUTname;
+/*                    var isMUT = className === CUTname && m === MUTname;
                     if (isMUT) {
                         mutDefined = true;
                     };
-                    methods.push(new MethodInfo(m, c[m], methodParams, isMUT));
+*/
+                    methods.push(new MethodInfo(m, c[m], methodParams));
                 }
                 else {
                     fields.push(m);
@@ -147,14 +151,6 @@ exports.getProgramInfo = function(cmd, classContext, CUTname, MUTname) {
                                                        methods,
                                                        fields);
         }
-    }
-    if(!mutDefined) {
-        console.error("Error: specified method <" +
-                       MUTname + "> was not found in class <" +
-                       CUTname +">");
-        console.error("(see README for information on recognised class definitions)");
-        console.info(cmd.helpInformation());
-        process.exit(1);
     }
     return pgmInfo;
 }
@@ -173,11 +169,10 @@ ClassInfo.prototype.update = function(pgmInfo) {
     };
 }
 
-function MethodInfo(name, def, params, isMUT) {
+function MethodInfo(name, def, params) {
     this.name = name;
     this.def = def;
     this.params = params;
-    this.isMUT = isMUT || false;
 }
 
 MethodInfo.prototype.update = function(pgmInfo) {

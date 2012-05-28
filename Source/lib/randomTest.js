@@ -6,14 +6,14 @@ Test.prototype.toExecutorFormat = function() {
     var test = [];
     for (var i = 0; i<this.stack.length; ++i) {
         var e = this.stack[i];
-        test[i] = e.elem.toExecutorFormat(e.paramIds);
+        test.push(e.elem.toExecutorFormat(e.paramIds));
     }
     return test.join('\n');
 }
 
 Test.prototype.toUnitTestFormat = function(result,error,testIndex) {
     var test = [];
-    test[0] = "// Test #" + testIndex;
+    test[0] = "// Method " + this.MUTname + ": test #" + testIndex;
     for (var i = 0; i<this.stack.length; ++i) {
         var testElement = this.stack[i];
         test[i+1] = testElement.elem.toUnitTestFormat(testElement.paramIds,result,error);
@@ -152,8 +152,9 @@ function executorParams(ids,parentType,parentMethod,index) {
     return ret;
 }
 
-function Test() {
+function Test(MUTname) {
     this.unknowns = false;
+    this.MUTname = MUTname;
     this.stack = [];
     this.pool = {};
 }
@@ -248,10 +249,9 @@ exports.generate = function(pgmInfo) {
     var CUTname = pgmInfo.CUTname;
     var MUTname = pgmInfo.MUTname;
 
-//    console.log(util.inspect(pgmInfo, false, null));
     pgmInfo.update();
 
-    var test = new Test();
+    var test = new Test(MUTname);
     var ctrParams = pgmInfo.getConstructorParams(CUTname);
     var instance = new CUTdeclaration(CUTname,
                                       pgmInfo.getRecursiveParams(
@@ -261,31 +261,21 @@ exports.generate = function(pgmInfo) {
     var callSequence = [];
     randomSequenceLength = Math.ceil(Math.random()*MAX_CALLS_BEFORE_MUT);
     
-    // the MUT must only be called once, at the end, so we filter it out
-    var CUTmethods = _.filter(pgmInfo.getMethods(CUTname),function(m){
+/*    var CUTmethods = _.filter(pgmInfo.getMethods(CUTname),function(m){
         return !m.isMUT;
     });
-    var numCUTmethods = CUTmethods.length;
-    // we check that there are other CUT methods than the MUT
-    if (numCUTmethods) {
-        for (var j = 0; j<randomSequenceLength;j++) {
-            var randomMethod = Math.floor(Math.random()*numCUTmethods);
-            var CUTmethod = CUTmethods[randomMethod];
-            var CUTmethodCall = new Call(instance.getIdentifier(),
-                                         CUTmethod.name,
-                                         pgmInfo.getRecursiveParams(
-                                             _.pluck(CUTmethod.params, "inferredType")),
-                                         CUTname);
-            test.push(CUTmethodCall);
+*/
+    var CUTmethods = pgmInfo.getMethods(CUTname);
+    for (var j = 0; j<randomSequenceLength;j++) {
+        var randomMethod = Math.floor(Math.random()*CUTmethods.length);
+        var CUTmethod = CUTmethods[randomMethod];
+        if (CUTmethod.isMUT) {
+            test.push(new MUTcall(instance.getIdentifier(), CUTmethod.name,
+                pgmInfo.getRecursiveParams(_.pluck(CUTmethod.params, "inferredType")), CUTname));
+        } else {
+            test.push(new Call(instance.getIdentifier(), CUTmethod.name,
+                pgmInfo.getRecursiveParams(_.pluck(CUTmethod.params,"inferredType")), CUTname));
         }
     }
-    
-    var MUTparams = pgmInfo.getMUT().params;
-    var MUT = new MUTcall(instance.getIdentifier(),
-                          MUTname,
-                          pgmInfo.getRecursiveParams(
-                              _.pluck(MUTparams, "inferredType")),
-                          CUTname);
-    test.push(MUT);
     return test;
 }
