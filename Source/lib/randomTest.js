@@ -4,19 +4,24 @@ var util = require('util');
 
 Test.prototype.toExecutorFormat = function() {
     var test = [];
+    test.push("(function (){");
+    test.push("var results = [];")
     for (var i = 0; i<this.stack.length; ++i) {
         var e = this.stack[i];
         test.push(e.elem.toExecutorFormat(e.paramIds));
     }
+    test.push("return results;})();")
     return test.join('\n');
 }
 
-Test.prototype.toUnitTestFormat = function(result,error,testIndex) {
+Test.prototype.toUnitTestFormat = function(results, error, testIndex) {
     var test = [];
-    test[0] = "// Method " + this.MUTname + ": test #" + testIndex;
+    test.push("// Method " + this.MUTname + ": test #" + testIndex);
     for (var i = 0; i<this.stack.length; ++i) {
         var testElement = this.stack[i];
-        test[i+1] = testElement.elem.toUnitTestFormat(testElement.paramIds,result,error);
+        test.push(testElement.elem.toUnitTestFormat(testElement.paramIds,
+                                                    results,
+                                                    error));
     }
     return test.join('\n');
 }
@@ -100,27 +105,33 @@ function Call(instanceIdentifier,method,params,type) {
     }
 }
 
-function MUTcall(instanceIdentifier,method,params,type) {
+function MUTcall(number, instanceIdentifier, method, params, type) {
     this.instanceIdentifier = instanceIdentifier;
     this.method = method;
     this.type = type;
     this.params = params;
+    this.number = number;
     this.toExecutorFormat = function(paramIdentifiers) {
-        var ret = instanceIdentifier + ".MUT"
+        var ret = "results[" + this.number + "] = " 
+                  + instanceIdentifier + ".MUT"
                   + "(" + toParams(paramIdentifiers) + ");"
         return ret;
     }
-    this.toUnitTestFormat = function(paramIdentifiers, result, error) {
+    this.toUnitTestFormat = function(paramIdentifiers, results, error) {
+        var r = results[this.number];
         var ret;
         if (error) {
             ret = "// Despite Flycatcher's best attempt to infer the correct types for parameters,\n";
-            ret += "// this test has resulted in a " + result;
+            ret += "// this test has resulted in a " + r;
         }
         else {
-            if (typeof result === "string") result = "\"" + result + "\"";
-            var assertion = instanceIdentifier + "." + this.method + "(";
-            assertion += toParams(paramIdentifiers) + ") === " + result;
-            ret = "assert.ok(" + assertion + ",\n         \'" + assertion + "\');";
+            console.log("before OMGOMG");
+//            r.getTarget();
+            console.log("after OMGOMG");
+//            if (typeof result === "string") result = "\"" + r + "\"";
+//            var assertion = instanceIdentifier + "." + this.method + "(";
+//           assertion += toParams(paramIdentifiers) + ") === " + r;
+//            ret = "assert.ok(" + assertion + ",\n         \'" + assertion + "\');";
         }
         return ret;
     }
@@ -157,6 +168,7 @@ function Test(MUTname) {
     this.MUTname = MUTname;
     this.stack = [];
     this.pool = {};
+    this.MUTcalls = 0;
 }
 
 Test.prototype.hasUnknowns = function() {
@@ -266,16 +278,23 @@ exports.generate = function(pgmInfo) {
     });
 */
     var CUTmethods = pgmInfo.getMethods(CUTname);
+    var MUTcallNumber = 0;
     for (var j = 0; j<randomSequenceLength;j++) {
         var randomMethod = Math.floor(Math.random()*CUTmethods.length);
         var CUTmethod = CUTmethods[randomMethod];
         if (CUTmethod.isMUT) {
-            test.push(new MUTcall(instance.getIdentifier(), CUTmethod.name,
+            // MUTcalls and MUTcallNumber are used to create and collect
+            // results in an object inside the vm environment
+            test.MUTcalls++;
+            test.push(new MUTcall(MUTcallNumber++, instance.getIdentifier(), CUTmethod.name,
                 pgmInfo.getRecursiveParams(_.pluck(CUTmethod.params, "inferredType")), CUTname));
         } else {
             test.push(new Call(instance.getIdentifier(), CUTmethod.name,
                 pgmInfo.getRecursiveParams(_.pluck(CUTmethod.params,"inferredType")), CUTname));
         }
     }
+    var MUT = _.filter(CUTmethods, function(x){return x.isMUT})[0];
+    test.push(new MUTcall(MUTcallNumber++, instance.getIdentifier(), MUT.name,
+        pgmInfo.getRecursiveParams(_.pluck(MUT.params, "inferredType")), CUTname));
     return test;
 }

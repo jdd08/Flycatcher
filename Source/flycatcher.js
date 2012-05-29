@@ -70,12 +70,15 @@ if (MUTname) {
 }
 // otherwise generate tests for all of a class's methods
 else {
-
+    var prev = null;
     for (var m in CUTmethods) {
-        var MUTname = CUTmethods[m].name;
+        if (prev) prev.isMUT = false;
+        var method = CUTmethods[m]
+        var MUTname = method.name;
         pgmInfo.setMUT(MUTname);
-        CUTmethods[m].isMUT = true;
+        method.isMUT = true;
         generateTests(MUTname);
+        prev = method;
     }
 }
 
@@ -94,11 +97,12 @@ function generateTests(MUTname) {
         try {
             var test = randomTest.generate(pgmInfo);
             exec.setTest(test);
-            // exec.showTest(test);
+            console.log();
+            exec.showTest(test);
             // exec.showMUT();
             var testRun = exec.run();
             if (testRun.newCoverage && !test.hasUnknowns()) {
-                unitTests.push(test.toUnitTestFormat(testRun.result,
+                unitTests.push(test.toUnitTestFormat(testRun.results,
                                                      testRun.error,
                                                      ++count));
             }

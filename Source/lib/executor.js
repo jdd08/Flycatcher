@@ -14,6 +14,7 @@ var stackTrace = require('stack-trace');
 
 var burrito = require('burrito');
 var vm = require('vm');
+var beautify = require('beautify').js_beautify;
 var _ = require('underscore');
 var EventEmitter = require('events').EventEmitter;
 var randomData = require('./randomData.js');
@@ -157,7 +158,7 @@ function createExecHandler(pgmInfo) {
     // to update sooner than later to achieve coverage
     var TRAP_THRESHOLD = 10;
 
-    var Handler = function(className, methodName, paramIndex, exec) {
+    var Handler = function(target, className, methodName, paramIndex, exec) {
         // exec reference needed to have a handle on the vm source
         this.exec = exec;
 
@@ -169,6 +170,8 @@ function createExecHandler(pgmInfo) {
         this.name = paramInfo.name;
         this.primitiveScore = paramInfo.primitiveScore;
         this.membersAccessed = paramInfo.membersAccessed;
+
+        this.target = target;
 
         this.trapCount = 0;
     }
@@ -226,6 +229,7 @@ function createExecHandler(pgmInfo) {
                                           this.exec.valueOfHintRegexp);
                 }
                 catch(err) {
+                    console.log(stackTrace.parse(err));
                     var lineNum = _.find(stackTrace.parse(err), function(value){
                         // we want the line number to correspond the line in
                         // the vm script, not the one in the Flycatcher source,
@@ -259,22 +263,25 @@ function createExecHandler(pgmInfo) {
                     return randomData.getRandomPrimitive();
                 }
             }
-/*            else if (name === "toString") {
-                return function() {
-                    return "HARO!";
-                }
-
-            }
-*/
             else {
-                this.membersAccessed.push(name);
-                // return a proxy with a handler that does nothing so that we can avoid
-                // crashing and keep collecting data for the other parameters during this
-                // run if possible
-                return Proxy.createFunction(doNothingHandler,
-                    function() {
-                        return Proxy.create(doNothingHandler)
-                });
+                if (name === "getTarget") {
+                    console.log("INSIDE GET TARGET");
+                    console.log(this.target);
+                    var handler = this;
+                    return function() {
+                        handler.target.toString();
+                    }
+                }
+                else {
+                    this.membersAccessed.push(name);
+                    // return a proxy with a handler that does nothing so that we can avoid
+                    // crashing and keep collecting data for the other parameters during this
+                    // run if possible
+                    return Proxy.createFunction(doNothingHandler,
+                        function() {
+                            return Proxy.create(doNothingHandler)
+                    });                    
+                }
             }
         },
 
@@ -312,6 +319,7 @@ Executor.prototype.createContext = function(pgmInfo) {
     var context = {};
     var Handler = createExecHandler(pgmInfo);
     function getProperties(o) {
+//        console.log(o);
         var own = {};
         var proto = {};
         for (var i in o) {
@@ -342,9 +350,11 @@ Executor.prototype.createContext = function(pgmInfo) {
     var exec = this;
     context.proxy = function(o,className,methodName,paramIndex) {
         var p = getProperties(o);
+//        o.valueOf = function(){return "aadsad"};
+    console.log(o.first);
         var prox = Object.create(
             Object.create(Proxy.create(
-                new Handler(className,methodName,paramIndex,exec)),p.proto),
+                new Handler(o, className, methodName, paramIndex, exec)),p.proto),
             p.own
         );
         return prox;
@@ -400,25 +410,25 @@ Executor.prototype.show = function() {
 
 Executor.prototype.showMUT = function() {
     console.log('-------------- MUT --------------------');
-    console.log(this.wrappedMUT);
+    console.log(beautify(this.wrappedMUT));
     console.log('---------------------------------------');
 }
 
 Executor.prototype.showCoverage = function() {
     console.log('-------------- COVERED --------------------');
-    console.log(this.coverage);
+    console.log(beautify(this.coverage));
     console.log('-------------------------------------------');
 }
 
-Executor.prototype.showOriginal = function() {
+Executor.prototype.showSource = function() {
     console.log('-------------- SOURCE -----------------');
-    console.log(this.source);
+    console.log(beautify(this.source));
     console.log('---------------------------------------');
 }
 
 Executor.prototype.showTest = function() {
     console.log('-------------- TEST -------------------');
-    console.log(this.test.toExecutorFormat());
+    console.log(beautify(this.test.toExecutorFormat()));
     console.log('---------------------------------------');
 
 }
@@ -440,7 +450,10 @@ Executor.prototype.run = function() {
     var res = {};
     var e = null;
     try {
-        res = vm.runInNewContext(this.vmSource, this.context);
+        console.log("before run");
+        results = vm.runInNewContext(this.vmSource, this.context);
+        console.log("after run");
+//        console.log(util.inspect(results, false, null));
     }
     catch(err) {
         err instanceof TrapThresholdExceeded ?
@@ -459,15 +472,15 @@ Executor.prototype.run = function() {
         // we have produced in the tests
 
         // also display res if TrapThresholdExceeded?
-        res = err.toString();
-        e = true;
+        // res = err.toString();
+        // e = true;
     }
     var after = this.covered();
     var newCoverage = after > before;
     this.emit('cov', after, newCoverage);
     return {
         newCoverage: newCoverage,
-        result: res,
+        results: results,
         coverage: this.currentCov,
         error: e
     };
