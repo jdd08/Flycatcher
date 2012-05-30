@@ -19,9 +19,8 @@ Test.prototype.toUnitTestFormat = function(results, error, testIndex) {
     test.push("// Method " + this.MUTname + ": test #" + testIndex);
     for (var i = 0; i<this.stack.length; ++i) {
         var testElement = this.stack[i];
-        test.push(testElement.elem.toUnitTestFormat(testElement.paramIds,
-                                                    results,
-                                                    error));
+        test.push(
+            testElement.elem.toUnitTestFormat(testElement.paramIds, results, error));
     }
     return test.join('\n');
 }
@@ -32,7 +31,6 @@ function CUTdeclaration(type, params, id) {
     this.id = id;
     this.identifier = type.toLowerCase() + id;
     this.toExecutorFormat = function(paramIds) {
-        
         // the CUT might need a different proxying, however it doesn't need proxying
         // for catching erroneous method calls (all its methods are known from the analyser
         // and called specifically)
@@ -42,7 +40,6 @@ function CUTdeclaration(type, params, id) {
         return ret;
     }
     this.toUnitTestFormat = function(paramIds) {
-        
         // the CUT might need a different proxying, however it doesn't need proxying
         // for catching erroneous method calls (all its methods are known from the analyser
         // and called specifically)
@@ -61,25 +58,27 @@ function Declaration(type,params,identifier,parentType,parentMethod,index,id,reu
     this.type = type;
     this.params = params;
     this.identifier = identifier;
+    this.noproxy = identifier + "__noproxy";
     this.id = id;
     this.parentType = parentType;
     this.parentMethod = parentMethod;
     this.index = index;
     this.toExecutorFormat = function(paramIdentifiers) {
-        
         // the CUT might need a different proxying, however it doesn't 
         // need proxying for catching erroneous method calls (all its 
         // methods are known from the analyser and called specifically)
         var type = this.type === "unknown" ? "Object" : this.type;
-        var ret = "var " + this.identifier + " = proxy"
-                         + "(new " +type+ executorParams(paramIdentifiers,
-                                                         parentType,
-                                                         parentMethod,
-                                                         index) + ");";
+        var ret = "var " + this.noproxy + " = " +
+                  "new " + type + "(" + toNoProxyParams(paramIdentifiers)+ ");" +
+                  "var " + this.identifier + " = proxy"
+                         + "(" + this.noproxy + ", new "
+                         + type + toProxyParams(paramIdentifiers,
+                                                 parentType,
+                                                 parentMethod,
+                                                 index) + ");";
         return ret;
     }
     this.toUnitTestFormat = function(paramIdentifiers) {
-        
         // the CUT might need a different proxying, however it doesn't need proxying
         // for catching erroneous method calls (all its methods are known from the analyser
         // and called specifically)
@@ -125,13 +124,14 @@ function MUTcall(number, instanceIdentifier, method, params, type) {
             ret += "// this test has resulted in a " + r;
         }
         else {
-            console.log("before OMGOMG");
-//            r.getTarget();
-            console.log("after OMGOMG");
-//            if (typeof result === "string") result = "\"" + r + "\"";
-//            var assertion = instanceIdentifier + "." + this.method + "(";
-//           assertion += toParams(paramIdentifiers) + ") === " + r;
-//            ret = "assert.ok(" + assertion + ",\n         \'" + assertion + "\');";
+            var result;
+            // try and get the target in case we have a proxy
+            result = r.__FLYCATCHER_TARGET__ ? r.__FLYCATCHER_TARGET__ : r;
+
+            if (typeof result === "string") result = "\"" + r + "\"";
+            var assertion = instanceIdentifier + "." + this.method + "(";
+            assertion += toParams(paramIdentifiers) + ") === " + util.inspect(result, false, null);
+            ret = "assert.ok(" + assertion;//,\n         \'" + assertion + "\');";
         }
         return ret;
     }
@@ -151,13 +151,23 @@ function isUserDefined(type) { return !isUnknown(type) && !isPrimitive(type); }
 function toParams(paramIds) {
     var r = "";
     for (var i = 0; i<paramIds.length; ++i) {
-        r += paramIds[i];
+        r += paramIds[i].id;
         if(i < paramIds.length-1) r += ",";
     }
     return r;
 }
 
-function executorParams(ids,parentType,parentMethod,index) {
+function toNoProxyParams(paramIds) {
+    var r = "";
+    for (var i = 0; i<paramIds.length; ++i) {
+        var p = paramIds[i];
+        r += p.primitive ? p.id : p.id + "__noproxy";
+        if(i < paramIds.length-1) r += ",";
+    }
+    return r;
+}
+
+function toProxyParams(ids,parentType,parentMethod,index) {
     var ret = "(" + toParams(ids) + "),";
     ret += "\"" + parentType + "\",\"" + parentMethod + "\"," + index;
     return ret;
@@ -233,10 +243,19 @@ Test.prototype.push = function(elem) {
         }
         
         // TODO: regroup identifier generation
-        var paramId = !isPrimitive(paramType) ?
-                       (paramType.toLowerCase() + id + "_" + p) : id;
-        paramIds.push(paramId);
         
+        // we need to know whether the param id is a primitive
+        // or not so as not to suffix 'noproxy' onto a primtiive
+        // when creating/passing the non-proxy targets
+        var paramIdNoProxyFlag = !isPrimitive(paramType) ?
+                       {id : (paramType.toLowerCase() + id + "_" + p),
+                        primitive : false} :
+                       {id : id,
+                        primitive : true};
+
+        paramIds.push(paramIdNoProxyFlag);
+
+        var paramId = paramIdNoProxyFlag.id;        
         if (!isPrimitive(paramType)) {
             var method;
             if (isDecl) {
@@ -272,11 +291,7 @@ exports.generate = function(pgmInfo) {
     test.push(instance);
     var callSequence = [];
     randomSequenceLength = Math.ceil(Math.random()*MAX_CALLS_BEFORE_MUT);
-    
-/*    var CUTmethods = _.filter(pgmInfo.getMethods(CUTname),function(m){
-        return !m.isMUT;
-    });
-*/
+
     var CUTmethods = pgmInfo.getMethods(CUTname);
     var MUTcallNumber = 0;
     for (var j = 0; j<randomSequenceLength;j++) {

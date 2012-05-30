@@ -158,7 +158,7 @@ function createExecHandler(pgmInfo) {
     // to update sooner than later to achieve coverage
     var TRAP_THRESHOLD = 10;
 
-    var Handler = function(target, className, methodName, paramIndex, exec) {
+    var Handler = function(noproxy, className, methodName, paramIndex, exec) {
         // exec reference needed to have a handle on the vm source
         this.exec = exec;
 
@@ -171,7 +171,7 @@ function createExecHandler(pgmInfo) {
         this.primitiveScore = paramInfo.primitiveScore;
         this.membersAccessed = paramInfo.membersAccessed;
 
-        this.target = target;
+        this.noproxy = noproxy;
 
         this.trapCount = 0;
     }
@@ -202,7 +202,6 @@ function createExecHandler(pgmInfo) {
 
         getPropertyDescriptor: function(name) {
             this.membersAccessed.push(name);
-            console.log("INSIDE GET PROP DESC CALLS");
             return undefined;
         },
 
@@ -229,7 +228,6 @@ function createExecHandler(pgmInfo) {
                                           this.exec.valueOfHintRegexp);
                 }
                 catch(err) {
-                    console.log(stackTrace.parse(err));
                     var lineNum = _.find(stackTrace.parse(err), function(value){
                         // we want the line number to correspond the line in
                         // the vm script, not the one in the Flycatcher source,
@@ -264,13 +262,8 @@ function createExecHandler(pgmInfo) {
                 }
             }
             else {
-                if (name === "getTarget") {
-                    console.log("INSIDE GET TARGET");
-                    console.log(this.target);
-                    var handler = this;
-                    return function() {
-                        handler.target.toString();
-                    }
+                if (name === "__FLYCATCHER_TARGET__") {
+                    return this.noproxy;
                 }
                 else {
                     this.membersAccessed.push(name);
@@ -348,20 +341,20 @@ Executor.prototype.createContext = function(pgmInfo) {
     // of the type Proxy, whose handler is initialised to update the table
     // for the specific parameter that this "proxy" is supposed to represent
     var exec = this;
-    context.proxy = function(o,className,methodName,paramIndex) {
+    context.proxy = function(noproxy, o, className, methodName, paramIndex) {
         var p = getProperties(o);
-//        o.valueOf = function(){return "aadsad"};
-    console.log(o.first);
         var prox = Object.create(
             Object.create(Proxy.create(
-                new Handler(o, className, methodName, paramIndex, exec)),p.proto),
+                // noproxy is the target object (stripped of proxy)
+                // that is not composed of any proxies either (used for asserting)
+                new Handler(noproxy, className, methodName, paramIndex, exec)),p.proto),
             p.own
         );
         return prox;
     }
     context.log = console.log;
 
-        // adding the instrumentation methods to the runtime context
+        // adding the instrumentation methods theo the runtime context
         var self = this;
         var stack = [];
 
@@ -450,10 +443,7 @@ Executor.prototype.run = function() {
     var res = {};
     var e = null;
     try {
-        console.log("before run");
         results = vm.runInNewContext(this.vmSource, this.context);
-        console.log("after run");
-//        console.log(util.inspect(results, false, null));
     }
     catch(err) {
         err instanceof TrapThresholdExceeded ?

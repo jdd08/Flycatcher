@@ -61,7 +61,6 @@ var CUTmethods = pgmInfo.getMethods(CUTname);
 
 // specific method to test was specified
 if (MUTname) {
-    console.log("Unit tests for " + MUTname + "...");
     pgmInfo.setMUT(MUTname);
     _.filter(CUTmethods, function(m) {
         return m.name === MUTname;
@@ -97,8 +96,8 @@ function generateTests(MUTname) {
         try {
             var test = randomTest.generate(pgmInfo);
             exec.setTest(test);
-            console.log();
-            exec.showTest(test);
+            //console.log();
+            //exec.showTest(test);
             // exec.showMUT();
             var testRun = exec.run();
             if (testRun.newCoverage && !test.hasUnknowns()) {
