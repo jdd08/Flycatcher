@@ -15,6 +15,7 @@ cmd
 .usage('[options] <file path> <class name>')
 .option('-m, --method <name>', 'generate tests for a specific method')
 .option('-c, --coverage <num>', 'expected coverage %', Number, 100)
+.option('-t, --timeout <num>', 'timeout in seconds')
 .parse(process.argv);
 
 if (cmd.args.length !== 2) {
@@ -56,8 +57,55 @@ var MUTname = cmd.method;
 var expectedCoverage = cmd.coverage;
 
 var pgmInfo = analyser.getProgramInfo(cmd, classContext, CUTname);
-var unitTests = [];
 var CUTmethods = pgmInfo.getMethods(CUTname);
+
+var unitTests = [];
+var failingTests = [];
+var unitTestsFile = "./results/Flycatcher_" + CUTname + ".js";
+var failingTestsFile = "./results/Flycatcher_" + CUTname + ".log";
+
+var red, green, yellow, reset;
+red   = '\u001b[31m';
+green  = '\u001b[32m';
+yellow  = '\u001b[33m';
+reset = '\u001b[0m';
+
+function generateTests(MUTname, unitTest, failingTests) {
+    var exec = new Executor(src, pgmInfo);
+    
+    console.log("\nGenerating tests for at least " + expectedCoverage + 
+                "\% coverage of method <" + MUTname + 
+                "> from class <" + CUTname + "> :   ");
+    console.log("--------------------------------------------------" +
+                "----------------------------------------");
+    var count = 0;
+    var start = Date.now();
+    while (exec.getCoverage() < expectedCoverage) {
+        var test = randomTest.generate(pgmInfo);
+        exec.setTest(test);
+        // exec.showTest(test);
+        // exec.showMUT();
+        var testRun = exec.run();
+        if (testRun.newCoverage && !test.hasUnknowns()) {
+            unitTests.push(test.toUnitTestFormat(testRun.results, ++count));
+        }
+        // keep track of the non-unknown tests that don't add coverage so that
+        // if the timeout expires we can see what the failing tests were
+        else if (testRun.error && !test.hasUnknowns()) {
+            failingTests.push(test.toFailingTestFormat(testRun.msg));
+        }
+        // exec.showCoverage();
+        // the timeout is to avoid looping forever in the case
+        // that the generated tests cannot achieve any further
+        // coverage due to errors (these errors may be due to
+        // the code under test itself or it may be that we failed
+        // to infer correct types)
+        if (cmd.timeout && Date.now() > (start + cmd.timeout*1000)) {
+            console.warn("Flycatcher timed out as it could not achieve the desired coverage in time.");
+            break;
+        }
+    }
+}
 
 // specific method to test was specified
 if (MUTname) {
@@ -65,7 +113,14 @@ if (MUTname) {
     _.filter(CUTmethods, function(m) {
         return m.name === MUTname;
     })[0].isMUT = true;
-    generateTests(MUTname);
+    try {
+        generateTests(MUTname, unitTests, failingTests);
+    }
+    catch(err) {
+        console.error("\u001b[31mERROR while generating tests for method <"
+                      + MUTname + ">: \u001b[0m");
+        console.error(err.toString());
+    }
 }
 // otherwise generate tests for all of a class's methods
 else {
@@ -76,43 +131,37 @@ else {
         var MUTname = method.name;
         pgmInfo.setMUT(MUTname);
         method.isMUT = true;
-        generateTests(MUTname);
-        prev = method;
+        prev = method;        
+        // if generation for one method fails notify and attempt others
+        try {
+            generateTests(MUTname, unitTests, failingTests);
+        }
+        catch(err) {
+            console.error("\u001b[31mERROR while generating tests for method <"
+                          + MUTname + ">: \u001b[0m");
+            console.error(err.toString());
+        }
     }
 }
 
-var fileName = "./results/Flycatcher_" + CUTname + ".js";
-process.stdout.write("\nTests can be found in " + fileName + "\n\n");
-fs.writeFileSync(fileName,generateContent(src,CUTname,MUTname,unitTests));
+if (unitTests.length) {
+    console.log(green + "\n--> Unit tests can be found in " + unitTestsFile + reset);
+    fs.writeFileSync(unitTestsFile,
+        generateUnitTests(src, CUTname, unitTests)
+    );
+}
+else {
+    console.log(red + "\n--> No unit tests were generated." + reset);
+}
+if (failingTests.length) {
+    console.log(red + "--> Failings tests can be found in " + failingTestsFile  + reset);
+    fs.writeFileSync(failingTestsFile,
+        generateFailingTests(src, CUTname, failingTests)
+    );
+}
 
-function generateTests(MUTname) {
-    var exec = new Executor(src, pgmInfo);
-    process.stdout.write("Generating tests for at least ");
-    process.stdout.write(expectedCoverage + "\% coverage of ");
-    process.stdout.write("method <" + MUTname + "> from class <");
-    process.stdout.write(CUTname + "> :   ");
-    var count = 0;
-    while (exec.getCoverage() < expectedCoverage) {
-        try {
-            var test = randomTest.generate(pgmInfo);
-            exec.setTest(test);
-            //console.log();
-            //exec.showTest(test);
-            // exec.showMUT();
-            var testRun = exec.run();
-            if (testRun.newCoverage && !test.hasUnknowns()) {
-                unitTests.push(test.toUnitTestFormat(testRun.results,
-                                                     testRun.error,
-                                                     ++count));
-            }
-            // exec.showCoverage();
-        }
-        catch(err) {
-            console.error(err.stack);
-            process.exit(1);
-        }
-    }
-    console.log("\nGeneration succesful.");
+else {
+    console.log(green + "--> No generated tests failed." + reset);
 }
 
 /* catch MUT not defined
@@ -126,13 +175,27 @@ function generateTests(MUTname) {
 }
 */
 
-function generateContent(src,CUTname,MUTname,tests) {
+function generateFailingTests(src, CUTname, tests) {
+    var header = "/*****************************************\n\n";
+    header += "                  FLYCATCHER\n";
+    header += "                 FAILING TEST LOG\n";
+    header += "        ------------------------------\n\n";
+    header += "        CLASS: " + CUTname + "\n";
+    header += "*******************************************/\n\n"
+    var res = "";
+    for (var t=0; t < tests.length; t++) {
+        res += tests[t];
+        res += "\n\n";
+    };
+    return header + res;
+}
+
+function generateUnitTests(src, CUTname, tests) {
     var header = "/*****************************************\n\n";
     header += "                  FLYCATCHER\n";
     header += "        AUTOMATIC UNIT TEST GENERATION\n";
     header += "        ------------------------------\n\n";
     header += "        CLASS: " + CUTname + "\n";
-    header += "        METHOD: " + MUTname + "\n\n";
     header += "*******************************************/\n\n"
     header += "var assert = require('assert');\n\n";
     var success = "console.log(\"Unit test suite completed with success!\")";

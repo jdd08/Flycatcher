@@ -26,6 +26,7 @@ var Executor = module.exports.Executor = function(src, pgmInfo)
     this.coverage = {};
     this.nodeNum = 0;
     this.currentCov = 0;
+    this.MUTname = pgmInfo.MUTname;
 
     this.names = {
         call: burrito.generateName(6),
@@ -43,10 +44,10 @@ var Executor = module.exports.Executor = function(src, pgmInfo)
 
     this.on('cov',
     function(currentCoverage, good) {
-        this.currentCov = Math.round((currentCoverage / _.size(this.coverage) * 100) *
-        Math.pow(10, 2) / Math.pow(10, 2));
         if (good) {
-            process.stdout.write("\b\b"+this.currentCov);
+            this.currentCov = Math.round((currentCoverage / _.size(this.coverage) * 100) *
+            Math.pow(10, 2) / Math.pow(10, 2));
+            console.log("\u001b[33m"+ this.currentCov + "% achieved...\u001b[0m");
         }
     });
 
@@ -217,11 +218,16 @@ function createExecHandler(pgmInfo) {
 
         // proxy[name] -> any
         get: function(receiver, name) {
+//            console.log("GET", name);
             this.trapCount++;
             if (this.trapCount > TRAP_THRESHOLD) {
                 throw new TrapThresholdExceeded();
             }
+            if (name === "inspect") {
+                return this.noproxy;
+            }
             if (name === "valueOf") {
+//                console.log("INSIDEVALUEOF");
                 try {
                     throw new ValueOfTrap(this.exec.vmSource,
                                           this.primitiveScore,
@@ -257,13 +263,25 @@ function createExecHandler(pgmInfo) {
                 // to be to let the exception be thrown and wrap all operator
                 // reassignment operations in the vm source in try/catches,
                 // which is infeasible)
+                var self = this;
                 return function() {
+                    // ??? returning this means that when proxies are still unknown
+                    // and could stand for a primitive, the operations ++ etc.
+                    // called on the result of this valueOf will most likely
+                    // result in a NaN est
+                    // ??? self.noproxy.toString();
+                    
+                    // we work from the idea that if valueOf is important
+                    // it will be implemented and not trapped
                     return randomData.getRandomPrimitive();
                 }
             }
             else {
                 if (name === "__FLYCATCHER_TARGET__") {
                     return this.noproxy;
+                }
+                else if (name === "toString") {
+                    return this.noproxy.toString;
                 }
                 else {
                     this.membersAccessed.push(name);
@@ -409,7 +427,7 @@ Executor.prototype.showMUT = function() {
 
 Executor.prototype.showCoverage = function() {
     console.log('-------------- COVERED --------------------');
-    console.log(beautify(this.coverage));
+    console.log(this.coverage);
     console.log('-------------------------------------------');
 }
 
@@ -434,46 +452,69 @@ Executor.prototype.run = function() {
     this.vmSource = this.source + '\n' + this.wrappedMUT + '\n' 
                                 + this.test.toExecutorFormat();
     if (!this.wrappedMUT) {
-        console.warn("Warning: Executor.mut is an empty string")
+        console.warn("\u001b[35mWARNING:\u001b[0m Executor.mut is an empty string")
     }
     if (!this.test) {
-        console.warn("Warning: Executor.test is empty")
+        console.warn("\u001b[35mWARNING:\u001b[0m Executor.test is empty")
     }
     var before = this.covered();
-    var res = {};
-    var e = null;
+    var beforeCoverage = {};
+    for (var i in this.coverage) {
+        beforeCoverage[i] = this.coverage[i];
+    }
+    var results = [];
     try {
         results = vm.runInNewContext(this.vmSource, this.context);
+        var after = this.covered();
+        var newCoverage = after > before;
+        this.emit('cov', after, newCoverage);
+        return {
+            newCoverage: newCoverage,
+            results: results,
+            coverage: this.currentCov,
+        };
     }
     catch(err) {
-        err instanceof TrapThresholdExceeded ?
-        console.info("Trap threshold exceeded. Updating program info and generating new test.") :
-        console.warn("ERROR: vm error in executor.js",err.stack);
-        // in cases where there are still unknowns the result won't be displayed because the test
-        // will be dismissed, where there are no longer unknowns, if we get an exception, it means
-        // that the program, with the parameters that we have carefully inferred for it, crashes,
-        // in which cases we should notify of this in displaying the test result (as opposed to
-        // looping forever which is what could happen if we did not accept the result of an execution
-        // that fails even if there are no longer unknowns) - in the case where less than 100% of the
-        // code coverage is desire this approach could work and *not* lead to looping forever (by
-        // waiting for a path that does not contain an error, if there is one, to be executed and help
-        // achieve the desire coverage) but it is *probably better* to let the user know that his
-        // program fails after we have made the best possible guess for the type of the parameters
-        // we have produced in the tests
+        // If the test run yields an error, this test will not become a unit test
+        // therefore the coverage that it has contributed must be cancelled.
+        // Only errors which we do not expect should however be logged as failing
+        // tests, which does not apply to the trap threshold being exceeded.
+        this.coverage = beforeCoverage;
+        if (err instanceof TrapThresholdExceeded) {
+            console.info("Trap threshold exceeded. Updating program info and generating new test.")            
+        }
+        else {
+            // in cases where there are still unknowns the result won't be displayed because the test
+            // will be dismissed, where there are no longer unknowns, if we get an exception, it means
+            // that the program, with the parameters that we have carefully inferred for it, crashes,
+            // in which cases we should notify of this in displaying the test result (as opposed to
+            // looping forever which is what could happen if we did not accept the result of an execution
+            // that fails even if there are no longer unknowns) - in the case where less than 100% of the
+            // code coverage is desire this approach could work and *not* lead to looping forever (by
+            // waiting for a path that does not contain an error, if there is one, to be executed and help
+            // achieve the desire coverage) but it is *probably better* to let the user know that his
+            // program fails after we have made the best possible guess for the type of the parameters
+            // we have produced in the tests
+            var trace = _.find(stackTrace.parse(err), function(value){
+                // we want the line number to correspond the line in
+                // the vm script, not the one in the Flycatcher source,
+                // nor within any native code: the first entry with
+                // the fileName set to evalmachine.<anonymous> will
+                // return that line
+                return value.fileName && // ignore if it is null
+                       value.fileName.indexOf("evalmachine") !== -1;
+            });
 
-        // also display res if TrapThresholdExceeded?
-        // res = err.toString();
-        // e = true;
+            // TODO: fix the wrapping methods and you can print out
+            // the line of code for the error
+            var methodName = trace.methodName === "MUT" ?
+                             this.MUTname : trace.methodName;
+            return {
+                msg: err.toString() + " in method " + methodName,
+                error: true
+            }
+        }
     }
-    var after = this.covered();
-    var newCoverage = after > before;
-    this.emit('cov', after, newCoverage);
-    return {
-        newCoverage: newCoverage,
-        results: results,
-        coverage: this.currentCov,
-        error: e
-    };
 };
 
 

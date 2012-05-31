@@ -317,7 +317,7 @@ ParamInfo.prototype.update = function(pgmInfo) {
         // looping forever
         if (this.inferredType === "unknown" &&
             this.updateCount >= MIN_CALLS_BEFORE_WEAK_GUESS) {
-            console.warn("\nWarning: insufficient info to infer param "
+            console.warn("\u001b[35mWARNING:\u001b[0m insufficient info to infer param "
                           + this.name + ", attempting to infer random primitive.");
                           
             // no point in inferring a primitive if we have member accesses,
@@ -330,9 +330,9 @@ ParamInfo.prototype.update = function(pgmInfo) {
                     this.membersAccessed = membersAccessed;
                     Error.captureStackTrace(this, InaccessibleClass);
                     this.toString = function() {
-                        var msg = "Warning: Couldn't infer primitive, param has member accesses.\n";
-                        msg += "         Object likely belongs to a class which is not accessible.\n";
-                        msg += "         The member accesses are:\n";
+                        var msg = "       Couldn't infer type, parameter has unknown member accesses.\n";
+                        msg += "       Object likely belongs to a class which is not accessible.\n";
+                        msg += "       The member accesses are:\n";
                         for (var i=0; i < this.membersAccessed.length; i++) {
                             msg += "            " + this.membersAccessed[i];
                         };

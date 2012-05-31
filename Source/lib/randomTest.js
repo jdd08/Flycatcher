@@ -14,14 +14,25 @@ Test.prototype.toExecutorFormat = function() {
     return test.join('\n');
 }
 
-Test.prototype.toUnitTestFormat = function(results, error, testIndex) {
+Test.prototype.toUnitTestFormat = function(results, testIndex) {
     var test = [];
-    test.push("// Method " + this.MUTname + ": test #" + testIndex);
+    test.push("// Method " + this.MUTname + " under test: test #" + testIndex);
     for (var i = 0; i<this.stack.length; ++i) {
         var testElement = this.stack[i];
         test.push(
-            testElement.elem.toUnitTestFormat(testElement.paramIds, results, error));
+            testElement.elem.toUnitTestFormat(testElement.paramIds, results));
     }
+    return test.join('\n');
+}
+
+Test.prototype.toFailingTestFormat = function(msg) {
+    var test = [];
+    test.push("// Method " + this.MUTname + " under test");
+    for (var i = 0; i<this.stack.length; ++i) {
+        var testElement = this.stack[i];
+        test.push(testElement.elem.toUnitTestFormat(testElement.paramIds));
+    }
+    test.push(msg);
     return test.join('\n');
 }
 
@@ -116,24 +127,22 @@ function MUTcall(number, instanceIdentifier, method, params, type) {
                   + "(" + toParams(paramIdentifiers) + ");"
         return ret;
     }
-    this.toUnitTestFormat = function(paramIdentifiers, results, error) {
-        var r = results[this.number];
-        var ret;
-        if (error) {
-            ret = "// Despite Flycatcher's best attempt to infer the correct types for parameters,\n";
-            ret += "// this test has resulted in a " + r;
-        }
-        else {
-            var result;
+    this.toUnitTestFormat = function(paramIdentifiers, results) {
+        var ret = "";
+        if (results) {
+            var r = results[this.number];
             // try and get the target in case we have a proxy
-            result = r.__FLYCATCHER_TARGET__ ? r.__FLYCATCHER_TARGET__ : r;
+            result = r && r.__FLYCATCHER_TARGET__ ? r.__FLYCATCHER_TARGET__ : r;
 
             if (typeof result === "string") result = "\"" + r + "\"";
             var assertion = instanceIdentifier + "." + this.method + "(";
             assertion += toParams(paramIdentifiers) + ") === " + util.inspect(result, false, null);
-            ret = "assert.ok(" + assertion;//,\n         \'" + assertion + "\');";
+            ret = "assert.ok(" + assertion + ")";
         }
-        return ret;
+        else {
+            ret = instanceIdentifier + "." + this.method + "(" + toParams(paramIdentifiers) + ");";
+        }
+        return ret;            
     }
 }
 
