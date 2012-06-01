@@ -23,6 +23,7 @@ ProgramInfo.prototype.update = function() {
 // retrieves the ParamInfo objects for a class
 // returns [] for primitive types
 ProgramInfo.prototype.getConstructorParams = function(className) {
+//    console.log(util.inspect(this.classes, false, null));
     switch(className) {
         case "num":
         case "string":
@@ -35,11 +36,13 @@ ProgramInfo.prototype.getConstructorParams = function(className) {
 // obtains a hierarchy of inferred types for a parameter,
 // in order to generate that hierarchy of objects for a test
 ProgramInfo.prototype.getRecursiveParams = function(inferences) {
+//    console.log(inferences);
     var recursiveParams = [];
     for (var p=0; p < inferences.length; p++) {
         var inference = inferences[p];
+//        console.log(inference);
         recursiveParams.push({
-            name: inference,
+            type: inference,
             params: this.getRecursiveParams(
                 _.pluck(this.getConstructorParams(inference),
                         "inferredType")

@@ -159,7 +159,7 @@ function createExecHandler(pgmInfo) {
     // to update sooner than later to achieve coverage
     var TRAP_THRESHOLD = 10;
 
-    var Handler = function(noproxy, className, methodName, paramIndex, exec) {
+    var Handler = function(className, methodName, paramIndex, exec) {
         // exec reference needed to have a handle on the vm source
         this.exec = exec;
 
@@ -171,8 +171,6 @@ function createExecHandler(pgmInfo) {
         this.name = paramInfo.name;
         this.primitiveScore = paramInfo.primitiveScore;
         this.membersAccessed = paramInfo.membersAccessed;
-
-        this.noproxy = noproxy;
 
         this.trapCount = 0;
     }
@@ -218,16 +216,13 @@ function createExecHandler(pgmInfo) {
 
         // proxy[name] -> any
         get: function(receiver, name) {
-//            console.log("GET", name);
+            // sconsole.log("INSIDE GET",name);
             this.trapCount++;
             if (this.trapCount > TRAP_THRESHOLD) {
                 throw new TrapThresholdExceeded();
             }
-            if (name === "inspect") {
-                return this.noproxy;
-            }
             if (name === "valueOf") {
-//                console.log("INSIDEVALUEOF");
+                // console.log("INSIDEVALUEOF");
                 try {
                     throw new ValueOfTrap(this.exec.vmSource,
                                           this.primitiveScore,
@@ -265,40 +260,27 @@ function createExecHandler(pgmInfo) {
                 // which is infeasible)
                 var self = this;
                 return function() {
-                    // ??? returning this means that when proxies are still unknown
-                    // and could stand for a primitive, the operations ++ etc.
-                    // called on the result of this valueOf will most likely
-                    // result in a NaN est
-                    // ??? self.noproxy.toString();
-                    
                     // we work from the idea that if valueOf is important
                     // it will be implemented and not trapped
                     return randomData.getRandomPrimitive();
                 }
             }
             else {
-                if (name === "__FLYCATCHER_TARGET__") {
-                    return this.noproxy;
-                }
-                else if (name === "toString") {
-                    return this.noproxy.toString;
-                }
-                else {
-                    this.membersAccessed.push(name);
-                    // return a proxy with a handler that does nothing so that we can avoid
-                    // crashing and keep collecting data for the other parameters during this
-                    // run if possible
-                    return Proxy.createFunction(doNothingHandler,
-                        function() {
-                            return Proxy.create(doNothingHandler)
-                    });                    
-                }
+                this.membersAccessed.push(name);
+                // console.log('MEMBER ACCESS');
+                // return a proxy with a handler that does nothing so that we can avoid
+                // crashing and keep collecting data for the other parameters during this
+                // run if possible
+                return Proxy.createFunction(doNothingHandler,
+                    function() {
+                        return Proxy.create(doNothingHandler)
+                    }
+                );
             }
         },
 
         // proxy[name] = value
         set: function(receiver, name, value) {
-            console.log("INSIDE SET");
             //console.log(name)
             if (canPut(this.target, name)) {
                 // canPut as defined in ES5 8.12.4 [[CanPut]]
@@ -329,25 +311,6 @@ function createExecHandler(pgmInfo) {
 Executor.prototype.createContext = function(pgmInfo) {
     var context = {};
     var Handler = createExecHandler(pgmInfo);
-    function getProperties(o) {
-//        console.log(o);
-        var own = {};
-        var proto = {};
-        for (var i in o) {
-            if (o.hasOwnProperty(i)) {
-                own[i] = {
-                    value:o[i],
-                    writable:true,
-                    enumerable:true,
-                    configurable:true
-                };
-            }
-            else {
-                proto[i] = {value:o[i]};
-            }
-        }
-        return {own: own, proto: proto};
-    }
     
     // we want to trap only the calls that the "proxy" object
     // below cannot answer (because the type for it is not
@@ -359,15 +322,8 @@ Executor.prototype.createContext = function(pgmInfo) {
     // of the type Proxy, whose handler is initialised to update the table
     // for the specific parameter that this "proxy" is supposed to represent
     var exec = this;
-    context.proxy = function(noproxy, o, className, methodName, paramIndex) {
-        var p = getProperties(o);
-        var prox = Object.create(
-            Object.create(Proxy.create(
-                // noproxy is the target object (stripped of proxy)
-                // that is not composed of any proxies either (used for asserting)
-                new Handler(noproxy, className, methodName, paramIndex, exec)),p.proto),
-            p.own
-        );
+    context.proxy = function(className, methodName, paramIndex) {
+        var prox = Object.create(Proxy.create(new Handler(className, methodName, paramIndex, exec)));
         return prox;
     }
     context.log = console.log;
@@ -481,7 +437,8 @@ Executor.prototype.run = function() {
         // tests, which does not apply to the trap threshold being exceeded.
         this.coverage = beforeCoverage;
         if (err instanceof TrapThresholdExceeded) {
-            console.info("Trap threshold exceeded. Updating program info and generating new test.")            
+            console.info("Trap threshold exceeded. Updating program info and generating new test.");
+            return {};         
         }
         else {
             // in cases where there are still unknowns the result won't be displayed because the test

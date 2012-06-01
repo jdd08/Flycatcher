@@ -81,17 +81,19 @@ function generateTests(MUTname, unitTest, failingTests) {
     var count = 0;
     var start = Date.now();
     while (exec.getCoverage() < expectedCoverage) {
+        
         var test = randomTest.generate(pgmInfo);
         exec.setTest(test);
         // exec.showTest(test);
-        // exec.showMUT();
         var testRun = exec.run();
+
         if (testRun.newCoverage && !test.hasUnknowns()) {
             unitTests.push(test.toUnitTestFormat(testRun.results, ++count));
         }
         // keep track of the non-unknown tests that don't add coverage so that
         // if the timeout expires we can see what the failing tests were
         else if (testRun.error && !test.hasUnknowns()) {
+            // console.log(util.inspect(test, false, null));
             failingTests.push(test.toFailingTestFormat(testRun.msg));
         }
         // exec.showCoverage();
@@ -105,6 +107,7 @@ function generateTests(MUTname, unitTest, failingTests) {
             break;
         }
     }
+    // exec.showMUT();
 }
 
 // specific method to test was specified
@@ -119,7 +122,9 @@ if (MUTname) {
     catch(err) {
         console.error("\u001b[31mERROR while generating tests for method <"
                       + MUTname + ">: \u001b[0m");
-        console.error(err.toString());
+        if (err.type === "stack_overflow") 
+            console.log("STACK OVERFLOW: there is a cycle in the inferred parameter definitions");
+        else console.log(err.toString());
     }
 }
 // otherwise generate tests for all of a class's methods
@@ -139,7 +144,9 @@ else {
         catch(err) {
             console.error("\u001b[31mERROR while generating tests for method <"
                           + MUTname + ">: \u001b[0m");
-            console.error(err.toString());
+            if (err.type === "stack_overflow") 
+                console.log("STACK OVERFLOW: there is a cycle in the inferred parameter definitions");
+            else console.log(err.toString());
         }
     }
 }
