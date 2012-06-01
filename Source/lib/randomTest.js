@@ -4,7 +4,7 @@ var util = require('util');
 
 
 // maximum number of CUT method calls before calling the MUT
-const MAX_CALLS_BEFORE_MUT = 10;
+const MAX_CALLS_BEFORE_MUT = 5;
 
 function Test(MUTname) {
     this.unknowns = false;

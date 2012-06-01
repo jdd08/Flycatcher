@@ -228,6 +228,7 @@ ParamInfo.prototype.startUpdating = function() {
     // accessed/called in the present test circumstances
     MIN_CALLS_BEFORE_WEAK_GUESS = 60;
     
+    // TODO: change to UPDATES_BEFORE_INFERRING and UPDATES_BEFORE_WEAK_GUESS
     return (_.max(this.primitiveScore) >= MIN_SCORE_BEFORE_UPDATING) ||
            (this.memberAccesses >= MIN_CALLS_BEFORE_UPDATING) ||
            (this.updateCount >= MIN_CALLS_BEFORE_WEAK_GUESS && this.isUnknown());
@@ -344,6 +345,8 @@ ParamInfo.prototype.update = function(pgmInfo) {
                 }(membersAccessed);
             }
             else {
+                // TODO: let it be something else than primtive??
+                // use more hints??
                 var rand = Math.random();
                 this.inferredType = rand > 0.66 ? "num" :
                                     (rand > 0.33 ? "string" : "bool");                

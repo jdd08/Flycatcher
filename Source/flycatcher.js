@@ -80,6 +80,7 @@ function generateTests(MUTname, unitTest, failingTests) {
                 "----------------------------------------");
     var count = 0;
     var start = Date.now();
+    // console.log(util.inspect(pgmInfo, true, null));
     while (exec.getCoverage() < expectedCoverage) {
         
         var test = randomTest.generate(pgmInfo);
@@ -96,7 +97,8 @@ function generateTests(MUTname, unitTest, failingTests) {
             // console.log(util.inspect(test, false, null));
             failingTests.push(test.toFailingTestFormat(testRun.msg));
         }
-        // exec.showCoverage();
+        //exec.showCoverage();
+        //exec.showMUT();
         // the timeout is to avoid looping forever in the case
         // that the generated tests cannot achieve any further
         // coverage due to errors (these errors may be due to
@@ -107,7 +109,6 @@ function generateTests(MUTname, unitTest, failingTests) {
             break;
         }
     }
-    // exec.showMUT();
 }
 
 // specific method to test was specified

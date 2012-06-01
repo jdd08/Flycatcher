@@ -100,14 +100,13 @@ Executor.prototype.setTest = function(test) {
 
 Executor.prototype.wrapMUT = function(pgmInfo) {
     function wrapper(node) {
-
         if (node.name === 'call') {
             i++;
             node.wrap(names.call + '(' + i + ')(%s)');
             node.id = i;
         }
         else if (node.name === 'stat' || node.name === 'throw'
-        || node.name === 'var') {
+        || node.name === 'var' || node.name === 'return') {
             i++;
             node.wrap('{' + names.stat + '(' + i + ');%s}');
             node.id = i;
