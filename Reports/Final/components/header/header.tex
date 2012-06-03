@@ -3,22 +3,25 @@
 \usepackage{./garamond}
 
 \usepackage{titlesec}
-
+\usepackage{url}
 \usepackage{graphicx}
 \usepackage{amssymb}
 %\usepackage[margin=2.3cm]{geometry}
 \usepackage{tikz}
-
+% \renewcommand*\ttdefault{ascii}
 
 \usepackage{fancyvrb,fancybox,calc} 
-\definecolor{mylightgray}{rgb}{0.867,0.867,0.867}
+%\definecolor{myblue}{rgb}{0.0,0.5,0.97}
+\definecolor{mylightgray}{rgb}{0.96,0.96,0.96}
+%\definecolor{mylightgray}{rgb}{0.4,0.4,0.4}
+%\definecolor{mylightgray}{rgb}{0.867,0.867,0.867}
 %\definecolor{mylightblue}{rgb}{0.659,0.769,0.941}
 \newenvironment{verbcode}{\VerbatimEnvironment% 
   \noindent
   \newline
   \begin{Sbox}
-%  \color{mylightblue}
-  \begin{minipage}{\linewidth-2\fboxsep-2\fboxrule-4pt}    
+ % \color{myblue}
+  \begin{minipage}{\linewidth-2\fboxsep-2\fboxrule-4pt}
   \begin{Verbatim}
 }{% 
   \end{Verbatim}  
