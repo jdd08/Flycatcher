@@ -195,6 +195,8 @@ As for real software errors, \textsf{Flycatcher} will deal with those too, and t
 Dynamic languages sometimes offer features that parse and evaluate a string at runtime and execute it as code, such as JavaScript's \texttt{eval} function. However, not only are these features potentially insecure, they make any analysis for test data generation much harder. As the general use of \texttt{eval} in JavaScript is prohibited anyway\footnote{\tiny"\url{https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/eval#Don't_use_eval!}"}, we can safely ignore it for the purpose of our application.
 
 \section{Object-oriented test case generation}
+\label{OOtests}
+
 Most of the research on test generation focuses on testing imperative functions, such that the automated generation required is that of the functions' input parameters. However, when dealing with object-oriented code, a different approach is needed, as the unit under test changes from a function to an object. To test one of an object's methods, three steps are necessary \cite{tonella2004evolutionary} and should be repeated until the chosen coverage criterion for the method under test is met.
 \begin{enumerate}
 	\item Instantiate the object
@@ -223,7 +225,7 @@ assert (l.size == 1)
 %create a sequence of methods leading to the method under test, it is the method under test which gives an assertion using its return value
 
 \section{JavaScript}
-
+\label{overalljs}
 \subsection{Why JavaScript?}
 
 With cloud computing and the ubiquitous shift of desktop applications to the web, web development has taken on a whole new meaning. Along with this shift, the languages of the web have become much more significant to the software world. JavaScript particularly so, due to its powerful multi-paradigm nature (and despite its unanimously condemned defects). As a result, while in the past JavaScript was used for no more than to animate static HTML pages, today it powers 3D game engines and other fast real-time applications on the web. On top of its pervasiveness on the client-side of the web, it has now also reached web servers and desktop scripting environments.
@@ -358,7 +360,7 @@ There is much more to say about object Proxies and their applications, but this 
 
 \subsubsection{Function Proxies}
 
-Harmony also proposes \emph{function} Proxies, which are useful to us. Functions in JavaScript are objects, hence, function Proxies have the \emph{same} trapping capabilities but they also offer \emph{additional} traps, which are specific to functions: the \texttt{call} trap and the \texttt{construct} trap. To illustrate we give an example of a function proxy in action:
+Harmony also proposes \emph{function} Proxies, which are useful to us. Functions in JavaScript are objects, hence, Function Proxies have the \emph{same} trapping capabilities but they also offer \emph{additional} traps, which are specific to functions: the \texttt{call} trap and the \texttt{construct} trap. To illustrate we give an example of a function proxy in action:
 
 \begin{verbcode}
 
@@ -374,4 +376,4 @@ new fnproxy(1,2,3) // calls new construct(1,2,3)
 
 Despite being tedious and prone to human error, testing is a necessary and important part of software development --- it is thus worthwhile to attempt to automate that effort where possible. In this project we focus on structural testing: making sure that the \emph{internals} of an application work by trying out, as much as is feasible to do so, all the ways in which it can be executed. The quality measure for our tests is therefore code coverage: how much code we can, with fair confidence, assert to be bug-free.
 
-In the arena of automatic test generation, dynamic languages have so far largely been left aside. Given a recent surge in JavaScript's popularity, a growth of its developer community, as well as a shift towards server-side application development, we feel that it makes sense to include it in the research work on automatic test generation. From the wide array of techniques in this domain, we will use the most appropriate for JavaScript, namely dynamic test generation (as opposed to static or hybrid): test generation that results from numerous executions of the program and their feedback. Random test data generation can be improved by search heuristics and genetic algorithms will be our heuristic method of choice. Finally, we saw that there are challenges that pertain specifically to object-oriented languages and dynamic languages and this project will involve devising novel ways to overcome these issues in the context of JavaScript, using state-of-the-art language features.
+In the arena of automatic test generation, dynamic languages have so far largely been left aside. Given a recent surge in JavaScript's popularity, a growth of its developer community, as well as an expansion towards server-side application development, we feel that it makes sense to include it in the research work on automatic test generation. From the wide array of techniques in this domain, we will use the most appropriate for JavaScript, namely dynamic test generation (as opposed to static or hybrid): test generation that results from numerous executions of the program and their feedback. Random test data generation can be improved by search heuristics and genetic algorithms will be our heuristic method of choice. Finally, we saw that there are challenges that pertain specifically to object-oriented languages and dynamic languages and this project will involve devising novel ways to overcome these issues in the context of JavaScript, using state-of-the-art features of this language.
