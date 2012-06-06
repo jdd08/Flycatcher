@@ -1,4 +1,6 @@
 \chapter{Background}
+\label{background}
+
 In this chapter we will start by giving an overview of software testing, with particular emphasis on aspects of it that are relevant to this project. We will then take a look at the state of the art in automatic test data generation (ATDG) in order to understand the approach that will be used for \textsf{Flycatcher}. Because the tests will be object-oriented, method call sequences also need to be generated for the test cases and we will look at the state of the art for doing that too. Finally, we will further justify our choice of JavaScript and describe features of it that are of importance for this project.
 
 \section{Dynamic software testing}
@@ -198,6 +200,7 @@ Dynamic languages sometimes offer features that parse and evaluate a string at r
 \label{OOtests}
 
 Most of the research on test generation focuses on testing imperative functions, such that the automated generation required is that of the functions' input parameters. However, when dealing with object-oriented code, a different approach is needed, as the unit under test changes from a function to an object. To test one of an object's methods, three steps are necessary \cite{tonella2004evolutionary} and should be repeated until the chosen coverage criterion for the method under test is met.
+
 \begin{enumerate}
 	\item Instantiate the object
 	\item Call some of its methods to possibly modify its state

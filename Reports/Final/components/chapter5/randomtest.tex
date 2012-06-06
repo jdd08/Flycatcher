@@ -1,0 +1,209 @@
+\chapter{Random Test Generator}
+
+In this chapter we detail the process for generating \emph{random} tests, in the hope of achieving good code coverage of the CUT. First we explain the structure of a test and some characteristics of that structure. Then we describe the mechanism for trying to generate tests in which the types for the parameters are correct. Finally we discuss the formatting of those tests, with regard to whether they are intended for the \textbf{Executor} or as final output.
+
+\section{Structure}
+
+To recapitulate, an object-oriented test targets a particular method of the CUT, referred to as the MUT. If the method of interest is specified by the user then tests are only generated for that method. Otherwise each of the CUT's methods are selected as the MUT, and tests are generated for each of them, covering the whole class. Either way, generating a test for a MUT involves the following steps:
+
+\begin{enumerate}
+	\item Instantiate the object
+	\item Call some of its methods (including the MUT) to possibly modify its state
+	\item Where the MUT is called (at least once), assert that it returns the expected answer
+\end{enumerate}
+
+Assuming that the MUT is the method \texttt{size}, the final output of a simple test might therefore look something like:
+
+\begin{verbcode}
+var linkedList = new LinkedList();
+
+var node1 = new Node(123);
+linkedList.add(node1);
+
+var node2 = new Node(234);
+linkedList.add(node2);
+assert(linkedList.size() = 2);
+
+var node3 = new Node(345);
+linkedList.add(node3);
+assert(linkedList.size() = 3);
+\end{verbcode}
+
+\subsection{Recursive declarations}
+
+The tests are built using recursion, in the sense that when a method call or a constructor call (a declaration) is added to a candidate test, any parameters of that call are declared beforehand. The recursion stops when a constructor call has no parameters \emph{e.g.} in the case of primitives. For the sake of conciseness primitives are in fact inlined as can be seen in the example. So, in the example, the \texttt{LinkedList.add} calls prompt a declaration of a \texttt{Node} object, which in turn prompt an inline declaration of a number.
+The tests are \emph{always} initiated with a declaration of the CUT, and therefore start with any declarations that are needed for its constructor's parameters, if any.
+
+The number of method calls made in an attempt to modify the state of the CUT instance is chosen \emph{at random}, with a configurable maximum. However, there must be at least one occurrence of the MUT in the \emph{overall} method call sequence, since the sole purpose of the test is to evaluate that method. Note that if there is only one MUT call, it will be at the end, as there is no use in calling more methods \emph{after} we have finished evaluating the MUT.
+
+We initially made the mistake of making only one MUT call in total, but later realised that this could preclude certain portions of the code from being covered. For example, if \texttt{LinkedList.add} is the MUT, it needs to be called at least twice to exercise full coverage, as its behaviour depends on whether the list is empty or not.
+
+Aside from its recursive construction, another feature of the tests' structure is the pooling of parameters.
+
+\subsection{Pooling parameters}
+In order reach full coverage, it is important to enable methods in the tests' method call sequences to manipulate references to \emph{the same object}. Let us take a look at the following code:
+
+\begin{verbcode}
+var linkedList = new LinkedList();
+
+var node1 = new Node(123);
+linkedList.add(node1);
+var node2 = new Node(234);
+linkedList.remove(node2);
+\end{verbcode}
+
+In that example, a substantial portion of the \texttt{LinkedList.remove} method will never be reached: the portion which expects a reference \emph{already contained} in the list. Unless we allow the \texttt{LinkedList.remove} method to work with antecedent parameters and not necessarily redefine its own, it is impossible to hand it such a reference. In other words, it has to be possible to generate:
+
+\begin{verbcode}
+var linkedList = new LinkedList();
+
+var node1 = new Node(123);
+linkedList.add(node1);
+linkedList.remove(node1);
+\end{verbcode}
+
+This is implemented with a `pooling' mechanism. For every type, there is a pool to which objects are added to when they are declared. This enables any subsequent constructor calls or method calls which need a parameter of that type, to reuse a variable which already exists in the test. Upon a series of experiments, which will be detailed in the evaluation section, it was determined that a 25% reuse rate gave the best coverage results. However this variable is highly dependent on the program under test and is therefore also configurable if need be.
+
+Although we have discussed how tests are constructed, we have purposefully ignored one important detail: \emph{we do not know the types of any function parameters}. How do we know that the \texttt{LinkedList.add} method takes an object of type \texttt{Node}?
+
+\section{Types}
+
+In the example of the previous section, the type of the variable \texttt{linkedList} is known from the start --- it is an instance of the CUT. However, initially, the types of the parameters for the \texttt{LinkedList} and \texttt{Node} constructors are not. For that reason, we create a new special type of object: the \texttt{Unknown} type.
+
+\subsection{\texttt{Unknown} type}
+
+Early on in the test generation process, this object will replace any parameter which we need but do not know the type of. Inside the \textbf{Executor}, these objects enable us to \emph{collect information} about the parameter that they stand for --- we will elaborate on \emph{how} this is done in the next chapter. In most cases, thanks to this information, the \texttt{Unknown} objects will eventually be substituted with objects of the appropriate type. Initially however, this is what a test might look like:
+
+\begin{verbcode}
+var linkedList = new LinkedList();
+
+var unknown1 = new Unknown();
+linkedList.add(unknown1);
+
+var unknown2 = new Unknown();
+linkedList.add(unknown2);
+linkedList.size();
+
+var unknown3 = new Unknown();
+linkedList.add(unknown3);
+linkedList.size();
+\end{verbcode}
+
+It is worth noting that tests that contain \texttt{Unknown} objects are only destined for the \texttt{Executor}, they are not suitable as final output, regardless of whether they achieve coverage or not (that coverage is in effect meaningless). Because they are not meant as output unit tests, they also do not contain assertions. In fact, even the format displayed here is not exactly accurate, as we simplify it for clarity.
+
+To carry on with the example, eventually, after enough information has been collected to infer that the type of the parameter to \texttt{LinkedList.add} is \texttt{Node}, the test would look like:
+
+\begin{verbcode}
+   var linkedList = new LinkedList();
+   
+   var unknown1 = new Unknown();
+   var node1 = new Node(unknown1);
+   linkedList.add(node1);
+   
+   var unknown2 = new Unknown();
+   var node2 = new Node(unknown2);
+   linkedList.add(node2);
+   linkedList.size();
+
+   var unknown3 = new Unknown();
+   var node3 = new Node(unknown3);
+   linkedList.add(node3);
+   linkedList.size();
+\end{verbcode}
+
+Similarly, when there is enough information to infer that the type of the parameter of the \texttt{Node} constructor is a primitive number, we get the test in the initial example.
+
+\subsection{Type inference}
+The information that is collected when tests are run by the \textbf{Executor} is stored in the \texttt{ProgramInfo} object introduced in chapter \ref{background}. Upon each \textbf{Test Generator}/\textbf{Executor} iteration for that test, we update the \texttt{ProgramInfo} object's type information using the new information gathered in the latest \textbf{Executor} run. Although we will explain exactly how this information is collected when we describe the \textbf{Executor}, here we describe how that information is used to infer types for the various test parameters.
+
+\subsubsection{Member accesses}
+For each parameter, the \texttt{ProgramInfo} object keeps track of any attempt to access a property on that parameter. In effect, this records attempts to retrieve \emph{fields} and \emph{methods} from that parameter. By cross-referencing those accesses with the fields and methods stored in \texttt{ProgramInfo}'s class definitions, we may be able to deduce the type of that parameter. 
+
+If more than one class has fields or methods that match the member accesses on the parameter, the one with the highest correspondence is elected. But if there is a member access with no matches\footnote{except for the hidden properties inherited from \texttt{Object} in JavaScript}, this means that we are faced with a class which is not accessible in the scope of the program and we abort the test generation process for that particular method with a warning.
+
+When we do the \texttt{ProgramInfo} type inference updates, the question of whether a parameter has any member accesses comes \emph{first}, before we look at what sort of primitive it is the most likely to be. The reason behind this is simple: any member access rules out the possibility of a parameter being a primitive, since by definition primitives in JavaScript have no properties.
+
+If and only if no member accesses were recorded, do we look at the parameters \emph{primitive score}.
+
+\subsubsection{Primitive scoring}
+The primitive score of a parameter is an object which accumulates the likelihood of a parameter being of a primitive type based on the operations it is involved in. Like the member accesses, this information is recorded when a candidate test is run in the \textbf{Executor}. The primitive types taken into account are \emph{number} and \emph{string}. We ignore \emph{null}, \emph{undefined} and \emph{boolean} for simplification, as there are no meaningful operations in which they cannot be substituted by \texttt{0} or \texttt{1}. The primitive scoring object thus corresponds to:
+
+\begin{verbcode}
+   {
+      "number" : 15,
+      "string" : 12
+   }
+\end{verbcode}
+
+\subsubsection{Delaying updates}
+Because we do not want to jump to conclusions to quickly when inferring types using the member accesses and primitive score, we do not start updating the \texttt{ProgramInfo} object until either:
+
+\begin{enumerate}
+   \item We have collected sufficient information to make a confident decision
+   \item[] \textbf{or}
+   \item A sufficient number of calls \emph{involving} that parameter have been made
+\end{enumerate}
+
+Once more, the optimal values for those variables are highly dependent on the program under test, hence they are configurable. We nevertheless provide a sensible default based upon experimentation of, respectively:
+
+\begin{enumerate}
+   \item members called \(>\) 2 \emph{or} max(primitive score) \(>\) 10
+   \item number of calls involving that parameter \(>\) 15
+\end{enumerate}
+
+Note that the two conditions are a disjunction, they do not need to both be true. Also, even if the first one is never realised, the second will necessarily be realised after a certain number of \textbf{Test Generator}/\textbf{Executor} iterations for that test.
+
+Finally, there is one last case to deal with: when the second condition is met but we \emph{still} have no information to work with \emph{i.e.} our parameter's properties were not accessed nor was it used in an operation. In such a scenario we assume that given that the test was run a reasonable amount of times (again, this is configurable if the default is not appropriate), it is likely that the parameter is never used. Hence, we replace it with a random primitive, in order to remove any \texttt{Unknowns} from the candidate test, so that it can be output.
+
+The reasoning is that if a parameter is not used in any way, whatever value we give it has no impact whatsoever. We make the design choice of substituting the unused parameter with a random value rather than aborting the test generation for that method. In the \emph{unlikely} event that the unused parameter is in fact used but just happened not to be in the minimum number of runs chosen, tests will fail and the user can see why in the logs. Upon seeing that the parameter was inferred out of lack of information (a warning is issued), they may then want to adjust the configurable termination parameters to suit the needs of their program.
+
+\section{Executor format}
+
+All the results of calling the MUT in a candidate test are recorded, so that the assertions as seen in example ... can be created. Therefore the format of test ... in the executor is in fact:
+
+\begin{verbcode}
+(function() {
+   var results = [];
+   var linkedList = new LinkedList();
+
+   var node1 = new Node(123);
+   linkedList.add(node1);
+
+   var node2 = new Node(234);
+   linkedList.add(node2);
+   results[0] = linkedList.size();
+
+   var node3 = new Node(345);
+   linkedList.add(node3);
+   results[1] = linkedList.size();
+   return results;
+})();
+\end{verbcode}
+
+\section{Outcome}
+
+A candidate test is a valid unit test if it fulfils the following criteria:
+
+\begin{itemize}
+   \item It achieves new coverage (the current coverage is that achieved by other tests so far)
+   \item It contains no \texttt{Unknowns}
+\end{itemize}
+
+A test may contain no \texttt{Unknowns} but fail to ever achieve any new coverage, for example if a portion of the code is simply not reachable in the program. In this case, \textsf{Flycatcher} may loop forever as it may not achieve the expected coverage setting for a MUT. Hence, there are two \emph{liveness} safeguards for this scenario:
+
+\begin{enumerate}
+   \item An optional timeout after which \textsf{Flycatcher} stops generating tests for a MUT
+   \item Abort after a specific number of test runs during which coverage did not improve
+\end{enumerate}
+
+Another reason than dead code for which new coverage might be unattainable is simply bugs in the program under test. Potential bugs may preclude any new coverage from being achieved because of thrown exceptions. The two liveness safeguards will also apply, however the tests that do fail will be recorded. These tests are output in a log file, such that the user can diagnose and fix failures in their program\footnote{it is also possible that the errors are due to \textsf{Flycatcher} making type inferences too early on and getting it wrong, which the user will be able to determine from the failing test logs}.
+
+If termination is not caused by timeouts, then \textsf{Flycatcher} stops generating tests for a MUT when the desired coverage, initially specified by the user, is reached\footnote{the default is full coverage, 100\%}. At that point, all of the valid tests are concatenated into a unit-testing suite and output in the format of the user's preferred unit-testing framework. The unit-testing formats available are:
+
+\begin{itemize}
+   \item node-unit
+   \item expresso
+   \item vows
+\end{itemize}
+
+More framework formats may be available in the future. If none of these frameworks suit the user, the unit tests are output by default in simple JavaScript code with assertions.
