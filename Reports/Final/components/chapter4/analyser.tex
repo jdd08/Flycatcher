@@ -18,7 +18,7 @@ First of all, it is important to note that, given the highly dynamic nature of J
 
 To illustrate why this is impossible, consider this class definition:
 
-\begin{verbcode}
+\begin{lstlisting}
 
 var LinkedListConstructor = function() {
     this.size = function() {
@@ -42,7 +42,7 @@ var getRemoveFunction = function() {
 
 LinkedList.prototype.add = addFunction;
 LinkedList.prototype.remove = getRemoveFunction();
-\end{verbcode}
+\end{lstlisting}
 
 The example is unnecessarily but purposely entangled, to demonstrate the point. First, the class constructor is not defined directly but is in fact a reference to another function. This is possible in JavaScript because functions are first-class objects. Second, the \texttt{LinkedList} class has three methods \texttt{size}, \texttt{add} and \texttt{remove} but each are defined in a different manner, and sometimes also through indirect references.
 
@@ -55,17 +55,17 @@ Unlike a language like C++ or Java that have static class definitions which foll
 
 Thankfully, Node.js's built-in library offers a virtual machine API which enables us to do just that. In JavaScript, any variable defined at the outermost scope in a source file becomes a property of the \emph{global object} or \emph{context} when that file is interpreted. The Node.js virtual machine API exposes:\\
 
-\begin{verbcode}
+\begin{lstlisting}
    vm.runInNewContext(code, [sandbox])
-\end{verbcode}
+\end{lstlisting}
 
-This means that we can load the source file under test using standard IO, and execute it as \texttt{\underline{code}} with a fresh global object \texttt{\underline{sandbox}}. This means that we do not pollute the environment in which we interpret the class definition with \textsf{Flycatcher}'s own global object. It also means that we have an unambiguous handle on the objects that form the class definition of the CUT.
+This means that we can load the source file under test using standard IO, and execute it as \texttt{\underline{lstlisting}} with a fresh global object \texttt{\underline{sandbox}}. This means that we do not pollute the environment in which we interpret the class definition with \textsf{Flycatcher}'s own global object. It also means that we have an unambiguous handle on the objects that form the class definition of the CUT.
 
 In fact, when the vm has finished interpreting the source under test, we have access not just to the CUT, but to all the other classes which are accessible in that scope. These classes are significant since they are \emph{potential candidates} for the types of the parameters of the CUT constructor and methods. For instance in the running \texttt{LinkedList} example, it wouldn't be surprising to find a \texttt{Node} class in the \texttt{sandbox} as well.
 
 Note that all of these classes, including the CUT, may belong to a namespace like so:
 
-\begin{verbcode}
+\begin{lstlisting}
 DataStructures.LinkedList = function () {
 }
 
@@ -74,7 +74,7 @@ DataStructures.LinkedList.prototype.add = function(node) {
 }
 
 etc.
-\end{verbcode}
+\end{lstlisting}
 
 To overcome this, \textsf{Flycatcher} has the option of \emph{specifying} the namespaces of interest, but the underlying mechanism for extracting information is exactly the same.
 
@@ -104,7 +104,7 @@ This leads to our first use of the Proxy object proposed by ECMA-262 Harmony, in
 
 The catch is that primitive operations are also trapped by the \texttt{get} trap, as they translate into the function \texttt{valueOf} being called. If we return a Proxy when \texttt{valueOf} is trapped, the engine will try to apply a primitive operator, such as \texttt{++}, to an object and throw a type error. Hence, the Proxy's \texttt{get} trap must return a \emph{primitive} whenever the method trapped is \texttt{valueOf}. Returning a number is a sound choice as it can't make any of the primitive operators effect a crash (but for instance \texttt{''string''++} would break). The Proxy API offers many more traps than the \texttt{get} trap, but we focus on the \texttt{get} trap for clarity's sake, as the behaviour of the other traps is analogous to what we have described. To summarise, we lay out the implementation of the \texttt{get} trap that we have explained:
 
-\begin{verbcode}
+\begin{lstlisting}
 get: function(rcvr, name) {
     var proxyHandle = this;
     if (name === "valueOf") {
@@ -119,7 +119,7 @@ get: function(rcvr, name) {
         });
     }
 }   
-\end{verbcode}
+\end{lstlisting}
 
 % TODO: problem with methods that are closures on one of the parameters
 It is worth noting that we do not care about the \emph{outcome} of the operations on parameters within the constructor, only that it doesn't crash. The purpose of this process is to find out the signatures of the class's methods and these cannot be affected by the class parameters --- except for the case where \emph{the class method itself} is passed in as a parameter, which we do not deal with.
@@ -127,7 +127,7 @@ It is worth noting that we do not care about the \emph{outcome} of the operation
 \subsubsection{Using the proxy parameters to initialise the class}
 Once the appropriate number of Function Proxies have been created, which we can find out from the retrieved constructor's definition, we need to initialise the class with them. One would think that JavaScript, given its first-class functions, would have a way to do that --- we have the constructor function and we have the parameters for it. Unfortunately, the \texttt{Function.apply} and \texttt{Function.call} library functions both simply \emph{invoke} functions, they cannot \emph{instantiate} a new object with them, which is what we want to do. Thankfully, this is easily resolved with a small closure:
 
-\begin{verbcode}
+\begin{lstlisting}
 // ctr is the constructor of the class we want to instantiate
 var construct = (function() {
     function Copy(args) {
@@ -141,7 +141,7 @@ var construct = (function() {
 
 // proxyParams are the Function Proxy objects described
 var instance = construct(proxyParams);
-\end{verbcode}
+\end{lstlisting}
 
 Once we have access to an instance of a class we can just iterate through its properties to obtain its methods (the functions) and its fields (the rest).
 
