@@ -14,7 +14,7 @@ To recapitulate, an object-oriented test targets a particular method of the CUT,
 
 Assuming that the MUT is the method \texttt{size}, the final output of a simple test might therefore look something like:
 
-\begin{lstlisting}[caption=Output unit test,label=final]
+\begin{code}[caption=Output unit test,label=final]
 var linkedList = new LinkedList();
 
 var node1 = new Node(123);
@@ -27,7 +27,7 @@ assert(linkedList.size() = 2);
 var node3 = new Node(345);
 linkedList.add(node3);
 assert(linkedList.size() = 3);
-\end{lstlisting}
+\end{code}
 
 \subsection{Recursive declarations}
 
@@ -43,24 +43,24 @@ Aside from its recursive construction, another feature of the tests' structure i
 \subsection{Pooling parameters}
 In order reach full coverage, it is important to enable methods in the tests' method call sequences to manipulate references to \emph{the same object}. Let us take a look at the following code:
 
-\begin{lstlisting}
+\begin{code}
 var linkedList = new LinkedList();
 
 var node1 = new Node(123);
 linkedList.add(node1);
 var node2 = new Node(234);
 linkedList.remove(node2);
-\end{lstlisting}
+\end{code}
 
 In that example, a substantial portion of the \texttt{LinkedList.remove} method will never be reached: the portion which expects a reference \emph{already contained} in the list. Unless we allow the \texttt{LinkedList.remove} method to work with antecedent parameters and not necessarily redefine its own, it is impossible to hand it such a reference. In other words, it has to be possible to generate:
 
-\begin{lstlisting}
+\begin{code}
 var linkedList = new LinkedList();
 
 var node1 = new Node(123);
 linkedList.add(node1);
 linkedList.remove(node1);
-\end{lstlisting}
+\end{code}
 
 This is implemented with a `pooling' mechanism. For every type, there is a pool to which objects are added to when they are declared. This enables any subsequent constructor calls or method calls which need a parameter of that type, to reuse a variable which already exists in the test. Upon a series of experiments, which will be detailed in the evaluation section, it was determined that a 25% reuse rate gave the best coverage results. However this variable is highly dependent on the program under test and is therefore also configurable if need be.
 
@@ -74,7 +74,7 @@ In the example of the previous section, the type of the variable \texttt{linkedL
 
 Early on in the test generation process, this object will replace any parameter which we need but do not know the type of. Inside the \textbf{Executor}, these objects enable us to \emph{collect information} about the parameter that they stand for --- we will elaborate on \emph{how} this is done in the next chapter. In most cases, thanks to this information, the \texttt{Unknown} objects will eventually be substituted with objects of the appropriate type. Initially however, this is what a test might look like:
 
-\begin{lstlisting}
+\begin{code}
 var linkedList = new LinkedList();
 
 var unknown1 = new Unknown();
@@ -87,13 +87,13 @@ linkedList.size();
 var unknown3 = new Unknown();
 linkedList.add(unknown3);
 linkedList.size();
-\end{lstlisting}
+\end{code}
 
 It is worth noting that tests that contain \texttt{Unknown} objects are only destined for the \texttt{Executor}, they are not suitable as final output, regardless of whether they achieve coverage or not (that coverage is in effect meaningless). Because they are not meant as output unit tests, they also do not contain assertions. In fact, even the format displayed here is not exactly accurate, as we simplify it for clarity.
 
 To carry on with the example, eventually, after enough information has been collected to infer that the type of the parameter to \texttt{LinkedList.add} is \texttt{Node}, the test would look like:
 
-\begin{lstlisting}
+\begin{code}
    var linkedList = new LinkedList();
    
    var unknown1 = new Unknown();
@@ -109,7 +109,7 @@ To carry on with the example, eventually, after enough information has been coll
    var node3 = new Node(unknown3);
    linkedList.add(node3);
    linkedList.size();
-\end{lstlisting}
+\end{code}
 
 Similarly, when there is enough information to infer that the type of the parameter of the \texttt{Node} constructor is a primitive number, we get the test in the initial example.
 
@@ -128,12 +128,12 @@ If and only if no member accesses were recorded, do we look at the parameters \e
 \subsubsection{Primitive scoring}
 The primitive score of a parameter is an object which accumulates the likelihood of a parameter being of a primitive type based on the operations it is involved in. Like the member accesses, this information is recorded when a candidate test is run in the \textbf{Executor}. The primitive types taken into account are \emph{number} and \emph{string}. We ignore \emph{null}, \emph{undefined} and \emph{boolean} for simplification, as there are no meaningful operations in which they cannot be substituted by \texttt{0} or \texttt{1}. The primitive scoring object thus corresponds to:
 
-\begin{lstlisting}
+\begin{code}
    {
       "number" : 15,
       "string" : 12
    }
-\end{lstlisting}
+\end{code}
 
 \subsubsection{Delaying updates}
 Because we do not want to jump to conclusions to quickly when inferring types using the member accesses and primitive score, we do not start updating the \texttt{ProgramInfo} object until either:
@@ -161,7 +161,7 @@ The reasoning is that if a parameter is not used in any way, whatever value we g
 
 All the results of calling the MUT in a candidate test are recorded, so that the assertions seen in example \ref{final} can be created. Therefore the format of test \ref{final} in the executor is in fact:
 
-\begin{lstlisting}
+\begin{code}
 (function() {
    var results = [];
    var linkedList = new LinkedList();
@@ -178,7 +178,7 @@ All the results of calling the MUT in a candidate test are recorded, so that the
    results[1] = linkedList.size();
    return results;
 })();
-\end{lstlisting}
+\end{code}
 
 \section{Outcome}
 

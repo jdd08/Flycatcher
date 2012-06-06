@@ -39,6 +39,8 @@
   \newline
 }
 
+\definecolor{mygreen}{rgb}{0.2, 0.8, 0}
+\definecolor{purple}{rgb}{0.65, 0.12, 0.82}
 \lstset{ %
   language=js,                    % the language of the code
   basicstyle=\ttfamily,       % the size of the fonts that are used for the code
@@ -62,19 +64,23 @@
   title=\lstname,                   % show the filename of files included with \lstinputlisting;
                                   % also try caption instead of title
   keywordstyle=\color{myblue},          % keyword style
-  commentstyle=\color{dkgreen},       % comment style
-  stringstyle=\color{mauve},         % string literal style
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{purple},
+  morestring=[b]',
+  morestring=[b]",
+  stringstyle=\color{mygreen},         % string literal style
   escapeinside={\%*}{*)},            % if you want to add a comment within your code
   morekeywords={*,new,var,return,function,...}               % if you want to add more keywords to the set
 }
 
-% \lstnewenvironment{code}[1][]%
-% {
-%    \noindent
-%    \minipage{\linewidth} 
-%    \vspace{0.5\baselineskip}
-%    \lstset{basicstyle=\ttfamily\footnotesize,frame=single,#1}}
-% {\endminipage}
+\lstnewenvironment{code}[1][]%
+{
+   \noindent
+   \minipage{\linewidth} 
+   \vspace{0.5\baselineskip}
+   \lstset{basicstyle=\ttfamily\small,frame=none,#1}}
+{\endminipage}
 
 \usetikzlibrary{calendar,snakes,calc,trees,positioning,arrows,chains,shapes.geometric,decorations.pathreplacing,decorations.pathmorphing,shapes,matrix,shapes.symbols}
 \tikzset{

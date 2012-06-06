@@ -211,14 +211,14 @@ Because it is impossible to know how the application will use the class/object u
 
 The code example below illustrates in pseudocode the type of object-oriented structural unit test that we aim to generate with \textsf{Flycatcher}. It assumes a standard linked list implementation, \texttt{LinkedList} is the class under test and \texttt{size} is the method under test:
 
-\begin{lstlisting}
+\begin{code}
 l = new LinkedList   
 node = new Node
 l.add(node)
 l.remove(node)
 l.add(node)
 assert (l.size == 1)
-\end{lstlisting}
+\end{code}
 
 %, as well as their inputs and the inputs to the constructor, should all evolve in a way that permits a successful coverage to be achieved. Automatic test \emph{data} generation techniques that maximise coverage have been discussed, but work has also been done on techniques to the evolution of object-oriented tests cases.
 
@@ -253,41 +253,41 @@ For the readers who are not familiar with the language, we present the character
 \subsubsection{Types}
 Types in Javascript can be divided into two categories: \emph{primitive} types and \emph{object} types. The primitive types consist of \emph{Number}, \emph{Boolean} and \emph{String}, as well as \texttt{undefined} and \texttt{null} but the latter are particular as they are the only element of their type. Anything else in JavaScript will have the type \emph{Object} (even arrays and functions). Generally, a JavaScript object is an unordered collection of named values, \emph{properties}, that can be stored or retrieved by name \emph{e.g.}:
 
-\begin{lstlisting}
-var foobar = { `foo' : 1,
-               `bar' : 2 };
+\begin{code}
+var foobar = { "foo" : 1,
+               "bar" : 2 };
 foobar.foo     // returns 1
-foobar[`bar']  // returns 2
+foobar["bar"]  // returns 2
 foobar.bar = 3
 foobar.bar     // returns 3
-\end{lstlisting}
+\end{code}
 
 JavaScript also has specialised objects, such as \emph{Arrays} and \emph{Functions}. Arrays are untyped, ordered collections of elements (primitives or objects) that can be accessed through a numerical index. Although arrays exhibit additional behaviour, they \emph{can} be thought of as mere objects whose properties happen to be integers.
 
 Functions however, although they are treated as first-class objects and can be stored in variables, differ significantly. They are defined as code blocks with parameters, local scope, an invocation context \texttt{this} and may return a value if invoked. Below are examples of a JavaScript function definition:
 
-\begin{lstlisting}
+\begin{code}
 function add(a,b) {
     return a + b;
 }
-\end{lstlisting}
-\noindent \emph{or} equivalently:
+\end{code}
+\newline or equivalently:
 
-\begin{lstlisting}
+\begin{code}
 var add = function(a,b) {
     return a + b;
 }
-\end{lstlisting}
+\end{code}
 
 An important feature of JavaScript is that it is dynamically typed, hence a variable cannot imply a type for its value and its type can change over time \emph{i.e.} the code below is correct:
 
-\begin{lstlisting}
+\begin{code}
 var foo = "foo?";
 foo = 3;
 foo = [1,2,3];
 foo = function() {return "foo!"};
 foo(); // returns "foo!"
-\end{lstlisting}
+\end{code}
 
 Equally, the function \texttt{add} defined earlier does not imply any types for its parameters, it could well be a function that concatenates two strings for instance. Although JavaScript supports the object-oriented paradigm, the way it does so is quite different from most object-oriented languages and we will see that functions play a central role.
 
@@ -307,7 +307,7 @@ To summarise, a class in JavaScript is defined by a constructor function\footnot
 
 Below is an example of a simple class definition for a circle, to illustrate our explanation:
 
-\begin{lstlisting}
+\begin{code}
 function Circle(radius) {
     // the Circle class has a field named radius
     this.radius = radius;
@@ -324,7 +324,7 @@ var c2 = new Circle(2);
 c1.getCircumference() // returns approx. 6.28
 c2.getCircumference() // returns approx. 12.56
 
-\end{lstlisting}
+\end{code}
 
 In the example above, note that the invocation context of the constructor is returned automatically when the constructor is called with the keyword \texttt{new}. Also, both \texttt{c1} and \texttt{c2} have a \texttt{radius} field (though initialised to different values) and a \texttt{getCircumference} method, as they were initialised with the same constructor --- we can say that they have the same `class'. In \textsf{Flycatcher}, classes are what we will use as the target unit for generating suites of unit tests and this is what we will be referring to.
 
@@ -338,16 +338,16 @@ Nevertheless, there is a very interesting and landmark edition in progress calle
 \subsubsection{Object Proxies}
 Proxies are special objects that let the programmer define the \emph{behaviour} of an object \emph{i.e.} how it responds to low-level operations. This is done through a `catch-all' mechanism, which \emph{traps} or \emph{intercepts} low-level operations on the proxy and allows us to redefine their outcome. To illustrate this, we define a simple Proxy that overrides the \texttt{[[Get]]} low-level operation and traps property accesses of the form \texttt{proxy.name} in the context of \emph{getting} a property's value. We override that behaviour and return the string \texttt{''It's a trap!''} instead:
 
-\begin{lstlisting}
+\begin{code}
 var proxy = Proxy.create({
   get: function(receiver, name) {
-    return name + '' -> It's a trap!'';
+    return name + " -> It's a trap!";
   }
 });
 
-proxy.treasure = ''gold'';
-proxy.treasure // returns ''treasure -> It's a trap!''
-\end{lstlisting}
+proxy.treasure = "gold";
+proxy.treasure // returns "treasure -> It's a trap!"
+\end{code}
 
 The \texttt{receiver} is a handle to the proxy itself, and the \texttt{name} is the name of the property being trapped. The object passed to the Proxy's \texttt{create} function is called its handler and needs to implement a specific API, so that all of the fundamental low-level operations on the object respond, but it is not necessary to detail it here. It is worth noting about Proxies, as this will matter to us later, that some operations are not trapped in order to respect the language invariants:
 
@@ -364,7 +364,7 @@ There is much more to say about object Proxies and their applications, but this 
 
 Harmony also proposes \emph{function} Proxies, which are useful to us. Functions in JavaScript are objects, hence, Function Proxies have the \emph{same} trapping capabilities but they also offer \emph{additional} traps, which are specific to functions: the \texttt{call} trap and the \texttt{construct} trap. To illustrate we give an example of a function proxy in action:
 
-\begin{lstlisting}
+\begin{code}
 
 // handler is as earlier, construct and call are functions
 var fnproxy = Proxy.create(handler, call, construct);
@@ -372,7 +372,7 @@ fnproxy.treasure   // calls handler.get(fnproxy, treasure)
 fnproxy(1,2,3)     // calls call(1,2,3)
 new fnproxy(1,2,3) // calls new construct(1,2,3)
 
-\end{lstlisting}
+\end{code}
 
 \section{Summary}
 
