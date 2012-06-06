@@ -2,7 +2,7 @@
 
 The targets of our unit tests are classes, understood as the definition in section \ref{overalljs}. We refer to the class for which tests are being generated as the \emph{class under test}, using the acronym CUT. Because of the nature of meaningful tests in an object-oriented context, generating tests for a class means generating tests that target individual methods of that class, as shown in the section \ref{OOtests}. These methods, when selected one at a time for the purpose of generating test cases, will be referred to as \emph{method under test} or MUT.
 
-The \textbf{Analyser} component is responsible, intuitively, for retrieving information regarding the CUT and its methods, and storing that information in convenient data structures, so that they can be accessed by the rest of the \textsf{Flycatcher} application. This is because that initial information not only serves as the starting point for the test generation process, but is used and updated throughout that process.
+The \textsf{Analyser} component is responsible, intuitively, for retrieving information regarding the CUT and its methods, and storing that information in convenient data structures, so that they can be accessed by the rest of the \textsf{Flycatcher} application. This is because that initial information not only serves as the starting point for the test generation process, but is used and updated throughout that process.
 
 % introduce the idea of CUT and MUT and why file loading is sufficient as we are dealing with unit tests (give the option of more than one file and namespace specification) NB: we focus on OO classes so we ignore literal objects (if they are used as prototypes for a constructor so be it but that is a different matter)
 
@@ -104,7 +104,7 @@ This leads to our first use of the Proxy object proposed by ECMA-262 Harmony, in
 
 The catch is that primitive operations are also trapped by the \texttt{get} trap, as they translate into the function \texttt{valueOf} being called. If we return a Proxy when \texttt{valueOf} is trapped, the engine will try to apply a primitive operator, such as \texttt{++}, to an object and throw a type error. Hence, the Proxy's \texttt{get} trap must return a \emph{primitive} whenever the method trapped is \texttt{valueOf}. Returning a number is a sound choice as it can't make any of the primitive operators effect a crash (but for instance \texttt{''string''++} would break). The Proxy API offers many more traps than the \texttt{get} trap, but we focus on the \texttt{get} trap for clarity's sake, as the behaviour of the other traps is analogous to what we have described. To summarise, we lay out the implementation of the \texttt{get} trap that we have explained:
 
-\begin{code}[caption=\textbf{Analyser} Proxy's \texttt{get} trap,label=gettrap]
+\begin{code}[caption=\textsf{Analyser} Proxy's \texttt{get} trap,label=gettrap]
 get: function(rcvr, name) {
     var proxyHandle = this;
     if (name === "valueOf") {
