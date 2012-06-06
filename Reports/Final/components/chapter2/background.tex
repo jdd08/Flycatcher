@@ -127,40 +127,40 @@ Dynamic test data generation is purely based on actual execution of the software
 
 Random test data generation consists in producing inputs at random in the hope of achieving the chosen coverage criterion through probability. Although random test data generation is relatively simple to implement, it does not perform well in terms of coverage, as the chances of finding faults that are revealed by only a small percentage of program inputs are low \cite{edvardsson1999survey}. In other words, it is difficult for it to exercise `deep' features of a program that are exercised only through specific and unlikely paths. As a result, random ATDG only works well for straightforward programs. However, because it is the simplest ATDG technique and is considered to have the lowest acceptance rate \cite{edvardsson1999survey}, it is often used as a benchmark and is a suitable candidate for us to benchmark our \textsf{Flycatcher} application.
 
-\subsubsection{Search-based approach}
-% more on search-based approach using mairhofer's stuff?
-
-Search-based test data generation uses heuristics to guide the generation of input data so that the inputs execute paths that contribute to the overall test coverage objective. This involves modelling the test coverage objective as a heuristic function or \emph{objective function}, that evaluates the fitness of a chosen set of inputs with respect to a coverage objective. Based on those fitness values, many search techniques exist to find optimal inputs in order to achieve the desired coverage. Various objective functions exist and they are dependent on the ATDG method used. Some of the well-known search-based ATDG techniques are \emph{alternating variable} (local search optimisation) \cite{korel1990automated, gallagher1997adtest}, \emph{simulated annealing} \cite{tracey1998automated,tracey1998way}, \emph{iterative relaxation} \cite{gupta1998automated} and \emph{genetic algorithms} \cite{michael1998automated,michael2001generating}.
- 
-In 2008, Han and Kwon \cite{han2008empirical} conducted a robust empirical evaluation of search-based test data generation techniques, comparing iterative-relaxation, local search optimisation and genetic algorithms. Genetic algorithms came out on top of the other techniques regarding the rate of coverage and generality, both essential characteristics when considering ATDG techniques. However, genetic algorithms proved expensive both in time and resources, but this can be improved upon \cite{han2008empirical}.
-Although simulated annealing is not part of this empirical evaluation, we can see from \cite{michael1998automated} that although it performs as well as genetic algorithms, it appears to be less efficient.
-
-Additionally, genetic algorithms offer another advantage: as opposed to most other ATDG techniques, they do not require static analysis of the program under test \cite{han2008empirical}. This advantage is especially significant in our case, as to the best of our knowledge, tools that produce control and data flow analysis information for JavaScript source code are not available. However, this is not surprising since the dynamic, object-oriented nature of JavaScript makes this task very laborious.
-
-Consequently, due to their effectiveness in terms of coverage and the advantages they possess with regard to dynamic languages, genetic algorithms appear to be the most suitable for our implementation of ATDG for \textsf{Flycatcher}. We will therefore go on to explain what genetic algorithms are and how they can be applied to test data generation.
-
-\subsection{Genetic algorithms}
-
-\subsubsection{Overview}
-Genetic algorithms attempt to model the robustness and flexibility of natural selection in order to guide a search \cite{michael2001generating}. They start with a randomly initialised \emph{population} of potential candidate solutions, called \emph{individuals} or \emph{chromosomes}. The population is iteratively recombined and mutated to evolve successive populations, known as \emph{generations}. The recombination takes the `fittest' parent solutions and `breeds' them to produce new offspring. Their fitness is determined by a \emph{fitness function} that evaluates how good a candidate solution is for a particular problem.
-
-This process favours evolution towards fitter individuals, mimicking natural selection. The `breeding' of two individuals usually involves a \emph{crossover} operation which swaps their information at a randomly selected position. In the interest of maintaining diversification, a \emph{mutation} phase usually occurs after the crossover, to introduce new genetic material into the search and avoid premature convergence on one area of the search space. The mutation operation randomly modifies some information of a selected individual. The process of iterative recombination and mutation, illustrated in Figure \ref{ga}, is repeated until a specific termination criterion is fulfilled.
-
-\begin{figure}
-\hspace*{0.7cm}
-\centering
-\includegraphics[scale=0.7]{./components/chapter2/ga.pdf}
-\caption{Flowchart of a genetic algorithm}
-\label{ga}
-\end{figure}
-
-\subsubsection{Application to test data generation}
-\label{subsubsec:ga_application}
-For the purposes of ATDG, the population consists of input test data. The data evolves according to the genetic algorithm in order to satisfy the chosen coverage criteria \cite{michael2001generating}. In other words, the \emph{fitness function} is based on the \emph{objective function}, the function that evaluates test data according to a certain coverage criterion --- the more a candidate contributes to coverage, the fitter it is. Instead of using a search heuristics to minimise our objective function, we use it to guide our natural selection process towards the data that will achieve the best coverage.
-
-Regarding the objective function used in the context of genetic algorithms, different variants exist \cite{mcminn2004search}. The \emph{coverage-oriented approach} rewards individuals on the basis of \emph{all} covered program structures. This type of objective function rewards coverage with respect to the overall goal \emph{i.e.} the system is not required to pick a specific path or node and attempt to execute it. The other approach is \emph{structure-oriented} coverage where, similarly to most other search-based ATDG methods, a structure (\emph{e.g.} a path or a node) is selected from the data flow analysis and a separate search is undertaken for each selected structure. Once more, seeing that the \emph{coverage-oriented approach} does not require static analysis of the program under test, it is the most attractive to us for the implementation of \textsf{Flycatcher}.
-
-Finally, the population, individual representation, fitness evaluation and methods of crossover, mutation and selection are all highly dependent on the test data generation problem at hand, hence we will discuss them with regard to \textsf{Flycatcher} when we come to the implementation.
+% \subsubsection{Search-based approach}
+% % more on search-based approach using mairhofer's stuff?
+% 
+% Search-based test data generation uses heuristics to guide the generation of input data so that the inputs execute paths that contribute to the overall test coverage objective. This involves modelling the test coverage objective as a heuristic function or \emph{objective function}, that evaluates the fitness of a chosen set of inputs with respect to a coverage objective. Based on those fitness values, many search techniques exist to find optimal inputs in order to achieve the desired coverage. Various objective functions exist and they are dependent on the ATDG method used. Some of the well-known search-based ATDG techniques are \emph{alternating variable} (local search optimisation) \cite{korel1990automated, gallagher1997adtest}, \emph{simulated annealing} \cite{tracey1998automated,tracey1998way}, \emph{iterative relaxation} \cite{gupta1998automated} and \emph{genetic algorithms} \cite{michael1998automated,michael2001generating}.
+%  
+% In 2008, Han and Kwon \cite{han2008empirical} conducted a robust empirical evaluation of search-based test data generation techniques, comparing iterative-relaxation, local search optimisation and genetic algorithms. Genetic algorithms came out on top of the other techniques regarding the rate of coverage and generality, both essential characteristics when considering ATDG techniques. However, genetic algorithms proved expensive both in time and resources, but this can be improved upon \cite{han2008empirical}.
+% Although simulated annealing is not part of this empirical evaluation, we can see from \cite{michael1998automated} that although it performs as well as genetic algorithms, it appears to be less efficient.
+% 
+% Additionally, genetic algorithms offer another advantage: as opposed to most other ATDG techniques, they do not require static analysis of the program under test \cite{han2008empirical}. This advantage is especially significant in our case, as to the best of our knowledge, tools that produce control and data flow analysis information for JavaScript source code are not available. However, this is not surprising since the dynamic, object-oriented nature of JavaScript makes this task very laborious.
+% 
+% Consequently, due to their effectiveness in terms of coverage and the advantages they possess with regard to dynamic languages, genetic algorithms appear to be the most suitable for our implementation of ATDG for \textsf{Flycatcher}. We will therefore go on to explain what genetic algorithms are and how they can be applied to test data generation.
+% 
+% \subsection{Genetic algorithms}
+% 
+% \subsubsection{Overview}
+% Genetic algorithms attempt to model the robustness and flexibility of natural selection in order to guide a search \cite{michael2001generating}. They start with a randomly initialised \emph{population} of potential candidate solutions, called \emph{individuals} or \emph{chromosomes}. The population is iteratively recombined and mutated to evolve successive populations, known as \emph{generations}. The recombination takes the `fittest' parent solutions and `breeds' them to produce new offspring. Their fitness is determined by a \emph{fitness function} that evaluates how good a candidate solution is for a particular problem.
+% 
+% This process favours evolution towards fitter individuals, mimicking natural selection. The `breeding' of two individuals usually involves a \emph{crossover} operation which swaps their information at a randomly selected position. In the interest of maintaining diversification, a \emph{mutation} phase usually occurs after the crossover, to introduce new genetic material into the search and avoid premature convergence on one area of the search space. The mutation operation randomly modifies some information of a selected individual. The process of iterative recombination and mutation, illustrated in Figure \ref{ga}, is repeated until a specific termination criterion is fulfilled.
+% 
+% \begin{figure}
+% \hspace*{0.7cm}
+% \centering
+% \includegraphics[scale=0.7]{./components/chapter2/ga.pdf}
+% \caption{Flowchart of a genetic algorithm}
+% \label{ga}
+% \end{figure}
+% 
+% \subsubsection{Application to test data generation}
+% \label{subsubsec:ga_application}
+% For the purposes of ATDG, the population consists of input test data. The data evolves according to the genetic algorithm in order to satisfy the chosen coverage criteria \cite{michael2001generating}. In other words, the \emph{fitness function} is based on the \emph{objective function}, the function that evaluates test data according to a certain coverage criterion --- the more a candidate contributes to coverage, the fitter it is. Instead of using a search heuristics to minimise our objective function, we use it to guide our natural selection process towards the data that will achieve the best coverage.
+% 
+% Regarding the objective function used in the context of genetic algorithms, different variants exist \cite{mcminn2004search}. The \emph{coverage-oriented approach} rewards individuals on the basis of \emph{all} covered program structures. This type of objective function rewards coverage with respect to the overall goal \emph{i.e.} the system is not required to pick a specific path or node and attempt to execute it. The other approach is \emph{structure-oriented} coverage where, similarly to most other search-based ATDG methods, a structure (\emph{e.g.} a path or a node) is selected from the data flow analysis and a separate search is undertaken for each selected structure. Once more, seeing that the \emph{coverage-oriented approach} does not require static analysis of the program under test, it is the most attractive to us for the implementation of \textsf{Flycatcher}.
+% 
+% Finally, the population, individual representation, fitness evaluation and methods of crossover, mutation and selection are all highly dependent on the test data generation problem at hand, hence we will discuss them with regard to \textsf{Flycatcher} when we come to the implementation.
 
 %For a simple procedural language the evolution process will deal with test data whereas for object-oriented tests, the recombination and mutation could concern call sequences and types.
 
@@ -211,13 +211,13 @@ Because it is impossible to know how the application will use the class/object u
 
 The code example below illustrates in pseudocode the type of object-oriented structural unit test that we aim to generate with \textsf{Flycatcher}. It assumes a standard linked list implementation, \texttt{LinkedList} is the class under test and \texttt{size} is the method under test:
 
-\begin{code}
-l = new LinkedList   
-node = new Node
-l.add(node)
-l.remove(node)
-l.add(node)
-assert (l.size == 1)
+\begin{code}[caption=Object-oriented unit test,label=backgroundexample]
+var l = new LinkedList();
+var node = new Node();
+l.add(node);
+l.remove(node);
+l.add(node);
+assert(l.size() === 1);
 \end{code}
 
 %, as well as their inputs and the inputs to the constructor, should all evolve in a way that permits a successful coverage to be achieved. Automatic test \emph{data} generation techniques that maximise coverage have been discussed, but work has also been done on techniques to the evolution of object-oriented tests cases.
@@ -253,7 +253,7 @@ For the readers who are not familiar with the language, we present the character
 \subsubsection{Types}
 Types in Javascript can be divided into two categories: \emph{primitive} types and \emph{object} types. The primitive types consist of \emph{Number}, \emph{Boolean} and \emph{String}, as well as \texttt{undefined} and \texttt{null} but the latter are particular as they are the only element of their type. Anything else in JavaScript will have the type \emph{Object} (even arrays and functions). Generally, a JavaScript object is an unordered collection of named values, \emph{properties}, that can be stored or retrieved by name \emph{e.g.}:
 
-\begin{code}
+\begin{code}[caption=JavaScript objects,label=jsobj]
 var foobar = { "foo" : 1,
                "bar" : 2 };
 foobar.foo     // returns 1
@@ -273,7 +273,7 @@ function add(a,b) {
 \end{code}
 \newline or equivalently:
 
-\begin{code}
+\begin{code}[caption=JavaScript function definitions,label=jsfunctions]
 var add = function(a,b) {
     return a + b;
 }
@@ -281,7 +281,7 @@ var add = function(a,b) {
 
 An important feature of JavaScript is that it is dynamically typed, hence a variable cannot imply a type for its value and its type can change over time \emph{i.e.} the code below is correct:
 
-\begin{code}
+\begin{code}[caption=JavaScript dynamic types,label=jstypes]
 var foo = "foo?";
 foo = 3;
 foo = [1,2,3];
@@ -307,7 +307,7 @@ To summarise, a class in JavaScript is defined by a constructor function\footnot
 
 Below is an example of a simple class definition for a circle, to illustrate our explanation:
 
-\begin{code}
+\begin{code}[caption=JavaScript class definition,label=jsclassdef]
 function Circle(radius) {
     // the Circle class has a field named radius
     this.radius = radius;
@@ -338,7 +338,7 @@ Nevertheless, there is a very interesting and landmark edition in progress calle
 \subsubsection{Object Proxies}
 Proxies are special objects that let the programmer define the \emph{behaviour} of an object \emph{i.e.} how it responds to low-level operations. This is done through a `catch-all' mechanism, which \emph{traps} or \emph{intercepts} low-level operations on the proxy and allows us to redefine their outcome. To illustrate this, we define a simple Proxy that overrides the \texttt{[[Get]]} low-level operation and traps property accesses of the form \texttt{proxy.name} in the context of \emph{getting} a property's value. We override that behaviour and return the string \texttt{''It's a trap!''} instead:
 
-\begin{code}
+\begin{code}[caption=Object Proxy,label=objproxy]
 var proxy = Proxy.create({
   get: function(receiver, name) {
     return name + " -> It's a trap!";
@@ -364,14 +364,12 @@ There is much more to say about object Proxies and their applications, but this 
 
 Harmony also proposes \emph{function} Proxies, which are useful to us. Functions in JavaScript are objects, hence, Function Proxies have the \emph{same} trapping capabilities but they also offer \emph{additional} traps, which are specific to functions: the \texttt{call} trap and the \texttt{construct} trap. To illustrate we give an example of a function proxy in action:
 
-\begin{code}
-
+\begin{code}[caption=Function Proxy,label=fnproxy]
 // handler is as earlier, construct and call are functions
 var fnproxy = Proxy.create(handler, call, construct);
 fnproxy.treasure   // calls handler.get(fnproxy, treasure)
 fnproxy(1,2,3)     // calls call(1,2,3)
 new fnproxy(1,2,3) // calls new construct(1,2,3)
-
 \end{code}
 
 \section{Summary}

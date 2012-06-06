@@ -39,6 +39,10 @@
   \newline
 }
 
+\renewcommand\lstlistingname{Example}
+\renewcommand\lstlistlistingname{List of Examples}
+\def\lstlistingautorefname{Ex.}
+
 \definecolor{mygreen}{rgb}{0.2, 0.8, 0}
 \definecolor{purple}{rgb}{0.65, 0.12, 0.82}
 \lstset{ %
@@ -71,7 +75,7 @@
   morestring=[b]",
   stringstyle=\color{mygreen},         % string literal style
   escapeinside={\%*}{*)},            % if you want to add a comment within your code
-  morekeywords={*,new,var,return,function,...}               % if you want to add more keywords to the set
+  morekeywords={*,new,var,return,function,if,else,false,true,...}               % if you want to add more keywords to the set
 }
 
 \lstnewenvironment{code}[1][]%

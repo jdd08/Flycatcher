@@ -18,7 +18,7 @@ First of all, it is important to note that, given the highly dynamic nature of J
 
 To illustrate why this is impossible, consider this class definition:
 
-\begin{code}
+\begin{code}[caption=Runtime dependent class definition,label=runtimeclassdef]
 
 var LinkedListConstructor = function() {
     this.size = function() {
@@ -65,7 +65,7 @@ In fact, when the vm has finished interpreting the source under test, we have ac
 
 Note that all of these classes, including the CUT, may belong to a namespace like so:
 
-\begin{code}
+\begin{code}[caption=Namespaces,label=ns]
 DataStructures.LinkedList = function () {
 }
 
@@ -104,7 +104,7 @@ This leads to our first use of the Proxy object proposed by ECMA-262 Harmony, in
 
 The catch is that primitive operations are also trapped by the \texttt{get} trap, as they translate into the function \texttt{valueOf} being called. If we return a Proxy when \texttt{valueOf} is trapped, the engine will try to apply a primitive operator, such as \texttt{++}, to an object and throw a type error. Hence, the Proxy's \texttt{get} trap must return a \emph{primitive} whenever the method trapped is \texttt{valueOf}. Returning a number is a sound choice as it can't make any of the primitive operators effect a crash (but for instance \texttt{''string''++} would break). The Proxy API offers many more traps than the \texttt{get} trap, but we focus on the \texttt{get} trap for clarity's sake, as the behaviour of the other traps is analogous to what we have described. To summarise, we lay out the implementation of the \texttt{get} trap that we have explained:
 
-\begin{code}
+\begin{code}[caption=\textbf{Analyser} Proxy's \texttt{get} trap,label=gettrap]
 get: function(rcvr, name) {
     var proxyHandle = this;
     if (name === "valueOf") {
@@ -127,7 +127,7 @@ It is worth noting that we do not care about the \emph{outcome} of the operation
 \subsubsection{Using the proxy parameters to initialise the class}
 Once the appropriate number of Function Proxies have been created, which we can find out from the retrieved constructor's definition, we need to initialise the class with them. One would think that JavaScript, given its first-class functions, would have a way to do that --- we have the constructor function and we have the parameters for it. Unfortunately, the \texttt{Function.apply} and \texttt{Function.call} library functions both simply \emph{invoke} functions, they cannot \emph{instantiate} a new object with them, which is what we want to do. Thankfully, this is easily resolved with a small closure:
 
-\begin{code}
+\begin{code}[caption=Instantiating a \texttt{Function} object,label=instantiatingfn]
 // ctr is the constructor of the class we want to instantiate
 var construct = (function() {
     function Copy(args) {
