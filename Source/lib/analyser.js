@@ -97,22 +97,24 @@ exports.getProgramInfo = function(cmd, classContext, CUTname) {
                 ctrParams.push(new ParamInfo(getParamNames(constructor)[i]));
             }
             var ctr = new MethodInfo(className, constructor, ctrParams);
-
+            
             var construct = (function() {
-                function F(args) {
+                function Copy(args) {
                     return constructor.apply(this, args);
                 }
-                F.prototype = constructor.prototype;
+                Copy.prototype = constructor.prototype;
                 return function(args) {
-                    return new F(args);
+                    return new Copy(args);
                 }
             })();
-            
+
             var emptyParams = [];
             var len = constructor.length;
             for (var i = 0; i < len; i++) {
                 // we use empty proxy parameters because we are not interested in
                 // what the constructor methods achieve atm, just the class's methods
+                
+                // TODO: should be Function Proxy
                 emptyParams[i] = Proxy.create(analyserHandler);
             }
 
@@ -155,6 +157,7 @@ exports.getProgramInfo = function(cmd, classContext, CUTname) {
                                                        fields);
         }
     }
+    // console.log(util.inspect(pgmInfo, false, null));
     return pgmInfo;
 }
 
@@ -239,6 +242,7 @@ ParamInfo.prototype.isUnknown = function() {
 }
 
 ParamInfo.prototype.update = function(pgmInfo) {
+    //console.log(this);
     /*console.log();
     console.log(this.name);
     console.log(this.membersAccessed);
@@ -253,6 +257,9 @@ ParamInfo.prototype.update = function(pgmInfo) {
     var membersAccessed = _.uniq(this.membersAccessed);
     this.membersAccessed = membersAccessed;    
         
+        
+    // TODO: change to a count of the number of times
+    // the parameter was involved in a call
     this.updateCount++;
     // only start updating when we have enough
     // data to make a wise inference or we give up
@@ -311,14 +318,14 @@ ParamInfo.prototype.update = function(pgmInfo) {
             this.inferredType = t;
         }
         
-        // the reason this if is inside of the startUpdating()
-        // if is that if we reach MIN_CALLS_BEFORE_WEAK_GUESS we want
-        // to try and infer with the little data we have (if we have
-        // any) even if it is below our MIN_CALLS_BEFORE_UPDATING
-        // threshold - but if there are no member accesses and no
-        // operators (or these sets of data are inconclusive) in the
-        // two if/else if above -> then we infer at random to avoid
-        // looping forever
+        /* the reason this if is inside of the startUpdating()
+        if is that if we reach MIN_CALLS_BEFORE_WEAK_GUESS we want
+        to try and infer with the little data we have (if we have
+        any) even if it is below our MIN_CALLS_BEFORE_UPDATING
+        threshold - but if there are no member accesses and no
+        operators (or these sets of data are inconclusive) in the
+        two if/else if above -> then we infer at random to avoid
+        looping forever */
         if (this.inferredType === "unknown" &&
             this.updateCount >= MIN_CALLS_BEFORE_WEAK_GUESS) {
             console.warn("\u001b[35mWARNING:\u001b[0m insufficient info to infer param "
@@ -345,6 +352,7 @@ ParamInfo.prototype.update = function(pgmInfo) {
                 }(membersAccessed);
             }
             else {
+                //process.exit(0);
                 // TODO: let it be something else than primtive??
                 // use more hints??
                 var rand = Math.random();
@@ -384,7 +392,7 @@ var analyserHandler = {
         var self = this;
         if (name === "valueOf") {
             return function() {
-                return 35;
+                return 1;
             }
         }
         else {

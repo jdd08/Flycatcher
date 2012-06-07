@@ -16,6 +16,9 @@ cmd
 .option('-m, --method <name>', 'generate tests for a specific method')
 .option('-c, --coverage <num>', 'expected coverage %', Number, 100)
 .option('-t, --timeout <num>', 'timeout in seconds')
+.option('-n, --namespace <name>', 'specify a namespace for your class')
+// .option('-f, --files <name>', 'specify other files for your class')
+// TODO option for more than one file
 .parse(process.argv);
 
 if (cmd.args.length !== 2) {
@@ -82,10 +85,10 @@ function generateTests(MUTname, unitTest, failingTests) {
     var start = Date.now();
     // console.log(util.inspect(pgmInfo, true, null));
     while (exec.getCoverage() < expectedCoverage) {
-        
-        var test = randomTest.generate(pgmInfo);
+        var test = randomTest.generate(pgmInfo);            
         exec.setTest(test);
-        // exec.showTest(test);
+        //console.log(pgmInfo.getMUT().params);
+        //exec.showTest(test);
         var testRun = exec.run();
 
         if (testRun.newCoverage && !test.hasUnknowns()) {
@@ -97,8 +100,8 @@ function generateTests(MUTname, unitTest, failingTests) {
             // console.log(util.inspect(test, false, null));
             failingTests.push(test.toFailingTestFormat(testRun.msg));
         }
-        //exec.showCoverage();
-        //exec.showMUT();
+        // exec.showCoverage();
+        // exec.showMUT();
         // the timeout is to avoid looping forever in the case
         // that the generated tests cannot achieve any further
         // coverage due to errors (these errors may be due to
@@ -161,13 +164,13 @@ if (unitTests.length) {
 else {
     console.log(red + "\n--> No unit tests were generated." + reset);
 }
+
 if (failingTests.length) {
     console.log(red + "--> Failings tests can be found in " + failingTestsFile  + reset);
     fs.writeFileSync(failingTestsFile,
         generateFailingTests(src, CUTname, failingTests)
     );
 }
-
 else {
     console.log(green + "--> No generated tests failed." + reset);
 }

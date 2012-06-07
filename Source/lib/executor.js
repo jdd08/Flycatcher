@@ -47,7 +47,10 @@ var Executor = module.exports.Executor = function(src, pgmInfo)
         if (good) {
             this.currentCov = Math.round((currentCoverage / _.size(this.coverage) * 100) *
             Math.pow(10, 2) / Math.pow(10, 2));
-            console.log("\u001b[33m"+ this.currentCov + "% achieved...\u001b[0m");
+            if (this.currentCov === 100) 
+                console.log("\u001b[32m"+ this.currentCov + "% coverage.\u001b[0m");
+            else
+                console.log("\u001b[33m"+ this.currentCov + "% coverage...\u001b[0m");
         }
     });
 
@@ -199,6 +202,7 @@ function createExecHandler(pgmInfo) {
     Handler.prototype = {
 
         getPropertyDescriptor: function(name) {
+            // console.log("INSIDE GET PROP",name);
             this.membersAccessed.push(name);
             return undefined;
         },
@@ -215,7 +219,7 @@ function createExecHandler(pgmInfo) {
 
         // proxy[name] -> any
         get: function(receiver, name) {
-            // sconsole.log("INSIDE GET",name);
+            // console.log("INSIDE GET",name);
             this.trapCount++;
             if (this.trapCount > TRAP_THRESHOLD) {
                 throw new TrapThresholdExceeded();
@@ -280,7 +284,7 @@ function createExecHandler(pgmInfo) {
 
         // proxy[name] = value
         set: function(receiver, name, value) {
-            //console.log(name)
+            // console.log("INSIDE SET");
             if (canPut(this.target, name)) {
                 // canPut as defined in ES5 8.12.4 [[CanPut]]
                 this.target[name] = value;
@@ -322,6 +326,7 @@ Executor.prototype.createContext = function(pgmInfo) {
     // for the specific parameter that this "proxy" is supposed to represent
     var exec = this;
     context.proxy = function(className, methodName, paramIndex) {
+        // var prox = Object.create(Proxy.create(new Handler(className, methodName, paramIndex, exec)));
         var prox = Object.create(Proxy.create(new Handler(className, methodName, paramIndex, exec)));
         return prox;
     }
@@ -451,7 +456,9 @@ Executor.prototype.run = function() {
             // achieve the desire coverage) but it is *probably better* to let the user know that his
             // program fails after we have made the best possible guess for the type of the parameters
             // we have produced in the tests
-            var trace = _.find(stackTrace.parse(err), function(value){
+
+            /* 
+                var trace = _.find(stackTrace.parse(err), function(value){
                 // we want the line number to correspond the line in
                 // the vm script, not the one in the Flycatcher source,
                 // nor within any native code: the first entry with
@@ -462,11 +469,20 @@ Executor.prototype.run = function() {
             });
 
             // TODO: fix the wrapping methods and you can print out
-            // the line of code for the error
-            var methodName = trace.methodName === "MUT" ?
-                             this.MUTname : trace.methodName;
+            // the line of code for the error err.toString() + name
+            try {
+                var methodName = trace.methodName === "MUT" ?
+                                 this.MUTname : trace.methodName;                
+            }
+            catch (err) {
+                console.log(stackTrace.parse(err));
+                console.log("ersresrrser");
+                process.exit(0);
+            }
+            */
+
             return {
-                msg: err.toString() + " in method " + methodName,
+                msg: err.toString(),
                 error: true
             }
         }
@@ -477,12 +493,10 @@ Executor.prototype.run = function() {
 // AUXILLIARY
 
 function updatePrimitiveScore(hint, primitiveScore) {
+    // console.log(hint);
     switch(hint) {
         case "++" :
         case "--" : primitiveScore.num += 100;
-                    break;
-        case "+" :  primitiveScore.num += 1;
-                    primitiveScore.string += 1;
                     break;
         case "-" :
         case "*" :
@@ -505,6 +519,7 @@ function updatePrimitiveScore(hint, primitiveScore) {
                     primitiveScore.string += 1;
                     break;
         case "\"" :
-                    primitiveScore.string += 5;
+                    //primitiveScore.string += 0.5;
     }
+    // console.log(primitiveScore);
 }

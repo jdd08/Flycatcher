@@ -1,10 +1,10 @@
 var randomData = require('./randomData.js');
 var _ = require('underscore');
 var util = require('util');
-
+var beautify = require('beautify').js_beautify;
 
 // maximum number of CUT method calls before calling the MUT
-const MAX_CALLS_BEFORE_MUT = 5;
+const MAX_CALLS_BEFORE_MUT = 10;
 
 function Test(MUTname) {
     this.unknowns = false;
@@ -67,7 +67,13 @@ Test.prototype.push = function(statement) {
                  // otherwise the statement is necessarily of type Call or MUTcall
                  // and the name will be the name of the method
                  else {
-                     parentMethod = statement.methodName;
+                     try {
+                        parentMethod = statement.methodName;   
+                     }
+                     catch (err){
+                         console.log("aweawewaeaw");
+                         process.exit(0);
+                     }
                  }
                  this.push(new Unknown(paramId, parentType, parentMethod, p));
              }
@@ -156,8 +162,15 @@ function Call(receiver, methodName, params, type) {
     this.params = params;
     this.type = type;
     this.toExecutorFormat = this.toUnitTestFormat = function(paramIds) {
-        var r = receiver + "." + this.methodName;
-            r += "(" + toParams(paramIds) + ");"
+        try {
+            var r = receiver + "." + this.methodName;
+                r += "(" + toParams(paramIds) + ");"            
+        }
+        catch(err) {
+            console.log("omg");
+            process.exit(0);
+        }
+
         return r;
     }
 }
@@ -175,20 +188,23 @@ function MUTcall(receiver, methodName, params, type, number) {
         return ret;
     }
     this.toUnitTestFormat = function(paramIds, results) {
-        var ret = "";
-        if (results) {
-            var r = results[this.number];
-            result = "\"" + r + "\"";
-//            if (typeof result === "string") result = "\"" + r + "\"";
-//            else result = util.inspect(result, false, null);
-            var assertion = this.receiver + "." + this.methodName + "(";
-            assertion += toParams(paramIds) + ") === " + result;
-            ret = "assert.ok(" + assertion + ")";
-        }
-        else {
-            ret = receiver + "." + this.methodName + "(" + toParams(paramIds) + ");";
-        }
-        return ret;            
+
+                var ret = "";
+                if (results) {
+                    var result = results[this.number];
+        //            result = "\"" + r + "\"";
+//        console.log(typeof result);
+//                if (typeof result === "string") result = "\"" + result + "\"";
+        //            else result = util.inspect(result, false, null);
+                    var assertOp = typeof result === "object" ? "deepEqual" : "equal"
+                    var assertion = this.receiver + "." + this.methodName + "(";
+                    assertion += toParams(paramIds) + "), " + beautify(util.inspect(result, false, null));
+                    ret = "assert." + assertOp + "(" + assertion + ")";
+                }
+                else {
+                    ret = receiver + "." + this.methodName + "(" + toParams(paramIds) + ");";
+                }
+        return ret;
     }
 }
 

@@ -122,6 +122,7 @@ get: function(rcvr, name) {
 \end{code}
 
 % TODO: problem with methods that are closures on one of the parameters
+% this is in fact fine? -> we reuse the source code itself in the executor
 It is worth noting that we do not care about the \emph{outcome} of the operations on parameters within the constructor, only that it doesn't crash. The purpose of this process is to find out the signatures of the class's methods and these cannot be affected by the class parameters --- except for the case where \emph{the class method itself} is passed in as a parameter, which we do not deal with.
 
 \subsubsection{Using the proxy parameters to initialise the class}
