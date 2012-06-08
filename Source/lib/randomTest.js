@@ -195,7 +195,7 @@ function MUTcall(receiver, methodName, params, type, number) {
 
 exports.generate = function(pgmInfo) {
     var CUTname = pgmInfo.CUTname;
-    var MUTname = pgmInfo.MUTname;
+    var MUTname = pgmInfo.MUT.name;
 
     pgmInfo.makeInferences();
 
@@ -215,7 +215,7 @@ exports.generate = function(pgmInfo) {
         var CUTmethod = CUTmethods[randomMethod];
 
         updateUsageCounters(CUTmethod.params);
-        if (CUTmethod.isMUT) {
+        if (CUTmethod === pgmInfo.MUT) {
             // test.MUTcalls used to collect results inside the vm environment
             test.push(new MUTcall(receiver.identifier, CUTmethod.name,
                                   pgmInfo.getRecursiveParams(_.pluck(CUTmethod.params, "inferredType")),
@@ -226,7 +226,7 @@ exports.generate = function(pgmInfo) {
                                CUTname));
         }
     }
-    var MUT = _.filter(CUTmethods, function(x){return x.isMUT})[0];
+    var MUT = pgmInfo.MUT;
     updateUsageCounters(MUT.params);
     test.push(new MUTcall(receiver.identifier, MUT.name,
                           pgmInfo.getRecursiveParams(_.pluck(MUT.params, "inferredType")),

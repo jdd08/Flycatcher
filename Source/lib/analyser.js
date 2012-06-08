@@ -17,8 +17,9 @@ function ProgramInfo(CUTname) {
     this.CUTname = CUTname;
 }
 
-ProgramInfo.prototype.setMUT = function(MUTname) {
-    this.MUTname = MUTname;
+ProgramInfo.prototype.setMUT = function(method) {
+    this.MUTname = method.name;
+    this.MUT = method;
 };
 
 // updates the inferences for the parameters
@@ -75,8 +76,7 @@ ProgramInfo.prototype.getMethodParamInfo = function(className, methodName, param
 
 // returns the MethodInfo object of the MUT
 ProgramInfo.prototype.getMUT = function() {
-    return _.filter(this.classes[this.CUTname].methods,
-                    function(x){ return x.isMUT})[0];    
+    return this.MUT;
 }
 
 // returns all of the MethodInfo objects for a class, including that of the MUT
@@ -88,7 +88,7 @@ ProgramInfo.prototype.getMethods = function(className) {
 exports.getProgramInfo = function(cmd, classContext, CUTname) {
     var pgmInfo = new ProgramInfo(CUTname);
     
-    ParamInfo.minUsageRequired = cmd.usage;
+    ParamInfo.minUsageRequired = cmd.minimum_usage;
 
     if (!classContext[CUTname]){
         console.error("Error: specified class <" + CUTname + "> was not found");
@@ -151,11 +151,6 @@ exports.getProgramInfo = function(cmd, classContext, CUTname) {
                     for (var i = 0; i<member.length; i++) {
                         methodParams.push(new ParamInfo(getParamNames(member)[i],m));
                     }
-/*                    var isMUT = className === CUTname && m === MUTname;
-                    if (isMUT) {
-                        mutDefined = true;
-                    };
-*/
                     methods.push(new MethodInfo(m, c[m], methodParams));
                 }
                 else {
@@ -243,7 +238,6 @@ ParamInfo.prototype.makeInferences = function(pgmInfo) {
     // in the names only not the number of calls
     var membersAccessed = _.uniq(this.membersAccessed);
     this.membersAccessed = membersAccessed;        
-
     if (this.hasSufficientUsage()) {
         console.log("INFO: ".info + "Inferring a type for parameter " +
                     this.name + " of method " + this.methodName);

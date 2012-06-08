@@ -28,7 +28,7 @@ var Executor = module.exports.Executor = function(src, pgmInfo)
     this.coverage = {};
     this.nodeNum = 0;
     this.currentCov = 0;
-    this.MUTname = pgmInfo.MUTname;
+    this.MUTname = pgmInfo.MUT.name;
 
     this.names = {
         call: burrito.generateName(6),

@@ -30,7 +30,7 @@ Triangle.prototype.setC = function(c) {
     return c;
 }
 
-Triangle.prototype.getType = function() {
+Triangle.prototype.gewtType = function() {
     
     function swap(a,b) {
         var tmp = a;
