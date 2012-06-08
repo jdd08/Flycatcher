@@ -29,8 +29,7 @@ cmd
 .option('-t, --timeout <num>', 'timeout in seconds')
 .option('-n, --namespace <name>', 'specify a namespace for your class')
 .option('-u, --minimum_usage <name>', 'number of parameter usages required before attempting type inference',Number,20)
-// .option('-f, --files <name>', 'specify other files for your class')
-// TODO option for more than one file
+// .option('-f, --files <name>', 'specify other files for your class') TODO option for more than one file
 .parse(process.argv);
 
 (function main(cmd) {
@@ -84,9 +83,7 @@ cmd
     }
     
     if(!MUTdefined) {
-        console.error("Error: specified method <" +
-                       cmdMethod + "> was not found in class <" +
-                       CUTname +">");
+        console.error("Error: specified method <" + cmdMethod + "> was not found in class <" + CUTname +">");
         console.error("(see README for information on recognised class definitions)");
         console.log(cmd.helpInformation());
     }
@@ -99,8 +96,7 @@ function generateTests(src, pgmInfo, unitTests, failingTests) {
         var exec = new Executor(src, pgmInfo);
         var MUTname = pgmInfo.MUT.name;
         var CUTname = pgmInfo.CUTname;
-        console.log("\nGenerating tests for at least " + cmd.coverage + 
-                    "\% coverage of method <" + MUTname + 
+        console.log("\nGenerating tests for at least " + cmd.coverage + "\% coverage of method <" + MUTname + 
                     "> from class <" + CUTname + "> :   ");
         console.log("------------------------------------------------------------------------------------------");
         var count = 0;
