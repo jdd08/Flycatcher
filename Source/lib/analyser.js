@@ -2,6 +2,7 @@ var fs = require('fs');
 var vm = require('vm');
 var util = require('util');
 var _ = require('underscore');
+var randomData = require('./randomData');
 
 function ProgramInfo(CUTname) {
     this.classes = {};
@@ -115,7 +116,7 @@ exports.getProgramInfo = function(cmd, classContext, CUTname) {
                 // what the constructor methods achieve atm, just the class's methods
                 
                 // TODO: should be Function Proxy
-                emptyParams[i] = Proxy.create(analyserHandler);
+                emptyParams[i] = Proxy.create(idleHandler);
             }
 
             // an instance of the class under test needs to be created in order
@@ -125,7 +126,7 @@ exports.getProgramInfo = function(cmd, classContext, CUTname) {
                 c = construct(emptyParams);
             }
             catch (err) {
-                console.error("Error in class constructor/function definition <" +
+                console.error("ANALYSER: error when constructing class <" +
                                className + "> :");
                 console.error(err.toString());
                 process.exit(1);
@@ -273,7 +274,7 @@ ParamInfo.prototype.update = function(pgmInfo) {
         // rules out the possibility that the type is a primitive
         // (TODO: later look at native types and their member function calls)
         if (membersAccessed.length) {
-            //console.log("inside members");
+            // console.log("inside members");
             var currentMatches = 0;
             var name = "";
             var map = _.map(pgmInfo.classes,function(value, key){
@@ -294,6 +295,7 @@ ParamInfo.prototype.update = function(pgmInfo) {
             if (max.count > 0) {
                 this.inferredType = max.name;
             }
+            // console.log(this.inferredType);
         }
         
         // If we have made MIN_CALLS_BEFORE_WEAK_GUESS attempts
@@ -326,6 +328,7 @@ ParamInfo.prototype.update = function(pgmInfo) {
         operators (or these sets of data are inconclusive) in the
         two if/else if above -> then we infer at random to avoid
         looping forever */
+        // console.log(this.updateCount);
         if (this.inferredType === "unknown" &&
             this.updateCount >= MIN_CALLS_BEFORE_WEAK_GUESS) {
             console.warn("\u001b[35mWARNING:\u001b[0m insufficient info to infer param "
@@ -360,39 +363,77 @@ ParamInfo.prototype.update = function(pgmInfo) {
                                     (rand > 0.33 ? "string" : "bool");                
             }
         }
-        //console.log(this.inferredType);
+        // console.log(this.inferredType);
     }
 }
 
 // AUXILLIARY
 
-var analyserHandler = {
+var idleHandler = exports.idleHandler = {
+    
+    /* FUNDAMENTAL TRAPS */
 
-    delete: function(name) {
-        console.log(name)
-        var self = this;
-        return Proxy.createFunction(self,
-        function() {
-            return Proxy.create(self)
-        });
-    },
-
-    // ignoring fundamental traps that aren't in ES5
+    // there are no names/descriptors to retrieve
+    // as our proxy has no target
+    
+    // trapped: Object.getOwnPropertyDescriptor(proxy, name)
     getOwnPropertyDescriptor: function(name) {
-        var desc = Object.getOwnPropertyDescriptor(this, name);
-        // a trapping proxy's properties must always be configurable
-        if (desc !== undefined) {
-            desc.configurable = true;
-        }
-        return desc;
+        // console.log("INSIDE ANALYSER GET OWN PROP",name);
+        return undefined;
+    },
+    
+    // Not in ES5!    
+    // trapped: Object.getPropertyDescriptor(proxy, name)
+    getPropertyDescriptor: function(name) {
+        // console.log("INSIDE ANALYSER GET PROP",name);
+        return undefined;
     },
 
-    // proxy[name] -> any
+    // trapped: Object.getOwnPropertyNames(proxy)
+    getOwnPropertyNames: function() {
+        // console.log("INSIDE ANALYSER GET OWN PROPERTY NAMES");
+        return [];
+    },
+
+    // Not in ES5!
+    // trapped: Object.getPropertyNames(proxy)
+    getPropertyNames: function() {
+        // console.log("INSIDE ANALYSER GET PROPERTY NAMES");
+        return [];
+    },
+    
+    // outcome of the defineProperty and delete irrelevant
+    // as we trap [[get]]
+    
+    // trapped: Object.defineProperty(proxy,name,pd)
+    defineProperty: function(name, pd) {
+        // console.log("INSIDE ANALYSER DEFINE PROPERTY",name);
+        return true;
+    },
+
+    // trapped: delete proxy.name
+    delete: function(name) {
+        // console.log("INSIDE ANALYSER DELETE",name);            
+        // pretend to succeed
+        return true; // to avoid throw in strict mode
+    },
+    
+    // we ignore the fundamenal trap fix
+    // which traps:
+    // - Object.freeze(proxy)
+    // - Object.seal(proxy)
+    // - Object.preventExtensions(proxy)
+    // as it kills the proxy
+
+    /* DERIVED TRAPS */
+
+    // trapped: proxy.name
     get: function(rcvr, name) {
+        // console.log("INSIDE ANALYSER GET",name);
         var self = this;
         if (name === "valueOf") {
             return function() {
-                return 1;
+                return randomData.getRandomPrimitive();
             }
         }
         else {
@@ -403,29 +444,12 @@ var analyserHandler = {
         }
     },
 
-    // proxy[name] = value
+    // no point in actually setting as we trap [[get]]
+    // return true to avoid throw in strict mode
+    // trap: proxy.name = value
     set: function(receiver, name, value) {
-        this[name] = Proxy.create(this);
+        // console.log("INSIDE ANALYSER SET PROP",name);
         return true;
-    },
-
-    // name in proxy -> boolean
-    has: function(name) {
-        return false;
-    },
-
-    // for (var name in proxy) { ... }
-    enumerate: function() {
-        var result = [];
-        for (var name in this.target) {
-            result.push(name);
-        };
-        return result;
-    },
-
-    // Object.keys(proxy) -> [ string ]
-    keys: function() {
-        return [];
     }
 };
 

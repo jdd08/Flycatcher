@@ -61,7 +61,6 @@ var expectedCoverage = cmd.coverage;
 
 var pgmInfo = analyser.getProgramInfo(cmd, classContext, CUTname);
 var CUTmethods = pgmInfo.getMethods(CUTname);
-
 var unitTests = [];
 var failingTests = [];
 var unitTestsFile = "./results/Flycatcher_" + CUTname + ".js";
@@ -88,9 +87,8 @@ function generateTests(MUTname, unitTest, failingTests) {
         var test = randomTest.generate(pgmInfo);            
         exec.setTest(test);
         //console.log(pgmInfo.getMUT().params);
-        //exec.showTest(test);
+        // exec.showTest(test);
         var testRun = exec.run();
-
         if (testRun.newCoverage && !test.hasUnknowns()) {
             unitTests.push(test.toUnitTestFormat(testRun.results, ++count));
         }
@@ -101,7 +99,7 @@ function generateTests(MUTname, unitTest, failingTests) {
             failingTests.push(test.toFailingTestFormat(testRun.msg));
         }
         // exec.showCoverage();
-        // exec.showMUT();
+        //  exec.showMUT();
         // the timeout is to avoid looping forever in the case
         // that the generated tests cannot achieve any further
         // coverage due to errors (these errors may be due to
@@ -112,6 +110,7 @@ function generateTests(MUTname, unitTest, failingTests) {
             break;
         }
     }
+    console.log(pgmInfo);
 }
 
 // specific method to test was specified

@@ -1,4 +1,4 @@
-\chapter{Random Test Generator}
+\chapter{Generating random tests}
 \label{randomtest}
 In this chapter we detail the process for generating \emph{random} tests, in the hope of achieving good code coverage of the CUT. First we explain the structure of a test and some characteristics of that structure. Then we describe the mechanism for trying to generate tests in which the types for the parameters are correct. Finally we discuss the formatting of those tests, with regard to whether they are intended for the \textsf{Executor} or as final output.
 
@@ -138,7 +138,7 @@ To carry on with the example, eventually, after enough information has been coll
 Similarly, when there is enough information to infer that the type of the parameter of the \texttt{Node} constructor is a primitive number, we get the test in example \ref{final}.
 
 \subsection{Type inference}
-The information that is collected when tests are run by the \textsf{Executor} is stored in the \texttt{ProgramInfo} object introduced in chapter \ref{background}. Upon each \textbf{Test Generator}/\textsf{Executor} iteration for that test, we update the \texttt{ProgramInfo} object's type information using the new information gathered in the latest \textsf{Executor} run. Although we will explain exactly how this information is collected when we describe the \textsf{Executor}, here we describe how that information is used to infer types for the various test parameters.
+The information that is collected when tests are run by the \textsf{Executor} is stored in the \texttt{ProgramInfo} object introduced in chapter \ref{background}. Upon each \textsf{Test Generator}/\textsf{Executor} iteration for that test, we update the \texttt{ProgramInfo} object's type information using the new information gathered in the latest \textsf{Executor} run. Although we will explain exactly how this information is collected when we describe the \textsf{Executor}, here we describe how that information is used to infer types for the various test parameters.
 
 \subsubsection{Member accesses}
 For each parameter, the \texttt{ProgramInfo} object keeps track of any attempt to access a property on that parameter. In effect, this records attempts to retrieve \emph{fields} and \emph{methods} from that parameter. By cross-referencing those accesses with the fields and methods stored in \texttt{ProgramInfo}'s class definitions, we may be able to deduce the type of that parameter. 

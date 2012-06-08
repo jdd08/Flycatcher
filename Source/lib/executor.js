@@ -18,6 +18,7 @@ var beautify = require('beautify').js_beautify;
 var _ = require('underscore');
 var EventEmitter = require('events').EventEmitter;
 var randomData = require('./randomData.js');
+var idleHandler = require('./analyser.js').idleHandler;
 
 var Executor = module.exports.Executor = function(src, pgmInfo) 
 {
@@ -145,11 +146,12 @@ Executor.prototype.wrapMUT = function(pgmInfo) {
 
 var TrapThresholdExceeded = function (){};
 
-var OBJECT_HIDDEN_METHODS = ["toString", "isPrototypeOf",
-                             "hasOwnProperty", "toSource",
-                             "propertyIsEnumerable",
-                             "toLocaleString",
-                             "watch", "unwatch"];
+const OBJECT_HIDDEN_METHODS = ["toString", "isPrototypeOf",
+                               "hasOwnProperty", "toSource",
+                               "propertyIsEnumerable",
+                               "toLocaleString",
+                               "watch", "unwatch","inspect",
+                               "constructor"];
 
 function createExecHandler(pgmInfo) {
 
@@ -165,9 +167,9 @@ function createExecHandler(pgmInfo) {
     // the very fact that they are traps means that we have
     // not yet inferred the correct type and it is in our interest
     // to update sooner than later to achieve coverage
-    var TRAP_THRESHOLD = 10;
+    var TRAP_THRESHOLD = 50;
 
-    var Handler = function(className, methodName, paramIndex, exec) {
+    var ExecHandler = function(className, methodName, paramIndex, exec) {
         // exec reference needed to have a handle on the vm source
         this.exec = exec;
 
@@ -183,58 +185,84 @@ function createExecHandler(pgmInfo) {
 
         this.trapCount = 0;
     }
-    
-    var doNothingHandler = {
-        get: function(receiver, name) {
-            // returning a random value for primitive
-            // can be seen as doing nothing, again the
-            // main objective is not to crash so that
-            // more info can be collected during this run
-            if(name === "valueOf") {
-                return function() {
-                    return randomData.getRandomPrimitive();
-                }
-            }
-            // if a function is called or a member is accessed
-            // on a proxy that does nothing we return another
-            // proxy that does nothing
-            else {
-                var self = this;
-                return Proxy.createFunction(self,
-                    function() {
-                        return Proxy.create(self)
-                });
-            }
-        }
-    }
 
-    Handler.prototype = {
+    function idleProxy() {
+        return Proxy.createFunction(idleHandler,
+            function() {
+                return Proxy.create(idleHandler)
+            }
+        );
+    };
 
-        getPropertyDescriptor: function(name) {
-            console.log("INSIDE EXECUTOR GET PROP",name);
+    ExecHandler.prototype = {
+
+        /* FUNDAMENTAL TRAPS */
+
+        // there are no names/descriptors to retrieve
+        // as our proxy has no target
+        
+        // trapped: Object.getOwnPropertyDescriptor(proxy, name)
+        getOwnPropertyDescriptor: function(name) {
+            // console.log("INSIDE EXECUTOR GET OWN PROP",name);
             this.membersAccessed.push(name);
             return undefined;
         },
+        
+        // Not in ES5!
+        // trapped: Object.getPropertyDescriptor(proxy, name)
+        getPropertyDescriptor: function(name) {
+            // console.log("INSIDE EXECUTOR GET PROP",name);
+            this.membersAccessed.push(name);
+            return undefined;
+        },
+        // trapped: Object.getOwnPropertyNames(proxy)
+        getOwnPropertyNames: function() {
+            // console.log("INSIDE EXECUTOR GET OWN PROPERTY NAMES");
+            return [];
+        },
+            
+        // Not in ES5!
+        // trapped: Object.getPropertyNames(proxy)
+        getPropertyNames: function() {
+            // console.log("INSIDE EXECUTOR GET PROPERTY NAMES");
+            return [];
+        },
+        
+        // outcome of the defineProperty and delete irrelevant
+        // as we trap [[get]]
+        
+        // trapped: Object.defineProperty(proxy,name,pd)
+        defineProperty: function(name, pd) {
+            // console.log("INSIDE EXECUTOR DEFINE PROPERTY",name);
+            // pretend to succeed
+            return true;
+        },
 
-        // delete proxy[name] -> boolean
+        // trapped: delete proxy.name
         delete: function(name) {
-            return delete this.target[name];
+            // console.log("INSIDE EXECUTOR DELETE",name);            
+            // pretend to succeed
+            return true;
         },
+        
+        // we ignore the fundamenal trap fix
+        // which traps:
+        // - Object.freeze(proxy)
+        // - Object.seal(proxy)
+        // - Object.preventExtensions(proxy)
+        // as it kills the proxy
 
-        // name in proxy -> boolean
-        has: function(name) {
-            return name in this.target;
-        },
+        /* DERIVED TRAPS */
 
-        // proxy[name] -> any
+        // trapped: proxy.name
         get: function(receiver, name) {
-            console.log("INSIDE EXECUTOR GET",name);
+            // console.log("INSIDE EXECUTOR GET",name);
             this.trapCount++;
             if (this.trapCount > TRAP_THRESHOLD) {
                 throw new TrapThresholdExceeded();
             }
             if (name === "valueOf") {
-                console.log("INSIDEVALUEOF");
+                // console.log("INSIDEVALUEOF");
                 try {
                     throw new ValueOfTrap(this.exec.vmSource,
                                           this.primitiveScore,
@@ -279,51 +307,29 @@ function createExecHandler(pgmInfo) {
             }
             else {
                 if (!_.include(OBJECT_HIDDEN_METHODS,name)) this.membersAccessed.push(name);
-                console.log(this.paramInfo);
-                console.log('MEMBER ACCESS');
+                // console.log(this.paramInfo);
+                // console.log('MEMBER ACCESS');
                 // return a proxy with a handler that does nothing so that we can avoid
                 // crashing and keep collecting data for the other parameters during this
                 // run if possible
-                return Proxy.createFunction(doNothingHandler,
-                    function() {
-                        return Proxy.create(doNothingHandler)
-                    }
-                );
+                return idleProxy();
             }
         },
 
-        // proxy[name] = value
+        // trapped: proxy.name
+        // no point in setting value as any [[get]] will be trapped anyway
         set: function(receiver, name, value) {
-            console.log("INSIDE EXECUTOR SET PROP",name);
-            if (canPut(this.target, name)) {
-                // canPut as defined in ES5 8.12.4 [[CanPut]]
-                this.target[name] = value;
-                return true;
-            }
-            return false;
-            // causes proxy to throw in strict mode, ignore otherwise
-        },
-
-        // for (var name in proxy) { ... }
-        enumerate: function() {
-            var result = [];
-            for (var name in this.target) {
-                result.push(name);
-            };
-            return result;
-        },
-
-        // Object.keys(proxy) -> [ string ]
-        keys: function() {
-            return Object.keys(this.target);
+            // console.log("INSIDE EXECUTOR SET PROP",name);
+            this.membersAccessed.push(name);
+            return true; // to avoid throw in strict mode
         }
     };
-    return Handler;
+    return ExecHandler;
 }
 
 Executor.prototype.createContext = function(pgmInfo) {
     var context = {};
-    var Handler = createExecHandler(pgmInfo);
+    var ExecHandler = createExecHandler(pgmInfo);
     
     // we want to trap only the calls that the "proxy" object
     // below cannot answer (because the type for it is not
@@ -337,8 +343,7 @@ Executor.prototype.createContext = function(pgmInfo) {
     var exec = this;
     context.proxy = function(className, methodName, paramIndex) {
         // var prox = Object.create(Proxy.create(new Handler(className, methodName, paramIndex, exec)));
-        var prox = Object.create(Proxy.create(new Handler(className, methodName, paramIndex, exec)));
-        return prox;
+        return Proxy.create(new ExecHandler(className, methodName, paramIndex, exec));
     }
     context.log = console.log;
 

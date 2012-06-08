@@ -1,6 +1,5 @@
 var _ = require('underscore');
 var util = require('util');
-var operators = require('./executor.js').operators;
 
 exports.getRandomPrimitive = function() {
     var r = Math.random();

@@ -67,13 +67,7 @@ Test.prototype.push = function(statement) {
                  // otherwise the statement is necessarily of type Call or MUTcall
                  // and the name will be the name of the method
                  else {
-                     try {
-                        parentMethod = statement.methodName;   
-                     }
-                     catch (err){
-                         console.log("aweawewaeaw");
-                         process.exit(0);
-                     }
+                     parentMethod = statement.methodName;
                  }
                  this.push(new Unknown(paramId, parentType, parentMethod, p));
              }
@@ -162,15 +156,8 @@ function Call(receiver, methodName, params, type) {
     this.params = params;
     this.type = type;
     this.toExecutorFormat = this.toUnitTestFormat = function(paramIds) {
-        try {
-            var r = receiver + "." + this.methodName;
-                r += "(" + toParams(paramIds) + ");"            
-        }
-        catch(err) {
-            console.log("omg");
-            process.exit(0);
-        }
-
+        var r = receiver + "." + this.methodName;
+            r += "(" + toParams(paramIds) + ");"
         return r;
     }
 }

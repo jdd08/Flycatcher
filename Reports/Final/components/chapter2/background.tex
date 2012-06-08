@@ -349,7 +349,40 @@ proxy.treasure = "gold";
 proxy.treasure // returns "treasure -> It's a trap!"
 \end{code}
 
-The \texttt{receiver} is a handle to the proxy itself, and the \texttt{name} is the name of the property being trapped. The object passed to the Proxy's \texttt{create} function is called its handler and needs to implement a specific API, so that all of the fundamental low-level operations on the object respond, but it is not necessary to detail it here. It is worth noting about Proxies, as this will matter to us later, that some operations are not trapped in order to respect the language invariants:
+The \texttt{receiver} is a handle to the proxy itself, and the \texttt{name} is the name of the property being trapped. The object passed to the Proxy's \texttt{create} function is called its handler and needs to implement a specific API, so that all of the fundamental low-level operations on the object respond. The traps available to Proxies and the code they respectively emulate are laid out in Table \ref{traps}. The \emph{fundamental traps}' implementation is required, but the \emph{derived traps} can be left out as they have a default implementation in terms of the fundamental ones. In the context of \textsf{Flycatcher}, the traps that we will be the most interested in are \texttt{get} and \texttt{set}.
+
+\begin{table}[h]
+\hspace*{-2.1cm}
+\centering
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Trap} & \textbf{Emulated code} \\
+\hline
+\emph{Fundamental Traps} & \\
+\texttt{getOwnPropertyDescriptor(name)} & \texttt{Object.getOwnPropertyDescriptor(proxy, name)} \\
+\texttt{getPropertyDescriptor(name)} & \texttt{Object.getPropertyDescriptor(proxy, name)} \\
+\texttt{getOwnPropertyNames()} & \texttt{Object.getOwnPropertyNames(proxy)} \\
+\texttt{getPropertyNames()} & \texttt{Object.getPropertyNames(proxy)} \\
+\texttt{defineProperty(name,pd)} & \texttt{Object.defineProperty(proxy,name,pd)} \\
+\texttt{delete(name)} & \texttt{delete proxy.name} \\
+\texttt{fix()} & \texttt{Object.freeze(proxy)} \\
+                        & \texttt{Object.seal(proxy)} \\
+                        & \texttt{Object.preventExtensions)} \\
+\hline
+\emph{Derived Traps} & \\
+\texttt{has(name)} & \texttt{name in proxy} \\
+\texttt{hasOwn(name)} & \texttt{Object.prototype.hasOwnProperty.call(proxy, name)} \\
+\texttt{get(receiver,name)} & \texttt{proxy.name} \\
+\texttt{set(receiver,name,val)} & \texttt{proxy.name = val} \\
+\texttt{enumerate()} & \texttt{for(prop in proxy){...}} \\
+\texttt{keys()} & \texttt{Object.keys(proxy)} \\
+\hline
+\end{tabular}
+\caption{\texttt{Proxy} traps}
+\label{traps}
+\end{table}
+
+It is worth noting about Proxies, as this will matter to us later, that some operations are not trapped in order to respect the language invariants:
 
 \begin{itemize}
    \item The tripple equal \texttt{===} operator isn't trapped \emph{i.e.} \texttt{p1 === p2} \emph{only} if \texttt{p1} and \texttt{p2} are a reference to the same Proxy object

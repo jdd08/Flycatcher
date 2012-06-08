@@ -1,4 +1,4 @@
-\chapter{Analyser}
+\chapter{Extracting information from the source}
 
 The targets of our unit tests are classes, understood as the definition in section \ref{overalljs}. We refer to the class for which tests are being generated as the \emph{class under test}, using the acronym CUT. Because of the nature of meaningful tests in an object-oriented context, generating tests for a class means generating tests that target individual methods of that class, as shown in the section \ref{OOtests}. These methods, when selected one at a time for the purpose of generating test cases, will be referred to as \emph{method under test} or MUT.
 
@@ -124,6 +124,35 @@ get: function(rcvr, name) {
 % TODO: problem with methods that are closures on one of the parameters
 % this is in fact fine? -> we reuse the source code itself in the executor
 It is worth noting that we do not care about the \emph{outcome} of the operations on parameters within the constructor, only that it doesn't crash. The purpose of this process is to find out the signatures of the class's methods and these cannot be affected by the class parameters --- except for the case where \emph{the class method itself} is passed in as a parameter, which we do not deal with.
+
+Tests were run to ensure that the constructor does indeed not crash with those Proxy parameters, assuming normal program behaviour. The test cases are summarised in Table \ref{nocrash}, where \texttt{proxy} is the parameter proxy, \texttt{f} is a field and \texttt{m} is a method:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Operation} & \textbf{Code} \\
+\hline
+\texttt{valueOf} call on proxy itself & \texttt{proxy + 1}\\
+\texttt{toString()} call on proxy itself & \texttt{proxy.toString()}\\
+Field access & \texttt{proxy.f} \\
+Field access of field access & \texttt{proxy.f.f} \\
+Method call of field access & \texttt{proxy.f.m()} \\
+Overriding field & \texttt{proxy.f = 3} \\
+\texttt{valueOf} call & \texttt{proxy.f + 1} \\
+\texttt{toString} call & \texttt{[proxy.f]} \\
+Method access & \texttt{proxy.m} \\
+Method call & \texttt{proxy.m()} \\
+Field access of method call & \texttt{proxy.m().f} \\
+Method call of method call & \texttt{proxy.m().m()} \\
+Overriding method & \texttt{proxy.m = function()\{\}} \\
+\texttt{valueOf} call & \texttt{proxy.m.valueOf()} \\
+\texttt{toString} call & \texttt{proxy.m.toString()} \\
+\hline
+\end{tabular}
+\caption{Testing proxy parameters}
+\label{nocrash}
+\end{table}
 
 \subsubsection{Using the proxy parameters to initialise the class}
 Once the appropriate number of Function Proxies have been created, which we can find out from the retrieved constructor's definition, we need to initialise the class with them. One would think that JavaScript, given its first-class functions, would have a way to do that --- we have the constructor function and we have the parameters for it. Unfortunately, the \texttt{Function.apply} and \texttt{Function.call} library functions both simply \emph{invoke} functions, they cannot \emph{instantiate} a new object with them, which is what we want to do. Thankfully, this is easily resolved with a small closure:
