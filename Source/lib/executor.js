@@ -145,6 +145,12 @@ Executor.prototype.wrapMUT = function(pgmInfo) {
 
 var TrapThresholdExceeded = function (){};
 
+var OBJECT_HIDDEN_METHODS = ["toString", "isPrototypeOf",
+                             "hasOwnProperty", "toSource",
+                             "propertyIsEnumerable",
+                             "toLocaleString",
+                             "watch", "unwatch"];
+
 function createExecHandler(pgmInfo) {
 
     // Represents the number of traps after which
@@ -170,6 +176,7 @@ function createExecHandler(pgmInfo) {
             paramInfo = pgmInfo.getConstructorParamInfo(className, paramIndex) :
             paramInfo = pgmInfo.getMethodParamInfo(className, methodName, paramIndex);
 
+        this.paramInfo = paramInfo;
         this.name = paramInfo.name;
         this.primitiveScore = paramInfo.primitiveScore;
         this.membersAccessed = paramInfo.membersAccessed;
@@ -184,7 +191,9 @@ function createExecHandler(pgmInfo) {
             // main objective is not to crash so that
             // more info can be collected during this run
             if(name === "valueOf") {
-                return randomData.getRandomPrimitive();                
+                return function() {
+                    return randomData.getRandomPrimitive();
+                }
             }
             // if a function is called or a member is accessed
             // on a proxy that does nothing we return another
@@ -202,7 +211,7 @@ function createExecHandler(pgmInfo) {
     Handler.prototype = {
 
         getPropertyDescriptor: function(name) {
-            // console.log("INSIDE GET PROP",name);
+            console.log("INSIDE EXECUTOR GET PROP",name);
             this.membersAccessed.push(name);
             return undefined;
         },
@@ -219,13 +228,13 @@ function createExecHandler(pgmInfo) {
 
         // proxy[name] -> any
         get: function(receiver, name) {
-            // console.log("INSIDE GET",name);
+            console.log("INSIDE EXECUTOR GET",name);
             this.trapCount++;
             if (this.trapCount > TRAP_THRESHOLD) {
                 throw new TrapThresholdExceeded();
             }
             if (name === "valueOf") {
-                // console.log("INSIDEVALUEOF");
+                console.log("INSIDEVALUEOF");
                 try {
                     throw new ValueOfTrap(this.exec.vmSource,
                                           this.primitiveScore,
@@ -269,8 +278,9 @@ function createExecHandler(pgmInfo) {
                 }
             }
             else {
-                this.membersAccessed.push(name);
-                // console.log('MEMBER ACCESS');
+                if (!_.include(OBJECT_HIDDEN_METHODS,name)) this.membersAccessed.push(name);
+                console.log(this.paramInfo);
+                console.log('MEMBER ACCESS');
                 // return a proxy with a handler that does nothing so that we can avoid
                 // crashing and keep collecting data for the other parameters during this
                 // run if possible
@@ -284,7 +294,7 @@ function createExecHandler(pgmInfo) {
 
         // proxy[name] = value
         set: function(receiver, name, value) {
-            // console.log("INSIDE SET");
+            console.log("INSIDE EXECUTOR SET PROP",name);
             if (canPut(this.target, name)) {
                 // canPut as defined in ES5 8.12.4 [[CanPut]]
                 this.target[name] = value;
@@ -480,7 +490,8 @@ Executor.prototype.run = function() {
                 process.exit(0);
             }
             */
-
+            console.warn("\u001b[35mWARNING:\u001b[0m error in the executor:");
+            console.warn(err.toString());
             return {
                 msg: err.toString(),
                 error: true
