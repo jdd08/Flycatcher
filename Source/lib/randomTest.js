@@ -2,6 +2,7 @@ var randomData = require('./randomData.js');
 var _ = require('underscore');
 var util = require('util');
 var beautify = require('beautify').js_beautify;
+var colors = require('colors');
 
 // maximum number of CUT method calls before calling the MUT
 const MAX_CALLS_BEFORE_MUT = 10;
@@ -15,10 +16,7 @@ function Test(MUTname) {
 }
 
 Test.prototype.push = function(statement) {
-    // console.log('pushing',statement);
-
     var parentId = statement.identifier;
-    // console.log(parentId);
     var parentType = statement.type;
     var params = statement.params;
 
@@ -199,28 +197,24 @@ exports.generate = function(pgmInfo) {
     var CUTname = pgmInfo.CUTname;
     var MUTname = pgmInfo.MUTname;
 
-    pgmInfo.update();
+    pgmInfo.makeInferences();
 
-    // console.log(util.inspect(pgmInfo, false, null));
     var test = new Test(MUTname);
-    var ctrParams = pgmInfo.getRecursiveParams(
-                        _.pluck(pgmInfo.getConstructorParams(CUTname), "inferredType"));
-    var receiver = new Declaration(CUTname.toLowerCase() + _.uniqueId(), CUTname, ctrParams);
-    // console.log('BEFORE PUSHING RECEIVER');
-    // console.log(util.inspect(test, false, null));;
+    var ctrParams = pgmInfo.getConstructorParams(CUTname);
+    
+    updateUsageCounters(ctrParams);
+    var receiver = new Declaration(CUTname.toLowerCase() + _.uniqueId(), CUTname,
+        pgmInfo.getRecursiveParams(_.pluck(ctrParams, "inferredType")));
     test.push(receiver);
-    // console.log('AFTER PUSHING RECEIVER');
-    // console.log(util.inspect(test, false, null));;
 
     var callSequence = [];
     randomSequenceLength = Math.ceil(Math.random()*MAX_CALLS_BEFORE_MUT);
-
-    // console.log('BEFORE PUSHING CUT methods');
-    // console.log(util.inspect(test, false, null));;
     var CUTmethods = pgmInfo.getMethods(CUTname);
     for (var j = 0; j<randomSequenceLength;j++) {
         var randomMethod = Math.floor(Math.random()*CUTmethods.length);
         var CUTmethod = CUTmethods[randomMethod];
+
+        updateUsageCounters(CUTmethod.params);
         if (CUTmethod.isMUT) {
             // test.MUTcalls used to collect results inside the vm environment
             test.push(new MUTcall(receiver.identifier, CUTmethod.name,
@@ -232,20 +226,19 @@ exports.generate = function(pgmInfo) {
                                CUTname));
         }
     }
-    // console.log('AFTER PUSHING CUT methods');
-    // console.log(util.inspect(test, false, null));;
-
-    // console.log('BEFORE PUSHING last MUT');
-    // console.log(util.inspect(test, false, null));;
     var MUT = _.filter(CUTmethods, function(x){return x.isMUT})[0];
+    updateUsageCounters(MUT.params);
     test.push(new MUTcall(receiver.identifier, MUT.name,
                           pgmInfo.getRecursiveParams(_.pluck(MUT.params, "inferredType")),
                           CUTname, test.MUTcalls++));
-    // console.log('AFTER PUSHING last MUT');
-    // console.log(util.inspect(test, false, null));;
     return test;
 }
 
+function updateUsageCounters(params) {
+    _.forEach(params, function(param) {
+        param.usageCounter++;
+    });
+}
 
 // AUXILLIARY
 

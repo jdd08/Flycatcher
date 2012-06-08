@@ -19,6 +19,7 @@ var _ = require('underscore');
 var EventEmitter = require('events').EventEmitter;
 var randomData = require('./randomData.js');
 var idleHandler = require('./analyser.js').idleHandler;
+var colors = require('colors');
 
 var Executor = module.exports.Executor = function(src, pgmInfo) 
 {

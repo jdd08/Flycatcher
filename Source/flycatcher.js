@@ -9,6 +9,14 @@ var fs = require('fs');
 var vm = require('vm');
 var _ = require('underscore');
 var cmd = require('commander');
+var colors = require('colors');
+colors.setTheme({
+  info: 'blue',
+  warn: 'magenta',
+  good: 'green',
+  error: 'red',
+  bad: 'red'
+});
 
 cmd
 .version('1.0')
@@ -17,6 +25,7 @@ cmd
 .option('-c, --coverage <num>', 'expected coverage %', Number, 100)
 .option('-t, --timeout <num>', 'timeout in seconds')
 .option('-n, --namespace <name>', 'specify a namespace for your class')
+.option('-u, --usage <name>', 'number of parameter usages required before attempting type inference',Number,20)
 // .option('-f, --files <name>', 'specify other files for your class')
 // TODO option for more than one file
 .parse(process.argv);
@@ -55,123 +64,96 @@ try {
     process.exit(1);
 }
 
-// mut: method under test
-var MUTname = cmd.method;
 var expectedCoverage = cmd.coverage;
-
 var pgmInfo = analyser.getProgramInfo(cmd, classContext, CUTname);
+
 var CUTmethods = pgmInfo.getMethods(CUTname);
 var unitTests = [];
 var failingTests = [];
 var unitTestsFile = "./results/Flycatcher_" + CUTname + ".js";
 var failingTestsFile = "./results/Flycatcher_" + CUTname + ".log";
 
-var red, green, yellow, reset;
-red   = '\u001b[31m';
-green  = '\u001b[32m';
-yellow  = '\u001b[33m';
-reset = '\u001b[0m';
-
 function generateTests(MUTname, unitTest, failingTests) {
-    var exec = new Executor(src, pgmInfo);
+    try {    
+        var exec = new Executor(src, pgmInfo);
     
-    console.log("\nGenerating tests for at least " + expectedCoverage + 
-                "\% coverage of method <" + MUTname + 
-                "> from class <" + CUTname + "> :   ");
-    console.log("--------------------------------------------------" +
-                "----------------------------------------");
-    var count = 0;
-    var start = Date.now();
-    // console.log(util.inspect(pgmInfo, true, null));
-    while (exec.getCoverage() < expectedCoverage) {
-        var test = randomTest.generate(pgmInfo);            
-        exec.setTest(test);
-        //console.log(pgmInfo.getMUT().params);
-        // exec.showTest(test);
-        var testRun = exec.run();
-        if (testRun.newCoverage && !test.hasUnknowns()) {
-            unitTests.push(test.toUnitTestFormat(testRun.results, ++count));
+        console.log("\nGenerating tests for at least " + expectedCoverage + 
+                    "\% coverage of method <" + MUTname + 
+                    "> from class <" + CUTname + "> :   ");
+        console.log("--------------------------------------------------" +
+                    "----------------------------------------");
+        var count = 0;
+        var start = Date.now();
+        // console.log(util.inspect(pgmInfo, true, null));
+        while (exec.getCoverage() < expectedCoverage) {
+            var test = randomTest.generate(pgmInfo);            
+            exec.setTest(test);
+            //console.log(pgmInfo.getMUT().params);
+            // exec.showTest(test);
+            var testRun = exec.run();
+            if (testRun.newCoverage && !test.hasUnknowns()) {
+                unitTests.push(test.toUnitTestFormat(testRun.results, ++count));
+            }
+            // keep track of the non-unknown tests that don't add coverage so that
+            // if the timeout expires we can see what the failing tests were
+            else if (testRun.error && !test.hasUnknowns()) {
+                // console.log(util.inspect(test, false, null));
+                failingTests.push(test.toFailingTestFormat(testRun.msg));
+            }
+            // exec.showCoverage();
+            //  exec.showMUT();
+            // the timeout is to avoid looping forever in the case
+            // that the generated tests cannot achieve any further
+            // coverage due to errors (these errors may be due to
+            // the code under test itself or it may be that we failed
+            // to infer correct types)
+            if (cmd.timeout && Date.now() > (start + cmd.timeout*1000)) {
+                console.warn("Flycatcher timed out as it could not achieve the desired coverage in time.");
+                break;
+            }
         }
-        // keep track of the non-unknown tests that don't add coverage so that
-        // if the timeout expires we can see what the failing tests were
-        else if (testRun.error && !test.hasUnknowns()) {
-            // console.log(util.inspect(test, false, null));
-            failingTests.push(test.toFailingTestFormat(testRun.msg));
-        }
-        // exec.showCoverage();
-        //  exec.showMUT();
-        // the timeout is to avoid looping forever in the case
-        // that the generated tests cannot achieve any further
-        // coverage due to errors (these errors may be due to
-        // the code under test itself or it may be that we failed
-        // to infer correct types)
-        if (cmd.timeout && Date.now() > (start + cmd.timeout*1000)) {
-            console.warn("Flycatcher timed out as it could not achieve the desired coverage in time.");
-            break;
-        }
-    }
-    console.log(pgmInfo);
-}
-
-// specific method to test was specified
-if (MUTname) {
-    pgmInfo.setMUT(MUTname);
-    _.filter(CUTmethods, function(m) {
-        return m.name === MUTname;
-    })[0].isMUT = true;
-    try {
-        generateTests(MUTname, unitTests, failingTests);
     }
     catch(err) {
-        console.error("\u001b[31mERROR while generating tests for method <"
-                      + MUTname + ">: \u001b[0m");
+        console.error("ERROR while generating tests for method <" + MUTname + ">".error);
         if (err.type === "stack_overflow") 
-            console.log("STACK OVERFLOW: there is a cycle in the inferred parameter definitions");
+            console.log("STACK OVERFLOW: there must be a cycle in the inferred parameter definitions".error);
         else console.log(err.toString());
     }
 }
-// otherwise generate tests for all of a class's methods
-else {
-    var prev = null;
-    for (var m in CUTmethods) {
-        if (prev) prev.isMUT = false;
-        var method = CUTmethods[m]
-        var MUTname = method.name;
-        pgmInfo.setMUT(MUTname);
-        method.isMUT = true;
-        prev = method;        
-        // if generation for one method fails notify and attempt others
-        try {
-            generateTests(MUTname, unitTests, failingTests);
-        }
-        catch(err) {
-            console.error("\u001b[31mERROR while generating tests for method <"
-                          + MUTname + ">: \u001b[0m");
-            if (err.type === "stack_overflow") 
-                console.log("STACK OVERFLOW: there is a cycle in the inferred parameter definitions");
-            else console.log(err.toString());
-        }
-    }
+
+var prev = null;
+
+// cmd.method is undefnied if MUT not specified by user
+var cmdMethod = cmd.method;
+for (var m in CUTmethods) {
+    if (cmdMethod && m !== cmdMethod) continue;
+    if (prev) prev.isMUT = false;
+    var method = CUTmethods[m]
+    var MUTname = method.name;
+    pgmInfo.setMUT(MUTname);
+    method.isMUT = true;
+    prev = method;
+    generateTests(MUTname, unitTests, failingTests);
 }
 
 if (unitTests.length) {
-    console.log(green + "\n--> Unit tests can be found in " + unitTestsFile + reset);
+    console.log(("\n--> Unit tests can be found in " + unitTestsFile).good);
     fs.writeFileSync(unitTestsFile,
         generateUnitTests(src, CUTname, unitTests)
     );
 }
 else {
-    console.log(red + "\n--> No unit tests were generated." + reset);
+    console.log("\n--> No unit tests were generated.".bad);
 }
 
 if (failingTests.length) {
-    console.log(red + "--> Failings tests can be found in " + failingTestsFile  + reset);
+    console.log(("--> Failings tests can be found in " + failingTestsFile).bad);
     fs.writeFileSync(failingTestsFile,
         generateFailingTests(src, CUTname, failingTests)
     );
 }
 else {
-    console.log(green + "--> No generated tests failed." + reset);
+    console.log("--> No generated tests failed.".good);
 }
 
 /* catch MUT not defined
