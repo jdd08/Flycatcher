@@ -168,7 +168,7 @@ function MUTcall(receiver, methodName, params, type, number) {
     this.number = number;
     this.toExecutorFormat = function(paramIds) {
         var ret = "results[" + this.number + "] = " 
-                  + receiver + ".MUT"
+                  + receiver + "." + this.methodName
                   + "(" + toParams(paramIds) + ");"
         return ret;
     }

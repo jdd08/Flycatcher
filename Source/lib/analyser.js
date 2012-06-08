@@ -299,7 +299,7 @@ ParamInfo.prototype.makeInferences = function(pgmInfo) {
         // if we cannot infer a type, simply issue a warning
         // and keep trying until one of the timeouts happens
         else {
-            console.warn("\u001b[35mWARNING:\u001b[0m No information to infer param " +
+            console.warn("WARNING: ".warn + "No information to infer param " +
                          this.name + " in method " + this.methodName);
             console.warn("         This may be due to the param being seldom or never used.");
         }

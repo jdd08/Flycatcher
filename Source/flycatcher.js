@@ -106,7 +106,7 @@ function generateTests(src, pgmInfo, unitTests, failingTests) {
             var test = randomTest.generate(pgmInfo);            
             exec.setTest(test);
             //console.log(pgmInfo.getMUT().params);
-            // exec.showTest(test);
+            //exec.showTest(test);
             var testRun = exec.run();
             if (testRun.newCoverage && !test.hasUnknowns()) {
                 unitTests.push(test.toUnitTestFormat(testRun.results, ++count));

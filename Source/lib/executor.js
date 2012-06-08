@@ -20,6 +20,14 @@ var EventEmitter = require('events').EventEmitter;
 var randomData = require('./randomData.js');
 var idleHandler = require('./analyser.js').idleHandler;
 var colors = require('colors');
+colors.setTheme({
+  info1: 'blue',
+  info2: 'yellow',  
+  warn: 'magenta',
+  good: 'green',
+  error: 'red',
+  bad: 'red'
+});
 
 var Executor = module.exports.Executor = function(src, pgmInfo) 
 {
@@ -29,20 +37,9 @@ var Executor = module.exports.Executor = function(src, pgmInfo)
     this.nodeNum = 0;
     this.currentCov = 0;
     this.MUTname = pgmInfo.MUT.name;
-
-    this.names = {
-        call: burrito.generateName(6),
-        expr: burrito.generateName(6),
-        stat: burrito.generateName(6)
-    };
-
     this.source = src;
     this.context = this.createContext(pgmInfo);
     this.wrappedMUT = this.wrapMUT(pgmInfo);
-
-    this.on('node', function(i) {
-        this.coverage[i] = true;
-    });
 
     this.on('cov',
     function(currentCoverage, good) {
@@ -50,9 +47,9 @@ var Executor = module.exports.Executor = function(src, pgmInfo)
             this.currentCov = Math.round((currentCoverage / _.size(this.coverage) * 100) *
             Math.pow(10, 2) / Math.pow(10, 2));
             if (this.currentCov === 100) 
-                console.log("\u001b[32m"+ this.currentCov + "% coverage.\u001b[0m");
+                console.log((this.currentCov + "% coverage.").good);
             else
-                console.log("\u001b[33m"+ this.currentCov + "% coverage...\u001b[0m");
+                console.log((this.currentCov + "% coverage...").info2);
         }
     });
 
@@ -107,36 +104,35 @@ Executor.prototype.wrapMUT = function(pgmInfo) {
     function wrapper(node) {
         if (node.name === 'call') {
             i++;
-            node.wrap(names.call + '(' + i + ')(%s)');
+            node.wrap('__coverage__(' + i + ')(%s)');
             node.id = i;
         }
         else if (node.name === 'stat' || node.name === 'throw'
         || node.name === 'var' || node.name === 'return') {
             i++;
-            node.wrap('{' + names.stat + '(' + i + ');%s}');
+            node.wrap('{ __coverage__(' + i + ');%s}');
             node.id = i;
         }
         else if (node.name === 'binary') {
             i++;
-            node.wrap(names.expr + '(' + i + ')(%s)');
+            node.wrap('__coverage__(' + i + ')(%s)');
             node.id = i;
         }
         else if (node.name === 'unary-postfix' || node.name === 'unary-prefix') {
             i++;
-            node.wrap(names.expr + '(' + i + ')(%s)');
+            node.wrap('__coverage__(' + i + ')(%s)');
             node.id = i;
         }
     }    
     
     var nodes = this.nodes;
-    var names = this.names;
     var n = 0;
     
     var MUTdeclaration = pgmInfo.CUTname +
-                         ".prototype.MUT = "  +
+                         ".prototype." + pgmInfo.MUT.name + " = "  +
                          pgmInfo.getMUT().def;
     var i = 0;
-    var wrapped = burrito(MUTdeclaration, wrapper, names);
+    var wrapped = burrito(MUTdeclaration, wrapper);
     
     var coverage = this.coverage;
     _.forEach(wrapped.nodeIndexes,function(num){
@@ -329,71 +325,29 @@ function createExecHandler(pgmInfo) {
 }
 
 Executor.prototype.createContext = function(pgmInfo) {
-    var context = {};
-    var ExecHandler = createExecHandler(pgmInfo);
-    
-    // we want to trap only the calls that the "proxy" object
-    // below cannot answer (because the type for it is not
-    // yet correct). hence the proxy is an object who does have
-    // all the methods and fields of the type T we think it is (p.own)
-    // but whose prototype does not only have the properties of the
-    // usual T prototype, but *its* prototype (called when neither the
-    // "proxy"'s direct properties nor its prototype resolve) is an object
-    // of the type Proxy, whose handler is initialised to update the table
-    // for the specific parameter that this "proxy" is supposed to represent
     var exec = this;
-    context.proxy = function(className, methodName, paramIndex) {
-        // var prox = Object.create(Proxy.create(new Handler(className, methodName, paramIndex, exec)));
-        return Proxy.create(new ExecHandler(className, methodName, paramIndex, exec));
-    }
-    context.log = console.log;
-
-        // adding the instrumentation methods theo the runtime context
-        var self = this;
-        var stack = [];
-
+    return {
         // we are only interested in the coverage of tests
         // which are usable i.e. those that have resolved
         // all of their types, so we test for test.hasUnknowns()
-
-        context[self.names.call] = function(i) {
-            if (!self.test.hasUnknowns()) {
-                var node = self.nodes[i];
-                stack.unshift(node);
-                self.emit('node', i);
-            }
-            return function(expr) {
-                stack.shift();
-                return expr;
-            };
-        };
-
-        context[self.names.expr] = function(i) {
-            if (!self.test.hasUnknowns()) {
-                var node = self.nodes[i];
-                self.emit('node', i);
+        __coverage__ : function(i) {
+            if (!exec.test.hasUnknowns()) {
+                exec.coverage[i] = true;
             }
             return function(expr) {
                 return expr;
             };
-        };
-
-        context[self.names.stat] = function(i) {
-            if (!self.test.hasUnknowns()) {
-                var node = self.nodes[i];
-                self.emit('node', i);            
-            }
-        };
-
-        return context;
+        },
+        
+        log : console.log,
+        
+        proxy : function(className, methodName, paramIndex) {
+            var ExecHandler = createExecHandler(pgmInfo);
+            return Proxy.create(
+                new ExecHandler(className, methodName, paramIndex, exec));
+        }
+    }
 };
-
-
-Executor.prototype.show = function() {
-    this.showOriginal();
-    this.showMUT();
-    this.showTest();
-}
 
 Executor.prototype.showMUT = function() {
     console.log('-------------- MUT --------------------');
@@ -428,10 +382,10 @@ Executor.prototype.run = function() {
     this.vmSource = this.source + '\n' + this.wrappedMUT + '\n' 
                                 + this.test.toExecutorFormat();
     if (!this.wrappedMUT) {
-        console.warn("\u001b[35mWARNING:\u001b[0m Executor.mut is an empty string")
+        console.warn("WARNING: ".warn + "Executor.mut is an empty string");
     }
     if (!this.test) {
-        console.warn("\u001b[35mWARNING:\u001b[0m Executor.test is empty")
+        console.warn("WARNING: ".warn + "Executor.test is empty");
     }
     var before = this.covered();
     var beforeCoverage = {};
@@ -496,8 +450,6 @@ Executor.prototype.run = function() {
                 process.exit(0);
             }
             */
-            console.warn("\u001b[35mWARNING:\u001b[0m error in the executor:");
-            console.warn(err.toString());
             return {
                 msg: err.toString(),
                 error: true
