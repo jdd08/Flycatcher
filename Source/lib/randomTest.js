@@ -202,6 +202,9 @@ exports.generate = function(pgmInfo) {
     var test = new Test(MUTname);
     var ctrParams = pgmInfo.getConstructorParams(CUTname);
     
+    // FIXME: updating usage counters this way only updates it for the ctr
+    // params but not for the params of the other ctr that this ctr provokes
+    // the call of through pushes on the stack
     updateUsageCounters(ctrParams);
     var receiver = new Declaration(CUTname.toLowerCase() + _.uniqueId(), CUTname,
         pgmInfo.getRecursiveParams(_.pluck(ctrParams, "inferredType")));

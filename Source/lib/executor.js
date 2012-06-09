@@ -32,39 +32,22 @@ colors.setTheme({
 var Executor = module.exports.Executor = function(src, pgmInfo) 
 {
     this.test = {};
-    this.nodes = [];
     this.coverage = {};
-    this.nodeNum = 0;
     this.currentCov = 0;
     this.MUTname = pgmInfo.MUT.name;
     this.source = src;
     this.context = this.createContext(pgmInfo);
     this.wrappedMUT = this.wrapMUT(pgmInfo);
 
-    this.on('cov',
-    function(currentCoverage, good) {
-        if (good) {
-            this.currentCov = Math.round((currentCoverage / _.size(this.coverage) * 100) *
-            Math.pow(10, 2) / Math.pow(10, 2));
-            if (this.currentCov === 100) 
-                console.log((this.currentCov + "% coverage.").good);
-            else
-                console.log((this.currentCov + "% coverage...").info2);
-        }
-    });
-
     this.valueOfHintRegexp = function(){
 
         var hints = ['(\\+)(\\+)',     // ++
-                     '(\\+)',          // +
                      '(--)',           // --
                      '(-)',            // -
                      '(\\*)',          // *
                      '(\\/)',          // /
                      '(%)',            // %
-//                     '(\\&)(\\&)',     // &&
                      '(\\&)',          // &
-//                     '(\\|)(\\|)',     // ||
                      '(\\|)',          // |
                      '(!)',            // !
                      '(\\^)',          // ^
@@ -74,9 +57,8 @@ var Executor = module.exports.Executor = function(src, pgmInfo)
                      '(>>)',           // >>
                      '(>)',            // >
                      '(<)',            // <
-//                   '(\\d+\\.?\\d*)(?!\\))', // TODO: find a way to use number hints without
-                                              // counting the wrapper calls
-                     '(\\")',                 // matches the string quote "
+//                   '(\\d+\\.?\\d*)(?!\\))', // TODO: find a way to use number hints without counting the wrapper calls
+//                   '(\\")',                 // TODO: proper quote matching
                      ];
         var regexp = new RegExp(hints.join("|"),"g")
         return regexp; 
@@ -96,44 +78,45 @@ Executor.prototype.getCoverage = function() {
     return this.currentCov;
 }
 
+Executor.prototype.updateCoverage = function(currentCoverage, good) {
+    if (good) {
+        this.currentCov = Math.round((currentCoverage / _.size(this.coverage) * 100) *
+        Math.pow(10, 2) / Math.pow(10, 2));
+        if (this.currentCov === 100) 
+            console.log((this.currentCov + "% coverage.").good);
+        else
+            console.log((this.currentCov + "% coverage...").info2);
+    }
+};
+
 Executor.prototype.setTest = function(test) {
     this.test = test;
 };
 
 Executor.prototype.wrapMUT = function(pgmInfo) {
+    var i = 0;
     function wrapper(node) {
-        if (node.name === 'call') {
-            i++;
-            node.wrap('__coverage__(' + i + ')(%s)');
-            node.id = i;
-        }
-        else if (node.name === 'stat' || node.name === 'throw'
-        || node.name === 'var' || node.name === 'return') {
+        if (node.name === 'stat'  ||
+            node.name === 'throw' ||
+            node.name === 'var'   ||
+            node.name === 'return') {
             i++;
             node.wrap('{ __coverage__(' + i + ');%s}');
             node.id = i;
         }
-        else if (node.name === 'binary') {
-            i++;
-            node.wrap('__coverage__(' + i + ')(%s)');
-            node.id = i;
-        }
-        else if (node.name === 'unary-postfix' || node.name === 'unary-prefix') {
+        else if (node.name === 'call'          ||
+                 node.name === 'binary'        || 
+                 node.name === 'unary-postfix' ||
+                 node.name === 'unary-prefix')
+        {
             i++;
             node.wrap('__coverage__(' + i + ')(%s)');
             node.id = i;
         }
     }    
-    
-    var nodes = this.nodes;
-    var n = 0;
-    
-    var MUTdeclaration = pgmInfo.CUTname +
-                         ".prototype." + pgmInfo.MUT.name + " = "  +
-                         pgmInfo.getMUT().def;
-    var i = 0;
+    var MUT = pgmInfo.MUT;
+    var MUTdeclaration = pgmInfo.CUTname + ".prototype." + MUT.name + " = " + MUT.def;
     var wrapped = burrito(MUTdeclaration, wrapper);
-    
     var coverage = this.coverage;
     _.forEach(wrapped.nodeIndexes,function(num){
         coverage[num] = false;
@@ -397,7 +380,7 @@ Executor.prototype.run = function() {
         results = vm.runInNewContext(this.vmSource, this.context);
         var after = this.covered();
         var newCoverage = after > before;
-        this.emit('cov', after, newCoverage);
+        this.updateCoverage(after, newCoverage);
         return {
             newCoverage: newCoverage,
             results: results,
@@ -478,16 +461,13 @@ function updatePrimitiveScore(hint, primitiveScore) {
         case "^" :
         case "|" :
         case "&" :  primitiveScore.num += 1;
-                    break;
-//        case "||" :            
-//        case "&&" :
         case "!" :  primitiveScore.bool += 1;
                     break;
         case ">" :
         case "<":   primitiveScore.num += 2;
                     primitiveScore.string += 1;
                     break;
-        case "\"" :
+        // case "\"" :
                     //primitiveScore.string += 0.5;
     }
     // console.log(primitiveScore);

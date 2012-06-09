@@ -26,9 +26,9 @@ cmd
 .usage('[options] <file path> <class name>')
 .option('-m, --method <name>', 'generate tests for a specific method')
 .option('-c, --coverage <num>', 'expected coverage %', Number, 100)
-.option('-t, --timeout <num>', 'timeout in seconds')
+.option('-t, --timeout <num>', 'timeout after a certain number of valid tests with no coverage', Number, 100)
 .option('-n, --namespace <name>', 'specify a namespace for your class')
-.option('-u, --minimum_usage <name>', 'number of parameter usages required before attempting type inference',Number,20)
+.option('-u, --minimum_usage <name>', 'number of parameter usages required before attempting type inference', Number, 20)
 // .option('-f, --files <name>', 'specify other files for your class') TODO option for more than one file
 .parse(process.argv);
 
@@ -91,8 +91,17 @@ cmd
     outputTests(src, pgmInfo, unitTests, failingTests);
 })(cmd);
 
+function Timeout(){
+    Error.captureStackTrace(this, Timeout);
+    this.toString = function() {
+        return "TIMEOUT: ".info2 + "no coverage achieved with the last " +
+                cmd.timeout + " valid tests";
+    }
+};
+
 function generateTests(src, pgmInfo, unitTests, failingTests) {
-    try {    
+    try {
+        var noCoverage = 0;
         var exec = new Executor(src, pgmInfo);
         var MUTname = pgmInfo.MUT.name;
         var CUTname = pgmInfo.CUTname;
@@ -100,41 +109,38 @@ function generateTests(src, pgmInfo, unitTests, failingTests) {
                     "> from class <" + CUTname + "> :   ");
         console.log("------------------------------------------------------------------------------------------");
         var count = 0;
-        var start = Date.now();
-        // console.log(util.inspect(pgmInfo, true, null));
         while (exec.getCoverage() < cmd.coverage) {
             var test = randomTest.generate(pgmInfo);            
             exec.setTest(test);
-            //console.log(pgmInfo.getMUT().params);
-            //exec.showTest(test);
+            // exec.showTest(test);
             var testRun = exec.run();
-            if (testRun.newCoverage && !test.hasUnknowns()) {
-                unitTests.push(test.toUnitTestFormat(testRun.results, ++count));
-            }
-            // keep track of the non-unknown tests that don't add coverage so that
-            // if the timeout expires we can see what the failing tests were
-            else if (testRun.error && !test.hasUnknowns()) {
-                // console.log(util.inspect(test, false, null));
-                failingTests.push(test.toFailingTestFormat(testRun.msg));
+            
+            if(!test.hasUnknowns()) {
+                if (testRun.newCoverage) {
+                    unitTests.push(test.toUnitTestFormat(testRun.results, ++count));
+                }
+                // the timeout is to avoid looping forever in the case
+                // that the generated tests cannot achieve any further
+                // coverage due to errors or dead code
+                else if(++noCoverage >= cmd.timeout) throw new Timeout();
+                // keep track of the non-unknown tests that don't add coverage so that
+                // if the timeout expires we can see what the failing tests were
+                if (testRun.error) failingTests.push(test.toFailingTestFormat(testRun.msg));
             }
             // exec.showCoverage();
             // exec.showMUT();
-            // the timeout is to avoid looping forever in the case
-            // that the generated tests cannot achieve any further
-            // coverage due to errors (these errors may be due to
-            // the code under test itself or it may be that we failed
-            // to infer correct types) // TODO replace with other timeout
-            if (cmd.timeout && Date.now() > (start + cmd.timeout*1000)) {
-                console.warn("Flycatcher timed out as it could not achieve the desired coverage in time.");
-                break;
-            }
         }
     }
     catch(err) {
-        console.error(("ERROR while generating tests for method <" + MUTname + ">").error);
-        if (err.type === "stack_overflow") 
-            console.log("STACK OVERFLOW: there must be a cycle in the inferred parameter definitions".error);
-        else console.log(err.toString());
+        if(err instanceof Timeout) {
+            console.log(err.toString());
+        }
+        else {
+            console.error(("ERROR while generating tests for method <" + MUTname + ">").error);
+            if (err.type === "stack_overflow") 
+                console.log("STACK OVERFLOW: there must be a cycle in the inferred parameter definitions".error);
+            else console.log(err.toString());            
+        }
     }
 }
 
@@ -156,7 +162,7 @@ function outputTests(src, pgmInfo, unitTests, failingTests) {
             generateFailingTests(src, CUTname, failingTests)
         );
     }
-    else console.log("--> No candidate tests failed.".good);
+    else console.log("--> No candidate tests failed".good);
     
     function generateFailingTests(src, CUTname, tests) {
         var header = "/*****************************************\n\n";

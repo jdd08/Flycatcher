@@ -29,9 +29,11 @@ exports.getPrimitive = function(type) {
 }
 
 var getNumber = function() {
+    const MAX_INT = (1 << 6);
     // returns a number from 0 to 65535
-    MAX_INT = (1 << 6);
-    return Math.floor(Math.random()*MAX_INT);   
+    if(Math.random() > 0.1) return Math.floor(Math.random()*MAX_INT);
+    // we need more 0s as they are significant for covering branches
+    else return 0;
 }
 
 var getBool = function() {

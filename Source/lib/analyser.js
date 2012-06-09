@@ -5,12 +5,14 @@ var _ = require('underscore');
 var randomData = require('./randomData');
 var colors = require('colors');
 colors.setTheme({
-  info: 'blue',
+  info1: 'blue',
+  info2: 'yellow',  
   warn: 'magenta',
   good: 'green',
   error: 'red',
   bad: 'red'
 });
+var rl = require('readline');
 
 function ProgramInfo(CUTname) {
     this.classes = {};
@@ -50,11 +52,14 @@ ProgramInfo.prototype.getRecursiveParams = function(inferences) {
     var recursiveParams = [];
     for (var p=0; p < inferences.length; p++) {
         var inference = inferences[p];
-//        console.log(inference);
+        var inferenceParams = this.getConstructorParams(inference);
+        _.forEach(inferenceParams, function(param) {
+            param.usageCounter++;
+        });        
         recursiveParams.push({
             type: inference,
             params: this.getRecursiveParams(
-                _.pluck(this.getConstructorParams(inference),
+                _.pluck(inferenceParams,
                         "inferredType")
             )
         });
@@ -72,11 +77,6 @@ ProgramInfo.prototype.getMethodParamInfo = function(className, methodName, param
     return _.find(this.getMethods(className), function(elem){
         return elem.name === methodName;
     }).params[paramIndex];    
-}
-
-// returns the MethodInfo object of the MUT
-ProgramInfo.prototype.getMUT = function() {
-    return this.MUT;
 }
 
 // returns all of the MethodInfo objects for a class, including that of the MUT
@@ -225,7 +225,6 @@ ParamInfo.prototype.hasSufficientUsage = function() {
     //   looping forever.
     // * If there are mistakes in the types, the user may want to adjust
     //   this variable, such that estimates are made with even more confidence.
-    
     return this.usageCounter >= ParamInfo.minUsageRequired;
 };
 
@@ -237,10 +236,10 @@ ParamInfo.prototype.makeInferences = function(pgmInfo) {
     // for the member function calls we are interested
     // in the names only not the number of calls
     var membersAccessed = _.uniq(this.membersAccessed);
-    this.membersAccessed = membersAccessed;        
+    this.membersAccessed = membersAccessed;
     if (this.hasSufficientUsage()) {
-        console.log("INFO: ".info + "Inferring a type for parameter " +
-                    this.name + " of method " + this.methodName);
+        console.log("INFO: ".info1 + "Inferring a type for parameter " +
+                    this.name + " of method " + this.methodName + "...");
         // this if statement comes before the operator inference
         // because even having just one member function call
         // rules out the possibility that the type is a primitive
@@ -265,6 +264,7 @@ ParamInfo.prototype.makeInferences = function(pgmInfo) {
             });
             if (max.count > 0) {
                 this.inferredType = max.name;
+                console.log("=> " + this.inferredType.yellow);
             }
             // if there are members but none of them match any of the
             // classes methods, the parameter is an inaccessible class
@@ -295,6 +295,7 @@ ParamInfo.prototype.makeInferences = function(pgmInfo) {
                 }
             });
             this.inferredType = t;
+            console.log("=> " + this.inferredType.yellow);            
         }
         // if we cannot infer a type, simply issue a warning
         // and keep trying until one of the timeouts happens
@@ -302,6 +303,34 @@ ParamInfo.prototype.makeInferences = function(pgmInfo) {
             console.warn("WARNING: ".warn + "No information to infer param " +
                          this.name + " in method " + this.methodName);
             console.warn("         This may be due to the param being seldom or never used.");
+            console.warn("         Using a number instead.");
+            this.inferredType = 'num';
+            // console.warn("         The following options are available:");
+            // console.warn("         (1) The type of this parameter is not important in this context, use anything");
+            // console.warn("         (2) The type of this parameter matters, keep trying");
+            // console.warn("         Enter 1 or 2:");
+            // var i = rl.createInterface(process.stdin, process.stdout, null);
+            // i.question("What do you think of node.js?", function(answer) {
+            //   // TODO: Log the answer in a database
+            //   console.log("Thank you for your valuable feedback.");
+            // 
+            //   // These two lines together allow the program to terminate. Without
+            //   // them, it would run forever.
+            //   i.close();
+            //   process.stdin.destroy();
+            // });
+            // 
+            // // var a = i.question("What do you think of node.js?", function(answer) {
+            // //   // TODO: Log the answer in a database
+            // //   console.log("Thank you for your valuable feedback.");
+            // // 
+            // //   // These two lines together allow the program to terminate. Without
+            // //   // them, it would run forever.
+            // //   i.close();
+            // //   process.stdin.destroy();
+            // //   return true;
+            // // });
+            
         }
     }
 }

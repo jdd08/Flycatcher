@@ -31,7 +31,6 @@ Triangle.prototype.setC = function(c) {
 }
 
 Triangle.prototype.getType = function() {
-    
     function swap(a,b) {
         var tmp = a;
         a = b;
@@ -42,7 +41,6 @@ Triangle.prototype.getType = function() {
     var a = this.a;
     var b = this.b;
     var c = this.c;
-
     // swap sides such that a, b and c
     // are ranked from longest to smallest
     if (a<b) {
