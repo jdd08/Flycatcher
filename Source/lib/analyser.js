@@ -14,9 +14,10 @@ colors.setTheme({
 });
 var rl = require('readline');
 
-function ProgramInfo(CUTname) {
+function ProgramInfo(CUTname, sequenceSize) {
     this.classes = {};
     this.CUTname = CUTname;
+    this.sequenceSize = sequenceSize;
 }
 
 ProgramInfo.prototype.setMUT = function(method) {
@@ -86,7 +87,7 @@ ProgramInfo.prototype.getMethods = function(className) {
 
 // public method used to initialise the ProgramInfo object for a run of Flycatcher
 exports.getProgramInfo = function(cmd, classContext, CUTname) {
-    var pgmInfo = new ProgramInfo(CUTname);
+    var pgmInfo = new ProgramInfo(CUTname, cmd.sequenceSize);
     
     ParamInfo.minUsageRequired = cmd.minimum_usage;
 

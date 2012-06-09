@@ -4,9 +4,6 @@ var util = require('util');
 var beautify = require('beautify').js_beautify;
 var colors = require('colors');
 
-// maximum number of CUT method calls before calling the MUT
-const MAX_CALLS_BEFORE_MUT = 10;
-
 function Test(MUTname) {
     this.unknowns = false;
     this.MUTname = MUTname;
@@ -211,7 +208,8 @@ exports.generate = function(pgmInfo) {
     test.push(receiver);
 
     var callSequence = [];
-    randomSequenceLength = Math.ceil(Math.random()*MAX_CALLS_BEFORE_MUT);
+    // -1 because MUT is added at the end
+    randomSequenceLength = Math.ceil(Math.random()*pgmInfo.sequenceSize-1);
     var CUTmethods = pgmInfo.getMethods(CUTname);
     for (var j = 0; j<randomSequenceLength;j++) {
         var randomMethod = Math.floor(Math.random()*CUTmethods.length);

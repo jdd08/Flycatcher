@@ -23,13 +23,13 @@ colors.setTheme({
 
 cmd
 .version('1.0')
-.usage('[options] <file path> <class name>')
+.usage('<file path> <class name> [options]')
 .option('-m, --method <name>', 'generate tests for a specific method')
 .option('-c, --coverage <num>', 'expected coverage %', Number, 100)
-.option('-t, --timeout <num>', 'timeout after a certain number of valid tests with no coverage', Number, 100)
+.option('-t, --timeout <num>', 'timeout after a certain number of valid tests with no coverage', Number, 1000)
+.option('-s, --sequence-size <num>', 'maximum size of method sequences in test', Number, 20)
 .option('-n, --namespace <name>', 'specify a namespace for your class')
 .option('-u, --minimum_usage <name>', 'number of parameter usages required before attempting type inference', Number, 20)
-// .option('-f, --files <name>', 'specify other files for your class') TODO option for more than one file
 .parse(process.argv);
 
 (function main(cmd) {

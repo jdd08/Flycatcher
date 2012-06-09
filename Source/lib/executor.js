@@ -1,13 +1,8 @@
-/*********** DISCLAIMER **************
-
-    The code in this file is inspired
-    by　and makes use of the unlicensed,
-    open source code available at the
-    time of edition, at:
-
- https://github.com/substack/node-bunker
-
-***************************************/
+// DISCLAIMER
+// ----------
+// XRegExp add-ons are the copyright of
+// Steven Levithan under the MIT License
+var XRegExp = require('xregexp').XRegExp;
 
 var util = require('util');
 var stackTrace = require('stack-trace');
@@ -38,38 +33,120 @@ var Executor = module.exports.Executor = function(src, pgmInfo)
     this.source = src;
     this.context = this.createContext(pgmInfo);
     this.wrappedMUT = this.wrapMUT(pgmInfo);
+    (function (XRegExp) {
 
-    this.valueOfHintRegexp = function(){
+        function preparePattern(pattern, flags) {
+            var lbOpen, lbEndPos, lbInner;
+            flags = flags || "";
+            // Extract flags from a leading mode modifier, if present
+            pattern = pattern.replace(/^\(\?([\w$]+)\)/, function ($0, $1) {
+                flags += $1;
+                return "";
+            });
+            if (lbOpen = /^\(\?<([=!])/.exec(pattern)) {
+                // Extract the lookbehind pattern. Allows nested groups, escaped parens, and unescaped parens within classes
+                lbEndPos = XRegExp.matchRecursive(pattern, /\((?:[^()[\\]|\\.|\[(?:[^\\\]]|\\.)*])*/.source, "\\)", "s", {
+                    valueNames: [null, null, null, "right"],
+                    escapeChar: "\\"
+                })[0].end;
+                lbInner = pattern.slice("(?<=".length, lbEndPos - 1);
+            } else {
+                throw new Error("lookbehind not at start of pattern");
+            }
+            return {
+                lb: XRegExp("(?:" + lbInner + ")$(?!\\s)", flags.replace(/[gy]/g, "")), // $(?!\s) allows use of flag m
+                lbType: lbOpen[1] === "=", // Positive or negative lookbehind
+                main: XRegExp(pattern.slice(("(?<=)" + lbInner).length), flags)
+            };
+        }
 
-        var hints = ['(\\+)(\\+)',     // ++
-                     '(--)',           // --
-                     '(-)',            // -
-                     '(\\*)',          // *
-                     '(\\/)',          // /
-                     '(%)',            // %
-                     '(\\&)',          // &
-                     '(\\|)',          // |
-                     '(!)',            // !
-                     '(\\^)',          // ^
-                     '(~)',            // ~
-                     '(<<)',           // <<
-                     '(>>>)',          // >>>
-                     '(>>)',           // >>
-                     '(>)',            // >
-                     '(<)',            // <
-//                   '(\\d+\\.?\\d*)(?!\\))', // TODO: find a way to use number hints without counting the wrapper calls
-//                   '(\\")',                 // TODO: proper quote matching
-                     ];
-        var regexp = new RegExp(hints.join("|"),"g")
-        return regexp; 
-    }();
+        XRegExp.execLb = function (str, pattern, flags) {
+            var pos = 0, match, leftContext;
+            pattern = preparePattern(pattern, flags);
+            while (match = XRegExp.exec(str, pattern.main, pos)) {
+                leftContext = str.slice(0, match.index);
+                if (pattern.lbType === pattern.lb.test(leftContext)) {
+                    return match;
+                }
+                pos = match.index + 1;
+            }
+            return null;
+        };
+
+        XRegExp.testLb = function (str, pattern, flags) {
+            return !!XRegExp.execLb(str, pattern, flags);
+        };
+
+        XRegExp.searchLb = function (str, pattern, flags) {
+            var match = XRegExp.execLb(str, pattern, flags);
+            return match ? match.index : -1;
+        };
+
+        XRegExp.matchAllLb = function (str, pattern, flags) {
+            var matches = [], pos = 0, match, leftContext;
+            pattern = preparePattern(pattern, flags);
+            while (match = XRegExp.exec(str, pattern.main, pos)) {
+                leftContext = str.slice(0, match.index);
+                if (pattern.lbType === pattern.lb.test(leftContext)) {
+                    matches.push(match[0]);
+                    pos = match.index + (match[0].length || 1);
+                } else {
+                    pos = match.index + 1;
+                }
+            }
+            return matches;
+        };
+
+        XRegExp.replaceLb = function (str, pattern, replacement, flags) {
+            var output = "", pos = 0, lastEnd = 0, match, leftContext;
+            pattern = preparePattern(pattern, flags);
+            while (match = XRegExp.exec(str, pattern.main, pos)) {
+                leftContext = str.slice(0, match.index);
+                if (pattern.lbType === pattern.lb.test(leftContext)) {
+                    // Doesn't work correctly if lookahead in regex looks outside of the match
+                    output += str.slice(lastEnd, match.index) + XRegExp.replace(match[0], pattern.main, replacement);
+                    lastEnd = match.index + match[0].length;
+                    if (!pattern.main.global) {
+                        break;
+                    }
+                    pos = match.index + (match[0].length || 1);
+                } else {
+                    pos = match.index + 1;
+                }
+            }
+            return output + str.slice(lastEnd);
+        };
+
+    }(XRegExp));
+    this.xregexp = XRegExp;
+    this.lbHints = ['(?<!-)(-)(?!-)',                // -
+                    '(?<!\\&)(\\&)(?!\\&)',          // &
+                    '(?<!\\|)(\\|)(?!\\|)',          // |
+                    '(?<!>)(>>)(?!>)',               // >>
+                    '(?<!>)(>)(?!>)',                // >
+                    '(?<!<)(<)(?!<)',                // <
+                    // '(?<!\\()(\\d+\\.?\\d*)(?!\\))', // digits not preceded nor followed by parentheses
+                    // '(?<!\\()(\\d+\\.?\\d*)',        // digits not preceded by a parenthesis
+                   ];
+     this.hints = ['(\\+)(\\+)',                  // ++
+                   '(--)',                        // --
+                   '(\\*)',                       // *
+                   '(\\/)',                       // /
+                   '(%)',                         // %
+                   '(\\^)',                       // ^
+                   '(~)',                         // ~
+                   '(<<)',                        // <<
+                   '(>>>)',                       // >>>
+                   '(\\")',                       // double quote
+                    '(\\d+\\.?\\d*)',             // digits
+                    // '(\\d+\\.?\\d*)(?!\\))',      // digits not followed by a parenthesis
+                  ];                 
 }
 
-function ValueOfTrap(vmSource, primitiveScore, hintRegexp) {
+function ValueOfTrap(execHandle, primitiveScore) {
     Error.captureStackTrace(this, ValueOfTrap);
-    this.vmSource = vmSource;
+    this.execHandle = execHandle;
     this.primitiveScore = primitiveScore;
-    this.hintRegexp = hintRegexp;
 }
 
 Executor.prototype = new EventEmitter;
@@ -236,7 +313,6 @@ function createExecHandler(pgmInfo) {
 
         // trapped: proxy.name
         get: function(receiver, name) {
-            // console.log("INSIDE EXECUTOR GET",name);
             this.trapCount++;
             if (this.trapCount > TRAP_THRESHOLD) {
                 throw new TrapThresholdExceeded();
@@ -244,9 +320,8 @@ function createExecHandler(pgmInfo) {
             if (name === "valueOf") {
                 // console.log("INSIDEVALUEOF");
                 try {
-                    throw new ValueOfTrap(this.exec.vmSource,
-                                          this.primitiveScore,
-                                          this.exec.valueOfHintRegexp);
+                    throw new ValueOfTrap(this.exec,
+                                          this.primitiveScore);
                 }
                 catch(err) {
                     var lineNum = _.find(stackTrace.parse(err), function(value){
@@ -258,12 +333,27 @@ function createExecHandler(pgmInfo) {
                         return value.fileName && // ignore if it is null
                                value.fileName.indexOf("evalmachine") !== -1;
                     }).lineNumber;
-
-                    // shifting to correspond to correct array index
-                    var line = err.vmSource.split('\n')[lineNum - 1];
-                    var match;
-                    while ((match = err.hintRegexp.exec(line)) != null) {
-                        updatePrimitiveScore(match[0], err.primitiveScore);
+                    try {
+                        var exec = err.execHandle;
+                        // shifting to correspond to correct array index
+                        var noisyLine = exec.vmSource.split('\n')[lineNum - 1];
+                        var line = noisyLine.replace(/__coverage__\([0-9]+\)/,"");
+                        var matches = [];
+                        for (var h=0; h < exec.lbHints.length; h++) {
+                            var match = exec.xregexp.execLb(line, exec.lbHints[h]);
+                            if(match) matches.push(match[0]);
+                        };
+                        for (var i=0; i < exec.hints.length; i++) {
+                            var re = new RegExp(exec.hints[i]);
+                            match = re.exec(line);
+                            if(match) matches.push(match[0]);
+                        };
+                        updatePrimitiveScore(matches, err.primitiveScore);
+                    }
+                    catch(err) {
+                        console.log("ERROR inside the Executor's valueOf trap".error);
+                        console.log(err.stack);
+                        process.exit(1);
                     }
 
                 }
@@ -299,7 +389,6 @@ function createExecHandler(pgmInfo) {
         // trapped: proxy.name
         // no point in setting value as any [[get]] will be trapped anyway
         set: function(receiver, name, value) {
-            // console.log("INSIDE EXECUTOR SET PROP",name);
             this.membersAccessed.push(name);
             return true; // to avoid throw in strict mode
         }
@@ -327,7 +416,8 @@ Executor.prototype.createContext = function(pgmInfo) {
         proxy : function(className, methodName, paramIndex) {
             var ExecHandler = createExecHandler(pgmInfo);
             return Proxy.create(
-                new ExecHandler(className, methodName, paramIndex, exec));
+                new ExecHandler(className, methodName, paramIndex, exec)
+            );
         }
     }
 };
@@ -443,32 +533,37 @@ Executor.prototype.run = function() {
 
 
 // AUXILLIARY
+function isNumber (o) {
+  return !isNaN(o-0) && o != null;
+}
 
-function updatePrimitiveScore(hint, primitiveScore) {
-    // console.log(hint);
-    switch(hint) {
-        case "++" :
-        case "--" : primitiveScore.num += 100;
-                    break;
-        case "-" :
-        case "*" :
-        case "/" :
-        case "%" :
-        case ">>>" :
-        case ">>" :
-        case "<<" :
-        case "~" :
-        case "^" :
-        case "|" :
-        case "&" :  primitiveScore.num += 1;
-        case "!" :  primitiveScore.bool += 1;
-                    break;
-        case ">" :
-        case "<":   primitiveScore.num += 2;
-                    primitiveScore.string += 1;
-                    break;
-        // case "\"" :
-                    //primitiveScore.string += 0.5;
+function updatePrimitiveScore(matches, primitiveScore) {
+    for (var m=0; m < matches.length; m++) {
+        var hint = matches[m];
+        switch(hint) {
+            case "++" :
+            case "--" : primitiveScore.num += 10;
+                        break;
+            case "-" :
+            case "*" :
+            case "/" :
+            case "%" :
+            case ">>>" :
+            case ">>" :
+            case "<<" :
+            case "~" :
+            case "^" :
+            case "|" :
+            case "&" :  primitiveScore.num += 2;
+                        break;
+            case ">" :
+            case "<":   primitiveScore.num += 2;
+                        primitiveScore.string += 1;
+                        break;
+            case "\"" :
+                        primitiveScore.string += 5;
+                        break;
+        };
+        if (isNumber(hint)) primitiveScore.num += 5;        
     }
-    // console.log(primitiveScore);
 }
