@@ -64,14 +64,16 @@ Table \ref{scoringtable} shows the hints that are looked out for and by how much
 \hline
 \texttt{++, \textendash\textendash}  & 10 & 0\\
 \texttt{>, <}    & 2 & 1\\
-\texttt{-, *, /, \%, \(\ll\), \(\gg\), \(\ggg\), !, \textasciicircum, \textbar, \&, \textasciitilde} & 2 & 0\\
+\texttt{-, *, /, \%, \(\ll\), \(\gg\), \(\ggg\), \textasciicircum, \textbar, \&, \textasciitilde} & 2 & 0\\
 \[[0 - 9]\]^{+}  & 5 & 0\\
-\texttt{``\textellipsis''} & 0 & 5\\
+\emph{double quotes}\footnotemark & 0 & 5\\
 \hline
 \end{tabular}
 \caption{Primitive scoring}
 \label{scoringtable}
 \end{table}
+
+\footnotetext{single quotes can be ignored, as if they appear in the context of the \textsf{Executor} it means that they harbour a double quote, which will be found}
 
 Other operators or hints have been purposely omitted, since they do not tip the balance in any particular direction. For example, the \texttt{+} operator is used with strings as much as it is used with numbers, and thus does not constitute a helpful hint.
 
