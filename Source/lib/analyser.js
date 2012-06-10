@@ -14,6 +14,36 @@ colors.setTheme({
 });
 var rl = require('readline');
 
+const NUMBER_INSTANCE_PROPS = [
+    "toExponential",
+    "toFixed",
+    "toPrecision"
+]
+
+const STRING_INSTANCE_PROPS = [
+    "charAt",
+    "charCodeAt",
+    "concat",
+    "indexOf",
+    "lastIndexOf",
+    "localeCompare",
+    "match",
+    "quote",
+    "replace",
+    "search",
+    "slice",
+    "split",
+    "substr",
+    "substring",
+    "toLocaleLowerCase",
+    "toLocaleUpperCase",
+    "toLowerCase",
+    "toUpperCase",
+    "trim",
+    "trimLeft",
+    "trimRight"
+]
+
 function ProgramInfo(CUTname, sequenceSize) {
     this.classes = {};
     this.CUTname = CUTname;
@@ -38,7 +68,7 @@ ProgramInfo.prototype.makeInferences = function() {
 ProgramInfo.prototype.getConstructorParams = function(className) {
 //    console.log(util.inspect(this.classes, false, null));
     switch(className) {
-        case "num":
+        case "number":
         case "string":
         case "bool":
         case "unknown": return [];
@@ -191,7 +221,8 @@ function MethodInfo(name, def, params) {
 MethodInfo.prototype.makeInferences = function(pgmInfo) {
     for (var p=0; p < this.params.length; p++) {
         var param = this.params[p];
-        if (param.isUnknown()) param.makeInferences(pgmInfo);
+        if (param.isUnknown() || param.unsure) 
+            param.makeInferences(pgmInfo);
     };
 }
 
@@ -201,11 +232,14 @@ function ParamInfo(name, methodName) {
     this.membersAccessed = [];
     this.inferredType = "unknown";
     this.primitiveScore = {
-        num : 0,
+        number : 0,
         string : 0,
         bool : 0        
     }
     this.usageCounter = 0;
+    // if we try random primitives out of lack of
+    // information, we set this flag to true
+    this.unsure = false;
 }
 
 function sumValues(obj) {
@@ -221,9 +255,8 @@ ParamInfo.prototype.hasSufficientUsage = function() {
     
     // When we start to try and infer:
     // * If there isn't any data to work with we issue a warning -
-    //   the parameter might never be used or used very seldom and the
-    //   wait may be long. The termination mechanisms come in to avoid
-    //   looping forever.
+    //   the parameter might never be used. To avoid looping
+    //   we use a number instead
     // * If there are mistakes in the types, the user may want to adjust
     //   this variable, such that estimates are made with even more confidence.
     return this.usageCounter >= ParamInfo.minUsageRequired;
@@ -239,8 +272,10 @@ ParamInfo.prototype.makeInferences = function(pgmInfo) {
     var membersAccessed = _.uniq(this.membersAccessed);
     this.membersAccessed = membersAccessed;
     if (this.hasSufficientUsage()) {
-        console.log("INFO: ".info1 + "Inferring a type for parameter " +
-                    this.name + " of method " + this.methodName + "...");
+        if (!this.unsure) {
+            console.log("INFO: ".info1 + "Inferring a type for parameter " +
+            this.name + " of method " + this.methodName + "...");
+        }
         // this if statement comes before the operator inference
         // because even having just one member function call
         // rules out the possibility that the type is a primitive
@@ -263,8 +298,23 @@ ParamInfo.prototype.makeInferences = function(pgmInfo) {
             var max = _.max(map, function(elem){
                 return elem.count;
             });
+            // there is overlap with one of the user defined classes
             if (max.count > 0) {
                 this.inferredType = max.name;
+                console.log("=> " + this.inferredType.yellow);
+            }
+            // there is overlap with the Number class
+            else if (_.intersection(membersAccessed,
+                                     NUMBER_INSTANCE_PROPS).length)
+            {
+                this.inferredType = "number";
+                console.log("=> " + this.inferredType.yellow);
+            }
+            // there is overlap with the String class
+            else if (_.intersection(membersAccessed,
+                                     STRING_INSTANCE_PROPS).length)
+            {
+                this.inferredType = "string";
                 console.log("=> " + this.inferredType.yellow);
             }
             // if there are members but none of them match any of the
@@ -301,11 +351,14 @@ ParamInfo.prototype.makeInferences = function(pgmInfo) {
         // if we cannot infer a type, simply issue a warning
         // and keep trying until one of the timeouts happens
         else {
-            console.warn("WARNING: ".warn + "No information to infer param " +
-                         this.name + " in method " + this.methodName);
-            console.warn("         This may be due to the param being seldom or never used.");
-            console.warn("         Using a number instead.");
-            this.inferredType = 'num';
+            if (!this.unsure) {
+                console.warn("WARNING: ".warn + "No information to infer param " +
+                             this.name + " in method " + this.methodName);
+                console.warn("         This may be due to the param being seldom or never used.");
+                console.warn("         Trying with random primitive types...");
+            }
+            this.inferredType = Math.random() > 0.5 ? 'number' : 'string';
+            this.unsure = true;
             // console.warn("         The following options are available:");
             // console.warn("         (1) The type of this parameter is not important in this context, use anything");
             // console.warn("         (2) The type of this parameter matters, keep trying");
@@ -402,7 +455,7 @@ var idleHandler = exports.idleHandler = {
         var self = this;
         if (name === "valueOf") {
             return function() {
-                return randomData.getRandomPrimitive();
+                return randomData.getAny();
             }
         }
         else {

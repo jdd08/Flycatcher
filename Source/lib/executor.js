@@ -8,6 +8,8 @@ var util = require('util');
 var stackTrace = require('stack-trace');
 
 var burrito = require('burrito');
+var traverse = require('traverse');
+
 var vm = require('vm');
 var beautify = require('beautify').js_beautify;
 var _ = require('underscore');
@@ -24,6 +26,21 @@ colors.setTheme({
   bad: 'red'
 });
 
+// Represents the number of traps after which we throw away a proxy,
+// because when operations are trapped, the resulting behaviour is
+// non-determistic, as valueOf traps return random primtive values
+// which can lead to unintended behaviour such as looping forever
+// (in recursive or traditional loop scenarios where the termination
+// condition is not met in either case due to the non-determinism).
+const TRAP_THRESHOLD = 25;
+const OBJECT_HIDDEN_PROPS = ["__defineGetter__", "__defineSetter__",
+                             "__lookupGetter__", "__lookupSetter__",
+                             "__noSuchMethod__", "__parent__", 
+                             "__proto__", "toString", "isPrototypeOf",
+                             "hasOwnProperty", "toSource", "toLocaleString",
+                             "propertyIsEnumerable", "watch", "unwatch",
+                             "inspect", "constructor"];
+
 var Executor = module.exports.Executor = function(src, pgmInfo) 
 {
     this.test = {};
@@ -33,113 +50,25 @@ var Executor = module.exports.Executor = function(src, pgmInfo)
     this.source = src;
     this.context = this.createContext(pgmInfo);
     this.wrappedMUT = this.wrapMUT(pgmInfo);
-    (function (XRegExp) {
-
-        function preparePattern(pattern, flags) {
-            var lbOpen, lbEndPos, lbInner;
-            flags = flags || "";
-            // Extract flags from a leading mode modifier, if present
-            pattern = pattern.replace(/^\(\?([\w$]+)\)/, function ($0, $1) {
-                flags += $1;
-                return "";
-            });
-            if (lbOpen = /^\(\?<([=!])/.exec(pattern)) {
-                // Extract the lookbehind pattern. Allows nested groups, escaped parens, and unescaped parens within classes
-                lbEndPos = XRegExp.matchRecursive(pattern, /\((?:[^()[\\]|\\.|\[(?:[^\\\]]|\\.)*])*/.source, "\\)", "s", {
-                    valueNames: [null, null, null, "right"],
-                    escapeChar: "\\"
-                })[0].end;
-                lbInner = pattern.slice("(?<=".length, lbEndPos - 1);
-            } else {
-                throw new Error("lookbehind not at start of pattern");
-            }
-            return {
-                lb: XRegExp("(?:" + lbInner + ")$(?!\\s)", flags.replace(/[gy]/g, "")), // $(?!\s) allows use of flag m
-                lbType: lbOpen[1] === "=", // Positive or negative lookbehind
-                main: XRegExp(pattern.slice(("(?<=)" + lbInner).length), flags)
-            };
-        }
-
-        XRegExp.execLb = function (str, pattern, flags) {
-            var pos = 0, match, leftContext;
-            pattern = preparePattern(pattern, flags);
-            while (match = XRegExp.exec(str, pattern.main, pos)) {
-                leftContext = str.slice(0, match.index);
-                if (pattern.lbType === pattern.lb.test(leftContext)) {
-                    return match;
-                }
-                pos = match.index + 1;
-            }
-            return null;
-        };
-
-        XRegExp.testLb = function (str, pattern, flags) {
-            return !!XRegExp.execLb(str, pattern, flags);
-        };
-
-        XRegExp.searchLb = function (str, pattern, flags) {
-            var match = XRegExp.execLb(str, pattern, flags);
-            return match ? match.index : -1;
-        };
-
-        XRegExp.matchAllLb = function (str, pattern, flags) {
-            var matches = [], pos = 0, match, leftContext;
-            pattern = preparePattern(pattern, flags);
-            while (match = XRegExp.exec(str, pattern.main, pos)) {
-                leftContext = str.slice(0, match.index);
-                if (pattern.lbType === pattern.lb.test(leftContext)) {
-                    matches.push(match[0]);
-                    pos = match.index + (match[0].length || 1);
-                } else {
-                    pos = match.index + 1;
-                }
-            }
-            return matches;
-        };
-
-        XRegExp.replaceLb = function (str, pattern, replacement, flags) {
-            var output = "", pos = 0, lastEnd = 0, match, leftContext;
-            pattern = preparePattern(pattern, flags);
-            while (match = XRegExp.exec(str, pattern.main, pos)) {
-                leftContext = str.slice(0, match.index);
-                if (pattern.lbType === pattern.lb.test(leftContext)) {
-                    // Doesn't work correctly if lookahead in regex looks outside of the match
-                    output += str.slice(lastEnd, match.index) + XRegExp.replace(match[0], pattern.main, replacement);
-                    lastEnd = match.index + match[0].length;
-                    if (!pattern.main.global) {
-                        break;
-                    }
-                    pos = match.index + (match[0].length || 1);
-                } else {
-                    pos = match.index + 1;
-                }
-            }
-            return output + str.slice(lastEnd);
-        };
-
-    }(XRegExp));
     this.xregexp = XRegExp;
-    this.lbHints = ['(?<!-)(-)(?!-)',                // -
-                    '(?<!\\&)(\\&)(?!\\&)',          // &
-                    '(?<!\\|)(\\|)(?!\\|)',          // |
-                    '(?<!>)(>>)(?!>)',               // >>
-                    '(?<!>)(>)(?!>)',                // >
-                    '(?<!<)(<)(?!<)',                // <
-                    // '(?<!\\()(\\d+\\.?\\d*)(?!\\))', // digits not preceded nor followed by parentheses
-                    // '(?<!\\()(\\d+\\.?\\d*)',        // digits not preceded by a parenthesis
+    this.lbHints = ['(?<!-)(-)(?!-)',            // -
+                    '(?<!\\&)(\\&)(?!\\&)',      // &
+                    '(?<!\\|)(\\|)(?!\\|)',      // |
+                    '(?<!>)(>>)(?!>)',           // >>
+                    '(?<!>)(>)(?!>)',            // >
+                    '(?<!<)(<)(?!<)',            // <
                    ];
-     this.hints = ['(\\+)(\\+)',                  // ++
-                   '(--)',                        // --
-                   '(\\*)',                       // *
-                   '(\\/)',                       // /
-                   '(%)',                         // %
-                   '(\\^)',                       // ^
-                   '(~)',                         // ~
-                   '(<<)',                        // <<
-                   '(>>>)',                       // >>>
-                   '(\\")',                       // double quote
-                    '(\\d+\\.?\\d*)',             // digits
-                    // '(\\d+\\.?\\d*)(?!\\))',      // digits not followed by a parenthesis
+    this.hints = ['(\\+)(\\+)',                  // ++
+                  '(--)',                        // --
+                  '(\\*)',                       // *
+                  '(\\/)',                       // /
+                  '(%)',                         // %
+                  '(\\^)',                       // ^
+                  '(~)',                         // ~
+                  '(<<)',                        // <<
+                  '(>>>)',                       // >>>
+                  '(\\")',                       // double quote
+                  '(\\d+\\.?\\d*)',              // digits
                   ];                 
 }
 
@@ -172,10 +101,35 @@ Executor.prototype.setTest = function(test) {
 
 Executor.prototype.wrapMUT = function(pgmInfo) {
     var i = 0;
+    // name of the nodes inside private functions
+    // (not tracked as they are not executed)
+    var startCoverage = false;
+    var privateNodes = [];
     function wrapper(node) {
-        if (node.name === 'stat'  ||
-            node.name === 'throw' ||
-            node.name === 'var'   ||
+        
+        // private functions are not executed so we don't track coverage:
+        // we collect their child nodes and do not wrap for coverage
+        // until the latter have expired
+        if (privateNodes.length) {
+            privateNodes.splice(privateNodes.indexOf(node.name), 1);            
+            return;
+        }
+        
+        // we must be careful not to include the MUT in this process (i > 0)
+        if ((node.name === 'function' || node.name === 'defun') && i > 0) {
+            var children = node.node[3];
+            traverse(children).forEach(function (x) {
+                if(x.name) privateNodes.push(x.name);
+            });
+        };
+        if (!startCoverage && node.name === 'stat' && i === 0) {
+            startCoverage = true;
+            return;
+        }
+        if (!startCoverage) return;
+        if (node.name === 'stat'             ||
+            node.name === 'throw'            ||
+            node.name === 'var'              ||
             node.name === 'return') {
             i++;
             node.wrap('{ __coverage__(' + i + ');%s}');
@@ -203,28 +157,7 @@ Executor.prototype.wrapMUT = function(pgmInfo) {
 
 var TrapThresholdExceeded = function (){};
 
-const OBJECT_HIDDEN_METHODS = ["toString", "isPrototypeOf",
-                               "hasOwnProperty", "toSource",
-                               "propertyIsEnumerable",
-                               "toLocaleString",
-                               "watch", "unwatch","inspect",
-                               "constructor"];
-
 function createExecHandler(pgmInfo) {
-
-    // Represents the number of traps after which
-    // we throw away a proxy, because when operations
-    // are trapped, the resulting behaviour is non-determistic,
-    // as valueOf traps return random primtive values
-    // which can lead to unintended behaviour such as looping
-    //  forever (in recursive or traditional loop scenarios 
-    // where the termination condition is not met in either
-    // case due to the non-deterministic behaviour).
-    // Moreover, in the case of non-unknown type proxies,
-    // the very fact that they are traps means that we have
-    // not yet inferred the correct type and it is in our interest
-    // to update sooner than later to achieve coverage
-    var TRAP_THRESHOLD = 50;
 
     var ExecHandler = function(className, methodName, paramIndex, exec) {
         // exec reference needed to have a handle on the vm source
@@ -318,7 +251,6 @@ function createExecHandler(pgmInfo) {
                 throw new TrapThresholdExceeded();
             }
             if (name === "valueOf") {
-                // console.log("INSIDEVALUEOF");
                 try {
                     throw new ValueOfTrap(this.exec,
                                           this.primitiveScore);
@@ -370,13 +302,12 @@ function createExecHandler(pgmInfo) {
                 // which is infeasible)
                 var self = this;
                 return function() {
-                    // we work from the idea that if valueOf is important
-                    // it will be implemented and not trapped
-                    return randomData.getRandomPrimitive();
+                    // if valueOf is important it will be implemented and not trapped
+                    return randomData.getAny();
                 }
             }
             else {
-                if (!_.include(OBJECT_HIDDEN_METHODS,name)) this.membersAccessed.push(name);
+                if (!_.include(OBJECT_HIDDEN_PROPS,name)) this.membersAccessed.push(name);
                 // console.log(this.paramInfo);
                 // console.log('MEMBER ACCESS');
                 // return a proxy with a handler that does nothing so that we can avoid
@@ -542,7 +473,7 @@ function updatePrimitiveScore(matches, primitiveScore) {
         var hint = matches[m];
         switch(hint) {
             case "++" :
-            case "--" : primitiveScore.num += 10;
+            case "--" : primitiveScore.number += 10;
                         break;
             case "-" :
             case "*" :
@@ -554,16 +485,16 @@ function updatePrimitiveScore(matches, primitiveScore) {
             case "~" :
             case "^" :
             case "|" :
-            case "&" :  primitiveScore.num += 2;
+            case "&" :  primitiveScore.number += 2;
                         break;
             case ">" :
-            case "<":   primitiveScore.num += 2;
+            case "<":   primitiveScore.number += 2;
                         primitiveScore.string += 1;
                         break;
             case "\"" :
                         primitiveScore.string += 5;
                         break;
         };
-        if (isNumber(hint)) primitiveScore.num += 5;        
+        if (isNumber(hint)) primitiveScore.number += 5;        
     }
 }

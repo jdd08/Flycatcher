@@ -45,7 +45,7 @@ Test.prototype.push = function(statement) {
                 //console.log(paramId);
             }
             else {
-                paramId = randomData.getPrimitive(paramType);
+                paramId = randomData.get(paramType);
                 // if the param type is a primitive this is the only
                 // chance of adding it to the pool
                 paramPool.push(paramId);
@@ -245,7 +245,7 @@ function updateUsageCounters(params) {
 
 
 function isPrimitive(type) {
-    return type === "num" || type === "string" || type === "bool";
+    return type === "number" || type === "string" || type === "bool";
 }
 
 function isUnknown(type) { return type === "unknown"; }

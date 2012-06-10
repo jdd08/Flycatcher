@@ -3,17 +3,7 @@ function Triangle(a,b,c) {
     this.a = a;
     this.b = b;
     this.c = c;
-    this.t = null;
 }
-Triangle.prototype.setT = function() {
-     this.t = new Triangle(1,2,3);
-     return this;
-};
-
-
-// Triangle.prototype.toString = function() {
-//     return "{a:"+this.a+", b:"+this.b+", c:"+this.t+"}";
-// }
 
 Triangle.prototype.setA = function(a) {
     this.a = a;
