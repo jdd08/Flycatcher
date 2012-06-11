@@ -1,8 +1,8 @@
-var randomData = require('./randomData.js');
 var _ = require('underscore');
 var util = require('util');
 var beautify = require('beautify').js_beautify;
 var colors = require('colors');
+var Randexp = require('randexp');
 
 function Test(MUTname) {
     this.unknowns = false;
@@ -45,7 +45,7 @@ Test.prototype.push = function(statement) {
                 //console.log(paramId);
             }
             else {
-                paramId = randomData.get(paramType);
+                paramId = dataGenerator.get(paramType);
                 // if the param type is a primitive this is the only
                 // chance of adding it to the pool
                 paramPool.push(paramId);
@@ -189,6 +189,30 @@ function MUTcall(receiver, methodName, params, type, number) {
         return ret;
     }
 }
+
+function DataGenerator(numberRE, stringRE) {
+    this.get = function(type) {
+        if(type === "number") {
+            var n = new Randexp(this.numberRE).gen();
+            return Number(n);
+        }
+        else if (type === "string")
+            return "\"" + new Randexp(this.stringRE).gen() + "\"";
+        else
+            throw new ("Wrong primitive type in DataGenerator: " + type).red;
+    }
+    this.setNumbers = function(numberRE) {
+        this.numberRE = numberRE;
+    }
+    this.setStrings = function(stringRE) {
+        this.stringRE = stringRE;
+    }
+    this.numberRE = numberRE;
+    this.stringRE = stringRE;
+}
+
+var dataGenerator = new DataGenerator(/\d{1,10}/,/\w{1,10}/);
+exports.DataGenerator = dataGenerator;
 
 exports.generate = function(pgmInfo) {
     var CUTname = pgmInfo.CUTname;

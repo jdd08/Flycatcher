@@ -2,7 +2,6 @@ var fs = require('fs');
 var vm = require('vm');
 var util = require('util');
 var _ = require('underscore');
-var randomData = require('./randomData');
 var colors = require('colors');
 colors.setTheme({
   info1: 'blue',
@@ -21,6 +20,7 @@ const NUMBER_INSTANCE_PROPS = [
 ]
 
 const STRING_INSTANCE_PROPS = [
+    "length",
     "charAt",
     "charCodeAt",
     "concat",
@@ -119,7 +119,7 @@ ProgramInfo.prototype.getMethods = function(className) {
 exports.getProgramInfo = function(cmd, classContext, CUTname) {
     var pgmInfo = new ProgramInfo(CUTname, cmd.sequenceSize);
     
-    ParamInfo.minUsageRequired = cmd.minimum_usage;
+    ParamInfo.minUsageRequired = cmd.minimumUsage;
 
     if (!classContext[CUTname]){
         console.error("Error: specified class <" + CUTname + "> was not found");
@@ -455,7 +455,13 @@ var idleHandler = exports.idleHandler = {
         var self = this;
         if (name === "valueOf") {
             return function() {
-                return randomData.getAny();
+                return (function() {
+                    const MAX_INT = (1 << 15);
+                    // returns a number from 0 to 65535
+                    if(Math.random() > 0.2) return Math.floor(Math.random()*MAX_INT);
+                    // we need more 0s as they are significant for covering branches
+                    else return 0;
+                })();
             }
         }
         else {

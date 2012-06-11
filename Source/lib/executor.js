@@ -14,7 +14,6 @@ var vm = require('vm');
 var beautify = require('beautify').js_beautify;
 var _ = require('underscore');
 var EventEmitter = require('events').EventEmitter;
-var randomData = require('./randomData.js');
 var idleHandler = require('./analyser.js').idleHandler;
 var colors = require('colors');
 colors.setTheme({
@@ -111,7 +110,7 @@ Executor.prototype.wrapMUT = function(pgmInfo) {
         // we collect their child nodes and do not wrap for coverage
         // until the latter have expired
         if (privateNodes.length) {
-            privateNodes.splice(privateNodes.indexOf(node.name), 1);            
+            privateNodes.splice(privateNodes.indexOf(node.name), 1);
             return;
         }
         
@@ -119,7 +118,7 @@ Executor.prototype.wrapMUT = function(pgmInfo) {
         if ((node.name === 'function' || node.name === 'defun') && i > 0) {
             var children = node.node[3];
             traverse(children).forEach(function (x) {
-                if(x.name) privateNodes.push(x.name);
+                if(x && x.name) privateNodes.push(x.name);
             });
         };
         if (!startCoverage && node.name === 'stat' && i === 0) {
@@ -303,7 +302,13 @@ function createExecHandler(pgmInfo) {
                 var self = this;
                 return function() {
                     // if valueOf is important it will be implemented and not trapped
-                    return randomData.getAny();
+                    return (function() {
+                        const MAX_INT = (1 << 15);
+                        // returns a number from 0 to 65535
+                        if(Math.random() > 0.2) return Math.floor(Math.random()*MAX_INT);
+                        // we need more 0s as they are significant for covering branches
+                        else return 0;
+                    })();
                 }
             }
             else {
