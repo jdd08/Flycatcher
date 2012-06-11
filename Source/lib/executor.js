@@ -14,7 +14,7 @@ var vm = require('vm');
 var beautify = require('beautify').js_beautify;
 var _ = require('underscore');
 var EventEmitter = require('events').EventEmitter;
-var idleHandler = require('./analyser.js').idleHandler;
+var IdleHandler = require('./analyser.js').IdleHandler;
 var colors = require('colors');
 colors.setTheme({
   info1: 'blue',
@@ -176,6 +176,7 @@ function createExecHandler(pgmInfo) {
     }
 
     function idleProxy() {
+        var idleHandler = new IdleHandler();
         return Proxy.createFunction(idleHandler,
             function() {
                 return Proxy.create(idleHandler)
