@@ -11,7 +11,6 @@ colors.setTheme({
   error: 'red',
   bad: 'red'
 });
-var rl = require('readline');
 
 const NUMBER_INSTANCE_PROPS = [
     "toExponential",
@@ -44,10 +43,10 @@ const STRING_INSTANCE_PROPS = [
     "trimRight"
 ]
 
-function ProgramInfo(CUTname, sequenceSize) {
+function ProgramInfo(CUTname, sequenceLength) {
     this.classes = {};
     this.CUTname = CUTname;
-    this.sequenceSize = sequenceSize;
+    this.sequenceLength = sequenceLength;
 }
 
 ProgramInfo.prototype.setMUT = function(method) {
@@ -117,9 +116,9 @@ ProgramInfo.prototype.getMethods = function(className) {
 
 // public method used to initialise the ProgramInfo object for a run of Flycatcher
 exports.getProgramInfo = function(cmd, classContext, CUTname) {
-    var pgmInfo = new ProgramInfo(CUTname, cmd.sequenceSize);
+    var pgmInfo = new ProgramInfo(CUTname, cmd.sequenceLength);
     
-    ParamInfo.minUsageRequired = cmd.minimumUsage;
+    ParamInfo.minUsesRequired = cmd.minimumUses;
 
     if (!classContext[CUTname]){
         console.error("Error: specified class <" + CUTname + "> was not found");
@@ -129,7 +128,11 @@ exports.getProgramInfo = function(cmd, classContext, CUTname) {
     }
     var mutDefined = false;
     for (var className in classContext) {
-        if(typeof classContext[className] === "function") {
+        // the convention is to name constructors with a capital
+        // letter, this avoid trying to construct functions which
+        // are not meant to be constructed
+        if(typeof classContext[className] === "function" &&
+           className[0] === className[0].toUpperCase()) {
             // retrieving constructor for the class under test
             var constructor = classContext[className];
             
@@ -157,7 +160,7 @@ exports.getProgramInfo = function(cmd, classContext, CUTname) {
                 // what the constructor methods achieve atm, just the class's methods
                 
                 // TODO: should be Function Proxy
-                emptyParams[i] = Proxy.create(idleHandler);
+                emptyParams[i] = Proxy.create(new IdleHandler());
             }
 
             // an instance of the class under test needs to be created in order
@@ -169,7 +172,7 @@ exports.getProgramInfo = function(cmd, classContext, CUTname) {
             catch (err) {
                 console.error("ANALYSER: error when constructing class <" +
                                className + "> :");
-                console.error(err.toString());
+                console.error(err.stack);
                 process.exit(1);
             }
             // retrieving class members
@@ -259,7 +262,7 @@ ParamInfo.prototype.hasSufficientUsage = function() {
     //   we use a number instead
     // * If there are mistakes in the types, the user may want to adjust
     //   this variable, such that estimates are made with even more confidence.
-    return this.usageCounter >= ParamInfo.minUsageRequired;
+    return this.usageCounter >= ParamInfo.minUsesRequired;
 };
 
 ParamInfo.prototype.isUnknown = function() {
@@ -359,6 +362,7 @@ ParamInfo.prototype.makeInferences = function(pgmInfo) {
             }
             this.inferredType = Math.random() > 0.5 ? 'number' : 'string';
             this.unsure = true;
+            // this.inferredType = "number";
             // console.warn("         The following options are available:");
             // console.warn("         (1) The type of this parameter is not important in this context, use anything");
             // console.warn("         (2) The type of this parameter matters, keep trying");
@@ -390,8 +394,14 @@ ParamInfo.prototype.makeInferences = function(pgmInfo) {
 }
 
 // AUXILLIARY
+const TRAP_THRESHOLD = 50;
+var TrapThresholdExceeded = function (){};
 
-var idleHandler = exports.idleHandler = {
+var IdleHandler = exports.IdleHandler = function(){
+    this.trapCount = 0;
+};
+
+IdleHandler.prototype = {
     
     /* FUNDAMENTAL TRAPS */
 
@@ -451,7 +461,10 @@ var idleHandler = exports.idleHandler = {
 
     // trapped: proxy.name
     get: function(rcvr, name) {
-        // console.log("INSIDE ANALYSER GET",name);
+        this.trapCount++;
+        if (this.trapCount > TRAP_THRESHOLD) {
+            throw new TrapThresholdExceeded();
+        }
         var self = this;
         if (name === "valueOf") {
             return function() {

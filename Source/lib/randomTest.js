@@ -233,7 +233,7 @@ exports.generate = function(pgmInfo) {
 
     var callSequence = [];
     // -1 because MUT is added at the end
-    randomSequenceLength = Math.ceil(Math.random()*pgmInfo.sequenceSize-1);
+    randomSequenceLength = Math.ceil(Math.random()*pgmInfo.sequenceLength-1);
     var CUTmethods = pgmInfo.getMethods(CUTname);
     for (var j = 0; j<randomSequenceLength;j++) {
         var randomMethod = Math.floor(Math.random()*CUTmethods.length);

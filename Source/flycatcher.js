@@ -1,7 +1,7 @@
 #! /usr/bin/env node --harmony_proxies
 
-var analyser = require('./lib/analyser.js');
-var randomTest = require('./lib/randomTest.js');
+var Analyser = require('./lib/analyser.js');
+var RandomTest = require('./lib/randomTest.js');
 var Executor = require('./lib/executor.js').Executor;
 
 var util = require('util');
@@ -25,11 +25,12 @@ cmd
 .version('1.0')
 .usage('<file path> <class name> [options]')
 .option('-m, --method <name>', 'generate tests for a specific method')
-.option('-c, --coverage <num>', 'expected coverage %', Number, 100)
-.option('-t, --timeout <num>', 'timeout after a certain number of valid tests with no coverage', Number, 1000)
-.option('-s, --sequence-size <num>', 'maximum size of method sequences in test', Number, 20)
-.option('-n, --namespace <name>', 'specify a namespace for your class')
-.option('-u, --minimum_usage <name>', 'number of parameter usages required before attempting type inference', Number, 20)
+.option('-t, --timeout <num>', 'timeout after a number of valid tests with no coverage', Number, Number.MAX_INT)
+.option('-u, --minimum-uses <num>', 'number of parameter uses required before attempting type inference', Number, 20)
+.option('-n, --custom-numbers <name>', 'JavaScript RegExp describing a custom set of numbers to use e.g \'[1-4]\'')
+.option('-s, --custom-strings <name>', 'JavaScript RegExp describing a custom set of strings to use e.g. \'[a-d]+\'')
+.option('-l, --sequence-length <num>', 'maximum length of method call sequence in tests', Number, 20)
+.option('-N, --namespace <name>', 'specify a namespace for your class')
 .parse(process.argv);
 
 (function main(cmd) {
@@ -56,7 +57,12 @@ cmd
     var classContext = {};
     Object.defineProperty(classContext,"log", {get : function() {return console.log},
                                                enumerable : false});
-
+    // Object.defineProperty(classContext,"util", {get : function() {return util},
+    //                                             enumerable : false});
+    // Object.defineProperty(classContext,"EventEmitter", {get : function() {return EventEmitter},
+    //                                                     enumerable : false});
+    // Object.defineProperty(classContext,"crypto", {get : function() {return require('crypto')},
+    //                                               enumerable : false});
     try {
         vm.runInNewContext(src, classContext);
     }
@@ -65,8 +71,15 @@ cmd
         console.log(err.stack);
         process.exit(1);
     }
-    var pgmInfo = analyser.getProgramInfo(cmd, classContext, CUTname);
     
+    var pgmInfo = Analyser.getProgramInfo(cmd, classContext, CUTname);
+    
+    // initialising custom primitive data generators if need be
+    var numRE = cmd.customNumbers;
+    if (numRE) RandomTest.DataGenerator.setNumbers(numRE);
+    var strRE = cmd.customStrings;
+    if (strRE) RandomTest.DataGenerator.setStrings(strRE);
+        
     var unitTests = [];
     var failingTests = [];
 
@@ -103,15 +116,16 @@ function generateTests(src, pgmInfo, unitTests, failingTests) {
     try {
         var noCoverage = 0;
         var exec = new Executor(src, pgmInfo);
+
         var MUTname = pgmInfo.MUT.name;
         var CUTname = pgmInfo.CUTname;
-        console.log("\nGenerating tests for at least " + cmd.coverage + "\% coverage of method <" + MUTname + 
-                    "> from class <" + CUTname + "> :   ");
+        console.log("\nGenerating tests for method <" + MUTname + "> from class <" + CUTname + "> :   ");
         console.log("------------------------------------------------------------------------------------------");
         var count = 0;
-        while (exec.getCoverage() < cmd.coverage) {
-            var test = randomTest.generate(pgmInfo);            
+        while (exec.getCoverage() < 100) {
+            var test = RandomTest.generate(pgmInfo);            
             exec.setTest(test);
+            // exec.showMUT();
             // exec.showTest(test);
             var testRun = exec.run();
             
@@ -128,7 +142,6 @@ function generateTests(src, pgmInfo, unitTests, failingTests) {
                 if (testRun.error) failingTests.push(test.toFailingTestFormat(testRun.msg));
             }
             // exec.showCoverage();
-            // exec.showMUT();
         }
     }
     catch(err) {
@@ -139,7 +152,7 @@ function generateTests(src, pgmInfo, unitTests, failingTests) {
             console.error(("ERROR while generating tests for method <" + MUTname + ">").error);
             if (err.type === "stack_overflow") 
                 console.log("STACK OVERFLOW: there must be a cycle in the inferred parameter definitions".error);
-            else console.log(err.toString());            
+            else console.log(err.stack);            
         }
     }
 }
