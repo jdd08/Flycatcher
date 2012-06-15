@@ -1,7 +1,7 @@
 \chapter{Background}
 \label{background}
 
-In this chapter we will start by giving an overview of software testing, with particular emphasis on aspects of it that are relevant to this project. We will then take a look at the state of the art in automatic test data generation (ATDG) in order to understand the approach that will be used for \textsf{Flycatcher}. Because the tests will be object-oriented, method call sequences also need to be generated for the test cases and we will look at the state of the art for doing that too. Finally, we will further justify our choice of JavaScript and describe features of it that are of importance for this project.
+In this chapter we will start by giving an overview of software testing, with particular emphasis on aspects of it that are relevant to this project. We will then take a look at the state of the art in automatic test data generation (ATDG) in order to understand the approach that will be used for \textsf{Flycatcher}. Because the tests will be object-oriented, method call sequences also need to be generated for the test cases and we will look at the state of the art for doing that too. Finally, we will further justify our choice of JavaScript and describe features of it that are important in this project.
 
 \section{Dynamic software testing}
 
@@ -78,7 +78,7 @@ The choice of implementation for \textsf{Flycatcher} is dynamic random ATDG for 
 							child { node [level 4,xshift=-2.4cm] {Alternating variable}}
 							child { node [level 4,xshift=-4cm] {...}}
 			      }
-		     	      child {node [level 3,text width=2.5cm,xshift=-0.4cm] {Random}}
+		     	      child {node [level 3,text width=2.5cm,xshift=-0.4cm] {\color{blue}Random}}
 				}
 			}
 		};
@@ -121,11 +121,16 @@ Yet, although hybrid ATDG deals with some limitations of static ATDG, the constr
 
 \subsection{Dynamic test data generation}
 
-Dynamic test data generation is purely based on actual execution of the software. The program under test is run with, possibly randomly, selected input and feedback is collected at runtime regarding the chosen coverage objective \cite{edvardsson1999survey}. The feedback is usually obtained through some form of instrumentation of the program that monitors the program flow. Inputs can be continually generated randomly, relying on probability to achieve the coverage objective --- this is known as \emph{random} test data generation and does not perform well in general \cite{edvardsson1999survey}. On the other hand, inputs can be incrementally tuned based on the feedback (using different kinds of search methods) in order to satisfy the coverage objective --- this is known as \emph{search-based} test data generation \cite{mcminn2004search}, where the search-space is the control flow graph of a program. The main drawback of dynamic ATDG is that it is reliant on the speed of execution of a program and as the number of required executions to achieve satisfactory coverage may be high, this leads to an overall expensive process. Below we will present the random and search-based approaches in more detail, in order to understand which would be more suitable for \textsf{Flycatcher}.
+Dynamic test data generation is purely based on actual execution of the software. The program under test is run with, possibly randomly, selected input and feedback is collected at runtime regarding the chosen coverage objective \cite{edvardsson1999survey}. The feedback is usually obtained through some form of instrumentation of the program that monitors the program flow. Inputs can be continually generated randomly, relying on probability to achieve the coverage objective --- this is known as \emph{random} test data generation \cite{edvardsson1999survey}. On the other hand, inputs can be incrementally tuned based on the feedback (using different kinds of search methods) in order to satisfy the coverage objective --- this is known as \emph{search-based} test data generation \cite{mcminn2004search}, where the search-space is the control flow graph of a program. The main drawback of dynamic ATDG is that it is reliant on the speed of execution of a program and as the number of required executions to achieve satisfactory coverage may be high, this leads to an overall expensive process. Below we describe the random approach of dynamic test generation in more detail, as it is the approach used in \textsf{Flycatcher}.
+
+% Below we describe the random and search-based approaches in more detail, as they are the approaches used in \textsf{Flycatcher}.
+% TODO GENETIC
 
 \subsubsection{Random approach}
 
-Random test data generation consists in producing inputs at random in the hope of achieving the chosen coverage criterion through probability. Although random test data generation is relatively simple to implement, it does not perform well in terms of coverage, as the chances of finding faults that are revealed by only a small percentage of program inputs are low \cite{edvardsson1999survey}. In other words, it is difficult for it to exercise `deep' features of a program that are exercised only through specific and unlikely paths. As a result, random ATDG only works well for straightforward programs. However, because it is the simplest ATDG technique and is considered to have the lowest acceptance rate \cite{edvardsson1999survey}, it is often used as a benchmark and is a suitable candidate for us to benchmark our \textsf{Flycatcher} application.
+Random test data generation consists in producing inputs at random in the hope of achieving the chosen coverage criterion through probability. Although random test data generation has the advantage of being conceptually simple, it does not perform well in terms of coverage, as the chances of finding faults that are revealed by only a small percentage of program inputs are low \cite{edvardsson1999survey}. In other words, it is difficult for it to exercise `deep' features of a program that are exercised only through specific and unlikely paths. As a result, random ATDG only works well for straightforward programs. However, because it is the simplest ATDG technique it is appropriate to use as the \emph{basis} of a new application such as \textsf{Flycatcher}.
+
+% TODO GENETIC and is considered to have the lowest acceptance rate \cite{edvardsson1999survey}, it forms the basis of the \textsf{Flycatcher} application.
 
 % \subsubsection{Search-based approach}
 % % more on search-based approach using mairhofer's stuff?
@@ -219,6 +224,8 @@ l.remove(node);
 l.add(node);
 assert(l.size() === 1);
 \end{code}
+
+The random test data generation discussed can simply be extended to the task of generating test cases, by randomly selecting the methods to call inside the object-oriented test cases.
 
 %, as well as their inputs and the inputs to the constructor, should all evolve in a way that permits a successful coverage to be achieved. Automatic test \emph{data} generation techniques that maximise coverage have been discussed, but work has also been done on techniques to the evolution of object-oriented tests cases.
 
@@ -391,7 +398,7 @@ It is worth noting about Proxies, as this will matter to us later, that some ope
    \item The \texttt{Object.getPrototypeOf(proxy)} operation
 \end{itemize}
 
-There is much more to say about object Proxies and their applications, but this brief introduction is sufficient in our case.
+There is much more to say about object Proxies and their applications, but this brief introduction is sufficient in our case. The full proposal can be found online\footnote{"\url{http://wiki.ecmascript.org/doku.php?id=harmony:proxies}"}.
 
 \subsubsection{Function Proxies}
 
@@ -405,8 +412,12 @@ fnproxy(1,2,3)     // calls call(1,2,3)
 new fnproxy(1,2,3) // calls new construct(1,2,3)
 \end{code}
 
+\section{Related work}
+\subsection{Kudzu}
+\textsf{Kudzu} \cite{saxena2010symbolic} is a tool that, given a URL for a web application, automatically generates high-coverage test cases to systematically explore its execution space.
+
 \section{Summary}
 
 Despite being tedious and prone to human error, testing is a necessary and important part of software development --- it is thus worthwhile to attempt to automate that effort where possible. In this project we focus on structural testing: making sure that the \emph{internals} of an application work by trying out, as much as is feasible to do so, all the ways in which it can be executed. The quality measure for our tests is therefore code coverage: how much code we can, with fair confidence, assert to be bug-free.
 
-In the arena of automatic test generation, dynamic languages have so far largely been left aside. Given a recent surge in JavaScript's popularity, a growth of its developer community, as well as an expansion towards server-side application development, we feel that it makes sense to include it in the research work on automatic test generation. From the wide array of techniques in this domain, we will use the most appropriate for JavaScript, namely dynamic test generation (as opposed to static or hybrid): test generation that results from numerous executions of the program and their feedback. Random test data generation can be improved by search heuristics and genetic algorithms will be our heuristic method of choice. Finally, we saw that there are challenges that pertain specifically to object-oriented languages and dynamic languages and this project will involve devising novel ways to overcome these issues in the context of JavaScript, using state-of-the-art features of this language.
+In the arena of automatic test generation, dynamic languages have so far largely been left aside. Given a recent surge in JavaScript's popularity, a growth of its developer community, as well as an expansion towards server-side application development, we feel that it makes sense to include it in the research work on automatic test generation. From the wide array of techniques in this domain, we will use the most appropriate for JavaScript, namely dynamic test generation (as opposed to static or hybrid): test generation that results from numerous executions of the program and their feedback. Random test case generation will be the method of choice as it represents a natural starting point in test generation. Finally, we saw that there are challenges that pertain specifically to object-oriented languages and dynamic languages and this project will involve devising novel ways to overcome these issues in the context of JavaScript, using state-of-the-art features of this language.
