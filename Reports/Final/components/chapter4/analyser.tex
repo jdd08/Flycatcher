@@ -1,6 +1,6 @@
 \chapter{Analysing the source}
-
-The targets of our unit tests are classes, understood as the definition in section \ref{overalljs}. We refer to the class for which tests are being generated as the \emph{class under test}, using the acronym CUT. Because of the nature of meaningful tests in an object-oriented context, generating tests for a class means generating tests that target individual methods of that class, as shown in the section \ref{OOtests}. These methods, when selected one at a time for the purpose of generating test cases, will be referred to as \emph{method under test} or MUT.
+\label{analyser}
+The targets of our unit tests are classes, understood as defined in section \ref{overalljs}. We refer to the class for which tests are being generated as the \emph{class under test}, using the acronym CUT. Because of the nature of meaningful tests in an object-oriented context, generating tests for a class means generating tests that target individual methods of that class, as shown in section \ref{OOtests}. These methods, when selected one at a time for the purpose of generating test cases, will be referred to as \emph{method under test} or MUT.
 
 The \textsf{Analyser} component is responsible, intuitively, for retrieving information regarding the CUT and its methods, and storing that information in convenient data structures, so that they can be accessed by the rest of the \textsf{Flycatcher} application. This is because that initial information not only serves as the starting point for the test generation process, but is used and updated throughout that process.
 
@@ -46,7 +46,7 @@ LinkedList.prototype.remove = getRemoveFunction();
 
 The example is unnecessarily but purposely entangled, to demonstrate the point. First, the class constructor is not defined directly but is in fact a reference to another function. This is possible in JavaScript because functions are first-class objects. Second, the \texttt{LinkedList} class has three methods \texttt{size}, \texttt{add} and \texttt{remove} but each are defined in a different manner, and sometimes also through indirect references.
 
-Unlike a language like C++ or Java that have static class definitions which follow a predictable format, in JavaScript class definitions cannot be learnt statically. The example above could be made much more complex and still be a correct class definition, and to try and learn class definitions statically while covering all possible scenarios would be nonsensical --- it would effectively amount to executing the class definition. In other words, simply parsing the source code does not get us very far. Hence, this means that we need to extract the information we need \emph{dynamically}, and this involves two steps:
+Unlike a language like C++ or Java that have static class definitions which follow a predictable format, in JavaScript class definitions cannot be learnt statically. The example above could be made much more complex and still be a correct class definition, and to try and learn class definitions statically while covering all possible scenarios would effectively amount to executing the class definition. In other words, simply parsing the source code does not get us very far. Hence, this means that we need to extract the information we need \emph{dynamically}, and this involves two steps:
 
 \begin{enumerate}
    \item Loading/executing the source code to obtain the \emph{constructor} of the CUT
@@ -59,9 +59,9 @@ Thankfully, Node.js's built-in library offers a virtual machine API which enable
    vm.runInNewContext(code, [sandbox])
 \end{code}
 
-This means that we can load the source file under test using standard IO, and execute it as \texttt{\underline{code}} with a fresh global object \texttt{\underline{sandbox}}. This means that we do not pollute the environment in which we interpret the class definition with \textsf{Flycatcher}'s own global object. It also means that we have an unambiguous handle on the objects that form the class definition of the CUT.
+This means that we can load the source file under test using standard IO, and execute it as \texttt{\underline{code}} with a fresh global object \texttt{\underline{sandbox}}. This means that we do not pollute the environment in which we interpret the class definition with \textsf{Flycatcher}'s own global object. It also means that through \texttt{\underline{sandbox}} we have an unambiguous handle on the objects that form the class definition of the CUT.
 
-In fact, when the vm has finished interpreting the source under test, we have access not just to the CUT, but to all the other classes which are accessible in that scope. These classes are significant since they are \emph{potential candidates} for the types of the parameters of the CUT constructor and methods. For instance in the running \texttt{LinkedList} example, it wouldn't be surprising to find a \texttt{Node} class in the \texttt{sandbox} as well.
+In fact, when the vm has finished interpreting the source under test, we have access not just to the CUT, but to all the other classes which are accessible in that scope. These classes are significant since they are \emph{potential candidates} for the user-defined types of the parameters of the CUT constructor and methods. For instance in the running \texttt{LinkedList} example, it wouldn't be surprising to find a \texttt{Node} class in the \texttt{sandbox} as well.
 
 Note that all of these classes, including the CUT, may belong to a namespace like so:
 
@@ -76,21 +76,21 @@ DataStructures.LinkedList.prototype.add = function(node) {
 etc.
 \end{code}
 
-To overcome this, \textsf{Flycatcher} has the option of \emph{specifying} the namespaces of interest, but the underlying mechanism for extracting information is exactly the same.
+To overcome this, \textsf{Flycatcher} gives the option of specifying the namespace of interest, but the underlying mechanism for extracting information remains the same.
 
-Additionally, the CUT and its dependencies may be spread over multiple files. In response to this, \textsf{Flycatcher} users have the option of specifying multiple input source files, but this also has no implications.
+% Additionally, the CUT and its dependencies may be spread over multiple files. In response to this, \textsf{Flycatcher} users have the option of specifying multiple input source files, but this also has no implications.'
 
-What is necessary however is for any classes that \emph{are} used by the CUT to be accessible in the provided code and namespaces, or else \textsf{Flycatcher} will not be able to generate tests with the correct parameter types.
+It is necessary for any classes that are used by the CUT to be accessible in the provided code and namespace, or else \textsf{Flycatcher} will not be able to generate tests with the correct parameter types.
 % TODO mentioning interfaces?
 
 \section{Information retrieval}
 \subsection{Retrieving class constructors}
-Once we have loaded the source code under test into the sandbox, we can iterate through the appropriate namespaces and retrieve the properties which have the type \emph{function}. These are \emph{all} potential class constructors as JavaScript constructors are no different than ordinary functions. The name of the CUT will have been specified by the user, which enables us to give that function a special status in our data structures when we retrieve properties from the sandbox.
+Once the source code under test is loaded into the sandbox, \textsf{Flycatcher} iterates through the appropriate namespace and retrieves the properties which have the type \emph{function}. These are \emph{all} potential class constructors as JavaScript constructors are no different than ordinary functions. The name of the CUT will have been specified by the user, which enables us to give that function a special status in our data structures when we retrieve properties from the sandbox.
 
 Information about all of the classes of interest will need to be used and updated throughout the course of the test generation process. Hence, while iterating through the sandbox, we initialise a convenient data structure in order to store that information. This structure, the \texttt{ProgramInfo} object, acts as a placeholder for all of the information about the program under test that is relevant to the test generation process.
 
 \subsection{Retrieving class methods}
-Given the sandbox, retrieving class constructors is straightforward but to retrieve that class's methods dynamically, as is required, instances of it need to be created\footnote{\texttt{MyClass.prototype} will give access to some of the class's methods, but others may also be defined inside the class constructor}. This requires us to be able to:
+Given the sandbox, retrieving a class's constructor is straightforward but to retrieve the class's methods dynamically, as is required, instances of it need to be created\footnote{\texttt{MyClass.prototype}, accessible from the context, will give access to some of a class's methods, but others may also be defined inside the class constructor}. This requires us to be able to:
 
 \begin{enumerate}
    \item create parameters that will not crash the constructor
@@ -98,11 +98,11 @@ Given the sandbox, retrieving class constructors is straightforward but to retri
 \end{enumerate}
 
 \subsubsection{Creating parameters that will not crash the constructor}
-At this point we may want to remind the reader that \emph{JavaScript function parameters bear no type information whatsoever}. Hence, at this stage, we have no idea what parameters to create to pass the constructor. If we do pass wrong parameters though, such as passing a number when an object is expected, the constructor will crash and we won't be any closer to retrieving information about the class's methods.
+At this point we may want to remind the reader that \emph{JavaScript function parameters bear no type information whatsoever}. Hence, at this stage, we have no idea what parameters to create to pass to the constructor. If we do pass wrong parameters to it however, such as a number when an object is expected, the constructor will crash and we will not be any closer to retrieving information about a class's methods.
 
-This leads to our first use of the Proxy object proposed by ECMA-262 Harmony, introduced in section \ref{js}. In order for the constructor not to crash, we pass it Proxy objects which have the ability to respond to any operation: Proxies that return other Proxies. Hence, even if property accesses are made on the \emph{result} of a property access, the constructor will continue executing, as the \texttt{get} trap of the Proxy returns a reference to itself. However, we must account for the fact that the trapped function may expect \emph{a function} in return, and we must return a Function Proxy. The Function Proxy has the same behaviour as the Proxy but can additionally trap attempts to invoke or instantiate it.
+This leads to our first use of the Proxy object proposed by ECMA-262 Harmony, introduced in section \ref{js}. In order for the constructor not to crash, we pass Proxy objects to it, which have the ability to respond to any operation: Proxies that return other Proxies. Hence, even if property accesses are made on the \emph{result} of a property access, the constructor will continue executing, as the \texttt{get} trap of the Proxy returns a reference to itself. However, we must account for the fact that the trapped function may expect \emph{a function} in return, and we must therefore return a Function Proxy. The Function Proxy has the same behaviour as the Proxy but can \emph{additionally} trap attempts to invoke or instantiate it.
 
-The catch is that primitive operations are also trapped by the \texttt{get} trap, as they translate into the function \texttt{valueOf} being called. If we return a Proxy when \texttt{valueOf} is trapped, the engine will try to apply a primitive operator, such as \texttt{++}, to an object and throw a type error. Hence, the Proxy's \texttt{get} trap must return a \emph{primitive} whenever the method trapped is \texttt{valueOf}. Returning a number is a sound choice as it can't make any of the primitive operators effect a crash (but for instance \texttt{''string''++} would break). The Proxy API offers many more traps than the \texttt{get} trap, but we focus on the \texttt{get} trap for clarity's sake, as the behaviour of the other traps is analogous to what we have described. To summarise, we lay out the implementation of the \texttt{get} trap that we have explained:
+The catch is that primitive operations are also trapped by the \texttt{get} trap, as they translate into the function \texttt{valueOf} being called. If we return a Proxy when \texttt{valueOf} is trapped, the engine will try to apply a primitive operator, such as \texttt{++}, to an object, and throw a type error. Hence, the Proxy's \texttt{get} trap must return a \emph{primitive} whenever the method trapped is \texttt{valueOf}. Returning a number is a sound choice as it does not make any of the primitive operators effect a crash (but for instance \texttt{''string''++} would). The Proxy API offers many more traps than the \texttt{get} trap, but we focus on the \texttt{get} trap for clarity's sake, as the other traps simply implement idle behaviour. To summarise, we lay out the implementation of the \texttt{get} trap that we have explained:
 
 \begin{code}[caption=\textsf{Analyser} Proxy's \texttt{get} trap,label=gettrap]
 get: function(rcvr, name) {
@@ -113,19 +113,19 @@ get: function(rcvr, name) {
         }
     }
     else {
-        return Proxy.createFunction(proxyHandle,
-        function() {
-            return Proxy.create(proxyHandle)
-        });
+        return Proxy.createFunction(proxyHandle, // Object Proxy part
+                                    function() { // Function Proxy part
+                                        return Proxy.create(proxyHandle)
+                                    });
     }
 }   
 \end{code}
 
 % TODO: problem with methods that are closures on one of the parameters
 % this is in fact fine? -> we reuse the source code itself in the executor
-It is worth noting that we do not care about the \emph{outcome} of the operations on parameters within the constructor, only that it doesn't crash. The purpose of this process is to find out the signatures of the class's methods and these cannot be affected by the class parameters --- except for the case where \emph{the class method itself} is passed in as a parameter, which we do not deal with.
+It is worth noting that we do not care about the \emph{outcome} of the operations on parameters within the constructor, only that it does not crash. The purpose of this process is to find out the signatures of a class's methods and these cannot be affected by the constructor's parameters --- except for the case where \emph{the class method itself} is passed in as a parameter, which we do not deal with (we do not handle \texttt{Function} type parameters in general).
 
-Tests were run to ensure that the constructor does indeed not crash with those Proxy parameters, assuming normal program behaviour. The test cases are summarised in Table \ref{nocrash}, where \texttt{proxy} is the parameter proxy, \texttt{f} is a field and \texttt{m} is a method:
+Tests were run to ensure that the constructor does not crash with the Proxy parameters created. The test cases are summarised in Table \ref{nocrash}, where \texttt{proxy} is the parameter proxy, \texttt{f} is a field and \texttt{m} is a method:
 
 \begin{table}[h]
 \centering
@@ -139,15 +139,15 @@ Field access & \texttt{proxy.f} \\
 Field access of field access & \texttt{proxy.f.f} \\
 Method call of field access & \texttt{proxy.f.m()} \\
 Overriding field & \texttt{proxy.f = 3} \\
-\texttt{valueOf} call & \texttt{proxy.f + 1} \\
-\texttt{toString} call & \texttt{[proxy.f]} \\
+\texttt{valueOf} call on field & \texttt{proxy.f + 1} \\
+\texttt{toString} call on field & \texttt{proxy.f.toString()} \\
 Method access & \texttt{proxy.m} \\
 Method call & \texttt{proxy.m()} \\
 Field access of method call & \texttt{proxy.m().f} \\
 Method call of method call & \texttt{proxy.m().m()} \\
 Overriding method & \texttt{proxy.m = function()\{\}} \\
-\texttt{valueOf} call & \texttt{proxy.m.valueOf()} \\
-\texttt{toString} call & \texttt{proxy.m.toString()} \\
+\texttt{valueOf} call on method & \texttt{proxy.m.valueOf()} \\
+\texttt{toString} call on field & \texttt{proxy.m.toString()} \\
 \hline
 \end{tabular}
 \caption{Testing proxy parameters}
@@ -173,15 +173,15 @@ var construct = (function() {
 var instance = construct(proxyParams);
 \end{code}
 
-Once we have access to an instance of a class we can just iterate through its properties to obtain its methods (the functions) and its fields (the rest).
+Once we have access to an instance of a class we can just iterate through its properties to obtain its methods (the functions) and its fields (the rest). Moreover, this technique fully supports JavaScript polymorphism, as any superclass methods will be inherited when the subclass is constructed and thus present amongst the properties of the available instance.
 
 \section{Conclusion}
-At this point, the Analyser has successfully built an object that embodies the structure and information of all the classes in the scope of the program under test. For clarity's sake, we will refer to that object throughout by naming it \texttt{ProgramInfo}. To summarise, this is the information that has been gathered so far:
+At this point, the \textsf{Analyser} has successfully built an object that embodies the structure and information of all the classes in the scope of the program under test. For clarity's sake, we will refer to that object throughout by naming it \texttt{ProgramInfo}. To summarise, this is the information that has been gathered so far for each class:
 
 \begin{itemize}
-   \item constructor definitions \checkmark
+   \item constructor definition \checkmark
    \item method definitions \checkmark
    \item class fields \checkmark
 \end{itemize}
 
-In fact however, as the \texttt{ProgramInfo} object is the central element of \textsf{Flycatcher}, it is more complex than that. But its additional features will be revealed in the later chapters, where relevant.
+However, as the \texttt{ProgramInfo} object is the central element in \textsf{Flycatcher}, it has additional responsibilities. But these will be revealed in the later implementation chapters, where relevant.

@@ -1,21 +1,23 @@
 \chapter{Generating candidate tests}
 \label{randomtest}
-In this chapter we detail the process for generating \emph{random} tests, in the hope of achieving good code coverage of the CUT. First we explain the structure of a test and some characteristics of that structure. Then we describe the mechanism for trying to generate tests in which the types for the parameters are correct. Finally we discuss the formatting of those tests, with regard to whether they are intended for the \textsf{Executor} or as final output.
+In this chapter, we detail the process by which \textsf{Flycatcher} generates random candidate tests, in the hope of eventually generating some that can be used to achieve good code coverage of the CUT. First, we explain the structure of a test and some characteristics of that structure. Then we describe the mechanism for trying to generate tests in which the types of the parameters are accurate. Finally, we introduce the concept of custom data generators, for seeding primitive type values inside our tests.
+
+% Finally we discuss the formatting of those tests, with regard to whether they are intended for the \textsf{Executor} or as final output.
 
 \section{Structure}
 
 To recapitulate, an object-oriented test targets a particular method of the CUT, referred to as the MUT. If the method of interest is specified by the user then tests are only generated for that method. Otherwise each of the CUT's methods are selected as the MUT, and tests are generated for each of them, covering the whole class. Either way, generating a test for a MUT involves the following steps:
 
 \begin{enumerate}
-	\item Instantiate the object
+	\item Create an instance of the CUT
 	\item Call some of its methods (including the MUT) to possibly modify its state
 	\item Where the MUT is called (at least once), assert that it returns the expected answer
 \end{enumerate}
 
-\subsubsection{Unit test format}
-Assuming that the MUT is the method \texttt{size}, the final output of a \emph{valid} unit test might therefore look like:
+% \subsubsection{Unit test format}
+Assuming that the MUT is the method \texttt{size}, the final output of a valid unit test might therefore look like:
 
-\begin{code}[caption=Unit test format,label=final]
+\begin{code}[caption=Unit test,label=final]
 var linkedList = new LinkedList();
 
 var node1 = new Node(123);
@@ -30,10 +32,12 @@ linkedList.add(node3);
 assert(linkedList.size() = 3);
 \end{code}
 
-\subsubsection{Executor format}
+Note that the format shown in \ref{final} differs from the format of tests that are destined to be run in the \textsf{Executor}. The same test in the \textsf{Executor} needs a structure to keep track of MUT call results, in order to later construct assertions if the test is selected. Example \ref{execformat} illustrates the format of tests in the \textsf{Executor}. In the rest of the examples however, we omit the \texttt{results} structure to keep the examples clear and concise.
 
-For all the results of calling the MUT in a candidate test to be recorded, so that the assertions seen in example \ref{final} can be created, the format of test \ref{final} in the \textsf{Executor} is in fact:
-
+% \subsubsection{Executor format}
+% 
+% For all the results of calling the MUT in a candidate test to be recorded, so that the assertions seen in example \ref{final} can be created, the format of test \ref{final} in the \textsf{Executor} is in fact:
+% 
 \begin{code}[caption=Executor format,label=execformat]
 (function() {
    var results = [];
@@ -53,19 +57,19 @@ For all the results of calling the MUT in a candidate test to be recorded, so th
 })();
 \end{code}
 
-\subsection{Recursive declarations}
+\subsection{Recursive construction}
 
-The tests are built using recursion, in the sense that when a method call or a constructor call (a declaration) is added to a candidate test, any parameters of that call are declared beforehand. The recursion stops when a constructor call has no parameters \emph{e.g.} in the case of primitives. For the sake of conciseness primitives are in fact inlined as can be seen in the example. So, in the example, the \texttt{LinkedList.add} calls prompt a declaration of a \texttt{Node} object, which in turn prompt an inline declaration of a number.
-The tests are \emph{always} initiated with a declaration of the CUT, and therefore start with any declarations that are needed for its constructor's parameters, if any.
+The tests are built using recursion, in the sense that when a method call or a constructor call (a declaration) is added to a candidate test, any parameters of that call are declared beforehand. The recursion stops when a constructor call has no parameters \emph{e.g.} in the case of primitives. For the sake of conciseness primitives are in fact inlined as can be seen in the example \ref{final}. So, in the example \ref{final}, the \texttt{LinkedList.add} calls each prompt the declaration of a \texttt{Node} object, which in turn prompts an inline declaration of a number.
+The tests \emph{always} start with a declaration of the CUT, and therefore with any declarations that are needed for its constructor's parameters.
 
-The number of method calls made in an attempt to modify the state of the CUT instance is chosen \emph{at random}, with a configurable maximum. However, there must be at least one occurrence of the MUT in the \emph{overall} method call sequence, since the sole purpose of the test is to evaluate that method. Note that if there is only one MUT call, it will be at the end, as there is no use in calling more methods \emph{after} we have finished evaluating the MUT.
+The number of method calls made in an attempt to modify the state of the CUT instance is chosen \emph{at random}, with a user-configurable maximum. As we will see in the experimental evaluation, this maximum with regard to the length of method call sequences is significant: it has an effect on code coverage and test readability. However, there must be at least one occurrence of the MUT in the \emph{overall} method call sequence, since the sole purpose of the test is to evaluate that method. Note that if there is only one MUT call, it will be at the end, as there is no use in calling more methods \emph{after} we have finished evaluating the MUT.
 
-We initially made the mistake of making only one MUT call in total, but later realised that this could preclude certain portions of the code from being covered. For example, if \texttt{LinkedList.add} is the MUT, it needs to be called at least twice to exercise full coverage, as its behaviour depends on whether the list is empty or not.
+We initially made the mistake of making only one MUT call in total, but later realised that this could preclude certain portions of the code from being covered. For example, if \texttt{LinkedList.add} is the MUT, it needs to be called at least twice for a test to exercise full coverage, as the branches taken in the MUT depend on whether the linked list is empty or not.
 
 Aside from its recursive construction, another feature of the tests' structure is the pooling of parameters.
 
 \subsection{Pooling parameters}
-In order reach full coverage, it is important to enable methods in the tests' method call sequences to manipulate references to \emph{the same object}. Let us take a look at the following code:
+In order to reach full coverage, it is important to enable methods in the tests' method call sequences to manipulate references to \emph{the same object}. Let us take a look at the following code:
 
 \begin{code}[caption=Unreachable code,label=unreachable]
 var linkedList = new LinkedList();
@@ -76,7 +80,7 @@ var node2 = new Node(234);
 linkedList.remove(node2);
 \end{code}
 
-In that example, a substantial portion of the \texttt{LinkedList.remove} method will never be reached: the portion which expects a reference \emph{already contained} in the list. Unless we allow the \texttt{LinkedList.remove} method to work with antecedent parameters and not necessarily redefine its own, it is impossible to hand it such a reference. In other words, it has to be possible to generate:
+In that example, a substantial portion of the \texttt{LinkedList.remove} method will never be reached: the portion which expects a reference \emph{already contained} in the list. Unless we allow the \texttt{LinkedList.remove} method to use parameters defined previously, without necessarily redefining its own, it is impossible to hand it a reference which exists in the list. In other words, it has to be possible to generate:
 
 \begin{code}[caption=Pooling,label=pooling]
 var linkedList = new LinkedList();
@@ -86,17 +90,18 @@ linkedList.add(node1);
 linkedList.remove(node1);
 \end{code}
 
-This is implemented with a `pooling' mechanism. For every type, there is a pool to which objects are added to when they are declared. This enables any subsequent constructor calls or method calls which need a parameter of that type, to reuse a variable which already exists in the test. Upon a series of experiments, which will be detailed in the evaluation section, it was determined that a 25% reuse rate gave the best coverage results. However this variable is highly dependent on the program under test and is therefore also configurable if need be.
+This is implemented with a `pooling' mechanism. For every type, there is a pool to which objects are added to when they are declared. This enables any subsequent constructor calls or method calls which need a parameter of that type, to reuse a variable which is already declared in the test. Upon a series of experiments, it was determined that a 25\% reuse rate was suitable. The design decision of not making the reuse rate user-configurable was made in order not to overcomplicate \textsf{Flycatcher}'s interface.
+% which will be detailed in the evaluation section, it was determined that a 25\% reuse rate gave the best coverage results. However this variable is highly dependent on the program under test and is therefore also configurable if need be.
 
-Although we have discussed how tests are constructed, we have purposely ignored one important detail: \emph{we do not know the types of any function parameters}. How do we know that the \texttt{LinkedList.add} method takes an object of type \texttt{Node}?
+Note that although tests which are destined to be run in \textsf{Flycatcher}'s custom runtime environment do not have the same format as the ones output to the test suite, they \emph{do} share the same underlying structure which has been described in this section. Although we have discussed how tests are constructed, we have purposely ignored one important detail: \emph{we do not know the types of any of the parameters}. How do we know that the \texttt{LinkedList.add} method takes an object of type \texttt{Node}?
 
 \section{Types}
 
-In the example of the previous section, the type of the variable \texttt{linkedList} is known from the start --- it is an instance of the CUT. However, initially, the types of the parameters for the \texttt{LinkedList} and \texttt{Node} constructors are not. For that reason, we create a new special type of object: the \texttt{Unknown} type.
+In generating a test like example \ref{final}, the type of the variable \texttt{linkedList} is known from the start --- it is an instance of the CUT. However, initially, the types of the parameters for the \texttt{LinkedList} and \texttt{Node} constructors are not. For that reason, a special type of object was devised: the \texttt{Unknown} type.
 
 \subsection{\texttt{Unknown} type}
 
-Early on in the test generation process, this object will replace any parameter which we need but do not know the type of. Inside the \textsf{Executor}, these objects enable us to \emph{collect information} about the parameter that they stand for --- we will elaborate on \emph{how} this is done in the next chapter. In most cases, thanks to this information, the \texttt{Unknown} objects will eventually be substituted with objects of the appropriate type. Initially however, this is what a test might look like:
+Early on in the test generation process, this object will replace any parameter which we need but do not know the type of. Inside the \textsf{Executor}, these objects enable us to \emph{collect information} about the parameter that they stand for --- we will elaborate on \emph{how} this is done in the next chapter. In most cases, thanks to this information, the \texttt{Unknown} objects are eventually substituted with objects of the appropriate type. However, this is what a test might initially look like:
 
 \begin{code}[caption=Unknown parameter types, label=unknowns]
 var linkedList = new LinkedList();
@@ -113,9 +118,9 @@ linkedList.add(unknown3);
 linkedList.size();
 \end{code}
 
-It is worth noting that tests that contain \texttt{Unknown} objects are only destined for the \texttt{Executor}, they are not suitable as final output, regardless of whether they achieve coverage or not (that coverage is in effect meaningless). Because they are not meant as output unit tests, they also do not contain assertions. In fact, the format should resemble example \ref{execformat}, but we simplify it here for clarity.
+It is worth noting that tests that contain \texttt{Unknown} objects are \emph{only} destined for the \textsf{Executor}, they are not suitable as final output, regardless of whether they achieve coverage or not (that coverage is in effect meaningless). We will refer to them as invalid tests.
 
-To carry on with the example, eventually, after enough information has been collected to infer that the type of the parameter to \texttt{LinkedList.add} is \texttt{Node}, the test would look like:
+Eventually, after enough information has been collected to infer that the type of the parameter to \texttt{LinkedList.add} is \texttt{Node}, the test would look like:
 
 \begin{code}[caption=After type inference for \texttt{LinkedList.add}, label=firstinference]
    var linkedList = new LinkedList();
@@ -135,17 +140,17 @@ To carry on with the example, eventually, after enough information has been coll
    linkedList.size();
 \end{code}
 
-Similarly, when there is enough information to infer that the type of the parameter of the \texttt{Node} constructor is a primitive number, we get the test in example \ref{final}.
+Similarly, when there is enough information to infer that the type of the parameter of the \texttt{Node} constructor is a primitive number, we get the test in example \ref{execformat}.
 
 \subsection{Type inference}
-The information that is collected when tests are run by the \textsf{Executor} is stored in the \texttt{ProgramInfo} object introduced in chapter \ref{background}. Upon each \textsf{Test Generator}/\textsf{Executor} iteration for that test, we update the \texttt{ProgramInfo} object's type information using the new information gathered in the latest \textsf{Executor} run. Although we will explain exactly how this information is collected when we describe the \textsf{Executor}, here we describe how that information is used to infer types for the various test parameters.
+The type information that is collected when tests are run by the \textsf{Executor} is stored in the \texttt{ProgramInfo} object introduced in chapter \ref{analyser}. Upon each \textsf{Test Generator}/\textsf{Executor} iteration for a test, we update \texttt{ProgramInfo} using the type information gathered in the latest \textsf{Executor} run. Although we will explain exactly how this information is collected when we describe the \textsf{Executor}, here we describe how that information is used to infer types for the various test parameters.
 
 \subsubsection{Member accesses}
-For each parameter, the \texttt{ProgramInfo} object keeps track of any attempt to access a property on that parameter. In effect, this records attempts to retrieve \emph{fields} and \emph{methods} from that parameter. By cross-referencing those accesses with the fields and methods stored in \texttt{ProgramInfo}'s class definitions, we may be able to deduce the type of that parameter. 
+For each parameter, the \texttt{ProgramInfo} object keeps track of any attempt to access one of its properties. In effect, this records attempts to retrieve \emph{fields} and \emph{methods} from that parameter. By cross-referencing those accesses with the fields and methods stored in \texttt{ProgramInfo}'s class definitions, we may be able to deduce the type of that parameter. 
 
-If more than one class has fields or methods that match the member accesses on the parameter, the one with the highest correspondence is elected. But if there is a member access with no matches\footnote{except for the hidden properties inherited from \texttt{Object} in JavaScript}, this means that we are faced with a class which is not accessible in the scope of the program and we abort the test generation process for that particular method with a warning.
+If more than one class has fields or methods that match the member accesses of the parameter, the one with the highest correspondence is elected. But if there is a member access with no matches\footnote{except for the hidden properties inherited from \texttt{Object} in JavaScript}, this means that we are faced with a class which is not accessible in the scope of the program and we abort the test generation process for that particular method with a warning.
 
-When we do the \texttt{ProgramInfo} type inference updates, the question of whether a parameter has any member accesses comes \emph{first}, before we look at what sort of primitive it is the most likely to be. The reason behind this is simple: any member access rules out the possibility of a parameter being a primitive, since by definition primitives in JavaScript have no properties.
+When we do the \texttt{ProgramInfo} type updates, the question of whether a parameter has any user-defined member accesses comes \emph{first}, before we look at what sort of primitive it could be. The reason behind this is simple: any user-defined member access rules out the possibility of a parameter being a primitive, since by definition primitives in JavaScript have no properties. If the accesses are not user-defined but belong to the object representations of primitives, \texttt{String} or \texttt{Number}, 
 
 If and only if no member accesses were recorded, do we look at the parameters \emph{primitive score}.
 
