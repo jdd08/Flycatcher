@@ -132,11 +132,11 @@ Random test data generation consists in producing inputs at random in the hope o
 
 % TODO GENETIC and is considered to have the lowest acceptance rate \cite{edvardsson1999survey}, it forms the basis of the \textsf{Flycatcher} application.
 
-% \subsubsection{Search-based approach}
-% % more on search-based approach using mairhofer's stuff?
-% 
-% Search-based test data generation uses heuristics to guide the generation of input data so that the inputs execute paths that contribute to the overall test coverage objective. This involves modelling the test coverage objective as a heuristic function or \emph{objective function}, that evaluates the fitness of a chosen set of inputs with respect to a coverage objective. Based on those fitness values, many search techniques exist to find optimal inputs in order to achieve the desired coverage. Various objective functions exist and they are dependent on the ATDG method used. Some of the well-known search-based ATDG techniques are \emph{alternating variable} (local search optimisation) \cite{korel1990automated, gallagher1997adtest}, \emph{simulated annealing} \cite{tracey1998automated,tracey1998way}, \emph{iterative relaxation} \cite{gupta1998automated} and \emph{genetic algorithms} \cite{michael1998automated,michael2001generating}.
-%  
+\subsubsection{Search-based approach}
+% more on search-based approach using mairhofer's stuff?
+
+Search-based test data generation uses heuristics to guide the generation of input data so that the inputs execute paths that contribute to the overall test coverage objective. This involves modelling the test coverage objective as a heuristic function or \emph{objective function}, that evaluates the fitness of a chosen set of inputs with respect to a coverage objective. Based on those fitness values, many search techniques exist to find optimal inputs in order to achieve the desired coverage. Various objective functions exist and they are dependent on the ATDG method used. Some of the well-known search-based ATDG techniques are \emph{alternating variable} (local search optimisation) \cite{korel1990automated, gallagher1997adtest}, \emph{simulated annealing} \cite{tracey1998automated,tracey1998way}, \emph{iterative relaxation} \cite{gupta1998automated} and \emph{genetic algorithms} \cite{michael1998automated,michael2001generating}.
+ 
 % In 2008, Han and Kwon \cite{han2008empirical} conducted a robust empirical evaluation of search-based test data generation techniques, comparing iterative-relaxation, local search optimisation and genetic algorithms. Genetic algorithms came out on top of the other techniques regarding the rate of coverage and generality, both essential characteristics when considering ATDG techniques. However, genetic algorithms proved expensive both in time and resources, but this can be improved upon \cite{han2008empirical}.
 % Although simulated annealing is not part of this empirical evaluation, we can see from \cite{michael1998automated} that although it performs as well as genetic algorithms, it appears to be less efficient.
 % 
@@ -413,8 +413,41 @@ new fnproxy(1,2,3) // calls new construct(1,2,3)
 \end{code}
 
 \section{Related work}
+\textsf{Flycatcher} is the first tool to automatically generate unit-test suites for JavaScript programs written in an object-oriented style, where classes are the target unit. In this section, we discuss some similar work in different languages, as well as projects that have applied different techniques for the generation of tests in JavaScript.
+
 \subsection{Kudzu}
-\textsf{Kudzu} \cite{saxena2010symbolic} is a tool that, given a URL for a web application, automatically generates high-coverage test cases to systematically explore its execution space.
+\textsf{Kudzu} \cite{saxena2010symbolic} is a tool that, given a URL for a web application, automatically generates high-coverage test cases to systematically explore its execution space. The aim of the tool is to uncover security vulnerabilities in the browser such as client-side code injection. The symbolic execution is based on a custom constraint solver that supports the specification of boolean, machine integer and string constraints, including regular expressions, over multiple variable-length string inputs.
+
+This automated vulnerability analysis tool significantly differs from \textsf{Flycatcher} in that it specifically targets \emph{client-side} code and in-browser interactions, focusing heavily on string inputs. The test generation method used belongs to the category of \emph{hybrid} ATDG, which also differs from the method of choice for \textsf{Flycatcher}: \emph{dynamic} ATDG.
+
+\subsection{Automation of unit testing for JavaScript: prototype}
+A prototype has been developed by Mohammad Alshraideh \cite{alshraideh2008complete}, with a very similar purpose to that of the \textsf{Flycatcher} application: automatically generate unit tests for JavaScript programs. However, the philosophy behind it differs significantly. To use the proposed tool, the tester \emph{has} to annotate class files in order to specify:
+\begin{itemize}
+   \item the sequence of method calls in tests
+   \item the type and range of parameter values
+\end{itemize}
+Moreover, only primitive parameters are handled. This tool's contributions are thus far from \textsf{Flycatcher}'s objectives of handling object-oriented code in a \emph{fully autonomous} manner.
+
+\subsection{JSConTest}
+\textsf{JSConTest} \cite{contract-driven} is a test case generator for JavaScript that uses \emph{contracts} to generate input data for the tests. The contracts are type signature annotations that the tester has to include in his program, to enable systematic verification of programs despite the absence of static types. Figure \ref{contracts} gives an example of the contracts in \textsf{JSConTest}.
+
+\begin{figure}
+% \hspace*{0.7cm}
+\centering
+\includegraphics[scale=0.5]{./components/chapter2/contracts.png}
+\caption{\textsf{JSConTest} contracts}
+\label{contracts}
+\end{figure}
+
+\subsection{RuTeG}
+\textsf{RuTeG} \cite{mairhofer2008search} is an automatic unit-test generation tool for the dynamic programming language Ruby. Although it targets a different language, this work is worth mentioning here as the following characteristics are also found in \textsf{Flycatcher}:
+
+\begin{itemize}
+   \item it generates suites of structural unit tests
+   \item it targets a dynamically-typed language
+   \item it generates object-oriented tests 
+   \item it can handle complex input data
+\end{itemize}
 
 \section{Summary}
 
