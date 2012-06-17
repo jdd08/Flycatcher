@@ -154,8 +154,8 @@ During the \texttt{ProgramInfo} type updates, the following questions are asked 
    \begin{item}
       \emph{Does the parameter have any user-defined member accesses?}\\\(\Rightarrow\) If so select the highest match.
    \end{item}
-   \item \emph{Otherwise does the parameter have any member accesses corresponding to the \texttt{\emph{Number}}}\footnote{the object counterpart of the \emph{number} primitive type} \emph{type \emph{e.g.} \texttt{\emph{toExponential}}?}\\\(\Rightarrow\) If so select the \emph{number} primitive type.
-   \item \emph{Otherwise does the parameter have any member accesses corresponding to the \texttt{\emph{String}}}\footnote{the object counterpart of the \emph{string} primitive type} \emph{type \emph{e.g.} \texttt{\emph{charAt}}?}\\\(\Rightarrow\) If so select the \emph{string} primitive type.
+   \item \emph{Otherwise does the parameter have any member accesses corresponding to the \texttt{\emph{Number}}}\footnote{the object counterpart of the \emph{number} primitive type} \emph{type e.g. \texttt{\emph{toExponential}}?}\\\(\Rightarrow\) If so select the \emph{number} primitive type.
+   \item \emph{Otherwise does the parameter have any member accesses corresponding to the \texttt{\emph{String}}}\footnote{the object counterpart of the \emph{string} primitive type} \emph{type e.g. \texttt{\emph{charAt}}?}\\\(\Rightarrow\) If so select the \emph{string} primitive type.
 \end{enumerate}
 
 If none of these are true but there are member accesses\footnote{except for the hidden properties inherited from \texttt{Object} in JavaScript which are discounted} which do not match any known type, this means that we are faced with a non-standard or non-supported class which is not accessible in the scope of the program. In that case we abort the test generation process for that particular method with a warning.
@@ -174,6 +174,8 @@ The primitive scoring object thus corresponds to:
       "string" : 12
    }
 \end{code}
+
+When type inference takes place for a parameter that is suspected of being a primitive, the most likely primitive type is chosen based on the scores in the accumulator object.
 
 \subsubsection{Delaying type inference}
 Because we do not want to jump to conclusions too quickly when inferring types using the member accesses and primitive scores, we do not start updating the \texttt{ProgramInfo} object until a sufficient number of constructor or method calls \emph{involving} that parameter have been made (during the \textsf{Test Generator/Executor} iterations). For example in the following code, the parameter of the \texttt{LinkedList.add} method is involved or `used' in \emph{two} calls.
@@ -230,16 +232,16 @@ The role of the \textsf{Test Generator} is to generate \emph{candidate} tests, b
 
 If a test fulfils those two criteria it is added to the suite of unit tests, which is output in a chosen format among a choice of JavaScript unit-testing frameworks. The current unit-testing formats available are \textsf{node-unit}, \textsf{expresso} and \textsf{Node.js}'s \textsf{assert} module. More framework formats may be available in the future. If none of these frameworks suit the user, the unit tests are output by default in simple JavaScript code with assertions. The unit-test suite output is meant to be a regression test suite. That is to say, all the tests in it pass when run with the current program under test. They are useful to uncover errors if the program under test changes and \emph{breaks} any of the unit-tests.
 
-However, valid tests that failed inside the \textsf{Executor} due to an exception being thrown, are added to a log file for the user's attention. If the tests failed due to bugs or a lack of defensive programming, the programmer can use this feedback to fix these defects. If the tests failed because of an incorrect type inference, the tester can adjust the delay before type inference, such that a better, more confident estimate is made.
+However, valid tests that failed inside the \textsf{Executor} due to an exception being thrown, are added to a log file for the user's attention. If the tests failed due to bugs or a lack of defensive programming, the user can use this feedback to fix these defects. If the tests failed because of an incorrect type inference, the user can adjust the delay before type inference, such that a better, more confident estimate is made.
 
 \subsection{Timeouts}
 A test may contain no \texttt{Unknowns} but still fail to ever achieve any new coverage, for example if a portion of the code is simply not reachable in the program. In this case, \textsf{Flycatcher} may loop as it may never achieve full coverage of a MUT. Hence, there are two timeouts in place to handle this scenario:
 
 \begin{enumerate}
-   \item An strict timeout in seconds after which \textsf{Flycatcher} stops generating tests for a MUT
-   \item Abort after a specific number of test runs during which coverage did not improve
+   \item a strict timeout in seconds
+   \item a timeout characterised by aborting after a specific number of test runs during which coverage did not improve
 \end{enumerate}
 
-Another reason than dead code for which new coverage might be unattainable is simply bugs in the program under test. Potential bugs may preclude any new coverage from being achieved because of thrown exceptions. The two liveness safeguards will also apply, however the tests that do fail will be recorded. These tests are output in a log file, such that the user can diagnose and fix failures in their program\footnote{it is also possible that the errors are due to \textsf{Flycatcher} making type inferences too early on and getting it wrong, which the user will be able to determine from the failing test logs}.
+Both timeouts are user-configurable variables, specified by optional command line parameters (see usage in section \ref{usagesection}). Another reason than dead code for which new coverage might be unattainable is simply bugs in the program under test. Potential bugs may preclude any new coverage from being achieved because of thrown exceptions. The two timeouts also apply in this case, and the failing tests can be found in the logs. Note that two types of errors do not fit into this category: \emph{stack overflow} and \emph{infinite loops}. Due to the nature of these errors, the former crashes \textsf{Flycatcher} and the latter causes it to hang. Finally, if termination is not caused by timeouts, then \textsf{Flycatcher} stops generating tests for a MUT when it achieves its full coverage.\\
 
-If termination is not caused by timeouts, then \textsf{Flycatcher} stops generating tests for a MUT when the desired coverage, initially specified by the user, is reached\footnote{the default is full coverage, 100\%}. 
+The next chapter is devoted to shedding light on the part of the implementation that has been left out so far: the responsibilities and inner workings of the custom execution environment or \textsf{Executor}.

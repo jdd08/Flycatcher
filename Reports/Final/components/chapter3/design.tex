@@ -119,31 +119,56 @@ However, there are limitations when it comes to the support for the \emph{parame
 \begin{figure}[t]
 % \hspace*{-0.2cm}
 \centering
-\includegraphics[scale=0.55]{./components/chapter3/linkedlist.png}
+\includegraphics[scale=0.55]{./components/chapter3/lesscolour.png}
 \caption{Example run}
 \label{run}
 \end{figure}
 
-In figure \ref{run}, we give an example of \textsf{Flycatcher} running with the default settings for the method \texttt{remove} of the \texttt{LinkedList} class (see Appendix \ref{ll}), a standard linked list implementation. Parameters are inferred for all of the class's methods, not just the one under test, as those methods are used inside the test cases. As the verbose output shows, in the early stage of the test generation process, the correct types are inferred for all the parameters when possible.
+In figure \ref{run}, we give an example of \textsf{Flycatcher} running with the default settings for the method \texttt{remove} of the \texttt{LinkedList} class (see Appendix \ref{ll}), a standard linked list implementation. Parameters are inferred for all of the class's methods, not just the one under test, as those methods are used inside the test cases. As the command line output shows, in the early stage of the test generation process, the correct types are inferred for all the parameters when possible.
 
-In a linked list implementation, it is often the case that the nodes' values are not used inside the implementation itself --- they are only used in the context where the linked list is used. Hence we cannot collect any information regarding the type of the \texttt{data} parameter and in order to retain as much autonomy as possible, it is substituted with a random type, here a \emph{string}. From the example we can see that 100\% test coverage is achieved for the \texttt{remove} method of the \texttt{LinkedList} class, thanks to the generated unit tests like the one in Figure \ref{testexample}. Tests that fail even though all parameter types have been resolved indicate a weakness in the program. For example, in Figure \ref{failingtest} we can see that the linked list implementation does not check when calling \texttt{insertBefore}, whether the target node exists in the list, which gives rise to a \texttt{TypeError}.\\
+In a linked list implementation, it is often the case that the nodes' values are not used inside the implementation itself --- they are only used in the context where the linked list is used. Hence we cannot collect any information regarding the type of the \texttt{data} parameter and in order to retain as much autonomy as possible, it is substituted with a random type, here a \emph{string}. From the example we can see that 100\% test coverage is achieved for the \texttt{remove} method of the \texttt{LinkedList} class, thanks to the generated unit tests like the one in Figure \ref{testexample}. Tests that fail even though all parameter types have been resolved indicate a weakness in the program. For example, in Figure \ref{failingtest} we can see that the linked list implementation does not check when calling \texttt{insertBefore}, whether the target node exists in the list, which gives rise to a \texttt{TypeError}.\\[4cm]
+
+\begin{code}[caption=Unit test, label=unittest]
+var linkedlist325 = new LinkedList();
+var node326 = new Node(58128188);
+linkedlist325.prepend(node326);
+assert.equal(linkedlist325.remove(node326), true);
+linkedlist325.size();
+var node327 = new Node(58128188);
+linkedlist325.prepend(node327);
+var node328 = new Node(69);
+assert.equal(linkedlist325.remove(node328), false);
+\end{code}
+
+\begin{code}[caption=Failing test, label=failingtest]
+var linkedlist309 = new LinkedList();
+var node310 = new Node("J619y4xu1");
+var node311 = new Node("segBPUR5");
+linkedlist309.insertBefore(node310,node311);
+linkedlist309.at(22);
+var node312 = new Node("L93Ifj7t75");
+linkedlist309.append(node312);
+var node313 = new Node("9");
+linkedlist309.remove(node313);
+// TypeError: Cannot set property 'next' of null   
+\end{code}
 
 
-\begin{figure}[b]
-% \hspace*{-0.2cm}
-\centering
-\includegraphics[scale=0.6]{./components/chapter3/linkedlisttest.png}
-\caption{Unit test}
-\label{testexample}
-\end{figure}
-
-\begin{figure}[t]
-% \hspace*{-0.2cm}
-\centering
-\includegraphics[scale=0.6]{./components/chapter3/linkedlistfail.png}
-\caption{Failing test}
-\label{failingtest}
-\end{figure}
+% \begin{figure}[b]
+% % \hspace*{-0.2cm}
+% \centering
+% \includegraphics[scale=0.6]{./components/chapter3/linkedlisttest.png}
+% \caption{Unit test}
+% \label{testexample}
+% \end{figure}
+% 
+% \begin{figure}[t]
+% % \hspace*{-0.2cm}
+% \centering
+% \includegraphics[scale=0.6]{./components/chapter3/linkedlistfail.png}
+% \caption{Failing test}
+% \label{failingtest}
+% \end{figure}
 
 % \begin{figure}[h]
 % \hspace*{-2.5cm}

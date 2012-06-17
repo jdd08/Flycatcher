@@ -389,7 +389,7 @@ The \texttt{receiver} is a handle to the proxy itself, and the \texttt{name} is 
 \label{traps}
 \end{table}
 
-It is worth noting about Proxies, as this will matter to us later, that some operations are not trapped in order to respect the language invariants:
+It is worth noting about Proxies that some operations are not trapped in order to respect the language invariants:
 
 \begin{itemize}
    \item The tripple equal \texttt{===} operator isn't trapped \emph{i.e.} \texttt{p1 === p2} \emph{only} if \texttt{p1} and \texttt{p2} are a reference to the same Proxy object
