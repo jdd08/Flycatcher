@@ -154,9 +154,7 @@ node.wrap("callback(" + index + "); %s;");
 // where index is incremented when a new node is wrapped
 \end{code}
 
-However, the wrapping varies for different kinds of statements, as the calls to the callback have to be inserted in a way that they do not break JavaScript syntax and crash the program. Hence, it was necessary to understand and adapt the wrapping process carried out by \textsf{burrito}.
-
-For illustration let us look at the short Fibonacci function, which, after being wrapped, looks like:
+However, the wrapping varies for different kinds of statements, as the calls to the callback have to be inserted in a way that they do not break JavaScript syntax and crash the program. For instance, in example \ref{wrappedfib}, the coverage callback called with index 2 pertains to the \texttt{return} statement and differs in format from the callbacks with indices 4 and 6 used to wrap the \texttt{compute} method calls.
 
 \begin{code}[caption=Wrapped Fibonacci,label=wrappedfib]
 Fibonacci.prototype.compute = function(n) {
@@ -173,32 +171,46 @@ Fibonacci.prototype.compute = function(n) {
 };
 \end{code}
 
-At the end of this wrapping process, the full array of indices used thus represents all of the MUT's statements. That array can be used to keep track of coverage.
+Hence, to track coverage in the \textsf{Executor} it was necessary to understand and adapt the wrapping process carried out by \textsf{burrito}. That wrapping process happens in three steps:
+
+\begin{enumerate}
+   \item The code is parsed into an AST using the parser from the \textsf{uglify-js}\footnote{\url{"https://github.com/mishoo/UglifyJS"}} module
+   \item A wrapper function is mapped onto every node in the AST using the \textsf{traverse}\footnote{\url{"https://github.com/substack/js-traverse"}} module
+   \item The transformed AST which contains the wrapped statements is rendered into code
+\end{enumerate}
+
+Therefore, understanding the wrapping process involved understanding and manipulating the AST, and wrapping its nodes appropriately. This was challenging because the AST in question is very poorly documented\footnote{the only pseudo-specification available is: \scriptsize{\url{"http://marijnhaverbeke.nl/parse-js/as.txt"}}}, and working with it was thus laborious. Nevertheless, due to its portability, we believe that using \textsf{burrito} for our instrumentation purposes was the best solution available. Indeed, the other coverage tools available for JavaScript were deeply embedded in a testing application and difficultly reusable by \textsf{Flycatcher}.
+
+At the end of the instrumentation process, the list of indices used by the coverage callback serves as a representation for a MUT's statements. That list can be used to keep track of coverage inside the MUT.
 
 \subsection{Implementing the callback}
-The \textsf{Executor} must implement the coverage callback which is called when a statement is executed. The implementation itself is trivial: the callback must simply set the value of the node index it is called with to \texttt{true}.
+The \textsf{Executor} must implement the coverage callback which is called when a statement is executed. This callback manipulates the list of indices gathered during the instrumentation process, updating it with the fact that a certain statement has been reached. In other words, it sets the value of the index it is called with to \texttt{true}. For example \ref{wrappedfib}, the list would initially be:
 
 % if the MUT has 8 statements, at the beginning of its test generation process, its coverage tracker is:
-
 \begin{code}
-[false, false, false, false, false, false, false, false, false]
+[false, false, false, false, false, false, false, false]
 \end{code}
 
-\noindent If the first and last node are executed, it becomes:
+\noindent After the recursive case is executed it would be:
 
 \begin{code}
-[true, false, false, false, false, false, false, false, true]
+[true, true, true, true, true, true, true, false]
 \end{code}
 
-As a result, the \textsf{Executor} can report:
+\noindent And finally when the base case is executed:
+
+\begin{code}
+[true, true, true, true, true, true, true, true]
+\end{code}
+
+As a result of this coverage mechanism, the \textsf{Executor} can report:
 
 \begin{itemize}
-   \item Whether a test achieves any new coverage for a MUT, and is therefore a useful test to be output in the unit-test suite
-   \item What the current total code coverage for a MUT is, which is used in the various termination criteria of the test generation process for that method
+   \item Whether a test achieves any \emph{new} coverage for a MUT, and is therefore a useful test to be output in the unit-test suite
+   \item What the current total code coverage for a MUT is, which is used to inform the user of coverage progress, and terminate upon full coverage
 \end{itemize}
 
 % TODO corner case where class only has valueOf method...
 % Hence, information can be collected using the following \texttt{get} trap:
 % ProgramInfo => members accessed and primitive score
-
 % \chapter{Search-based Test Generator}

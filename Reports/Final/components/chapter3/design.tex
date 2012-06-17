@@ -130,16 +130,18 @@ In a linked list implementation, it is often the case that the nodes' values are
 
 \begin{code}[caption=Unit test, label=unittest]
 var linkedlist325 = new LinkedList();
-var node326 = new Node(58128188);
+var node326 = new Node("AdlwkJCa2");
 linkedlist325.prepend(node326);
 assert.equal(linkedlist325.remove(node326), true);
 linkedlist325.size();
-var node327 = new Node(58128188);
+var node327 = new Node("5asd24all");
 linkedlist325.prepend(node327);
-var node328 = new Node(69);
+var node328 = new Node("azcma5");
 assert.equal(linkedlist325.remove(node328), false);
+// Success!
 \end{code}
 
+% \vspace*{0.2cm}
 \begin{code}[caption=Failing test, label=failingtest]
 var linkedlist309 = new LinkedList();
 var node310 = new Node("J619y4xu1");
@@ -177,7 +179,7 @@ linkedlist309.remove(node313);
 % % \caption{Failing test}
 % \label{testexample}
 % \end{figure}
-
+\vspace*{1cm}
 In the next three chapters, we elaborate upon this high-level overview, by detailing the implementation of the three core stages described:
 
 \begin{enumerate}

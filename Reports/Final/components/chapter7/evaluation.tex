@@ -1,14 +1,17 @@
 \chapter{Evaluation}
-In this chapter, we evaluate \textsf{Flycatcher}, by using it to generate unit tests for a chosen set of programs. First, we present a summary of the parameters available to \textsf{Flycatcher} users. We then explain our rationale and constraints in choosing the benchmark programs. Next, we describe the experiments and present the results for each program before discussing the results obtained.
+In this chapter, we evaluate \textsf{Flycatcher} quantitatively by running \textsf{Flycatcher} with a series of benchmark programs and observing the results. In this experimental evaluation we are interested in examining some of \textsf{Flycatcher}'s features as well as assessing its overall success in terms of code coverage. We start by introducing the choice of benchmark programs, before presenting the experiments and finally discussing them.
+
+% by using it to generate unit tests for a chosen set of programs and examining the results.
+% First, we present a summary of the parameters available to \textsf{Flycatcher} users. We then explain our rationale and constraints in choosing the benchmark programs. Next, we describe the experiments and present the results for each program before discussing the results obtained.
 
 \section{Choosing the benchmark suite}
 In choosing a suite of programs for evaluating \textsf{Flycatcher} we had the following objectives in mind:
 
 \begin{itemize}
-   \item Demonstrate \textsf{Flycatcher}'s ability to infer primitive types
-   \item Demonstrate \textsf{Flycatcher}'s ability to infer used-defined types
-   \item Demonstrate that \textsf{Flycatcher} works for MUT of various size, complexity and number of parameters
-   \item Demonstrate \textsf{Flycatcher}'s ability to achieve good (sometimes full) coverage of a MUT in a reasonable time
+   \item Demonstrating \textsf{Flycatcher}'s ability to infer primitive types
+   \item Demonstrating \textsf{Flycatcher}'s ability to infer user-defined types
+   \item Demonstrating that \textsf{Flycatcher} works with methods of various size, complexity and arity
+   \item Demonstrating \textsf{Flycatcher}'s ability to achieve high coverage for various methods in a reasonable time
 \end{itemize}
 
 However the constraints imposed to us by the current limitations of the \textsf{Flycatcher} application, made finding benchmark tests difficult. The constraints are the following:
@@ -21,6 +24,58 @@ However the constraints imposed to us by the current limitations of the \textsf{
 The reason why these constraints made it difficult to find benchmark programs is that array parameters are commonplace and because functions are first-class objects in JavaScript, they frequently occur as parameters too. This also indirectly imposed a restriction on the size of the benchmark programs --- most significant libraries and modules make use of either arrays or functions as parameters at some point. Nevertheless, we were still able to evaluate whether we accomplished what we initially set out to do: build an automatic test generator for a comprehensive \emph{subset} of the JavaScript language.
 
 With these objectives and constraints in mind, the list of methods in Table \ref{benchmarktests} was put together. Some of the programs are custom, many were found using \textsf{Node.js}'s open-source module registry \textsf{npm} and others were taken from the Google V8 performance benchmark suite.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|c|c|}
+\hline
+\textbf{Class} & \textbf{Method} & \textbf{LOC} \\
+\hline
+\texttt{Triangle} & & \\
+           & \textit{getType} & 38      \\
+\hline
+\texttt{LinkedList} & & \\
+           & \textit{append} & 15       \\
+           & \textit{remove} & 16       \\
+           & \textit{prepend} & 12      \\
+           & \textit{insertAfter} & 8   \\
+           & \textit{insertBefore} & 8  \\
+           & \textit{at} & 6            \\
+\hline
+\texttt{BinarySearchTree} & &     \\
+           & \emph{add} & 49      \\
+           & \emph{contains} & 26 \\
+           & \emph{remove} & 147  \\
+           & \emph{size} & 9      \\
+\hline
+\texttt{RedBlackTree} & &         \\
+           & \emph{insert} & 22   \\
+           & \emph{contains} & 14 \\
+\hline
+\texttt{SplayTree} & &             \\
+           & \emph{splay} & 60 \\
+           & \emph{insert} & 23 \\
+           & \emph{remove} & 23 \\
+           & \emph{findMax} & 10 \\
+           & \emph{findGreatestLessThan} & 17 \\
+\hline
+\texttt{Luhn Algorithm} & &     \\
+           & \emph{isValidIdentifer} & 40 \\
+\hline
+\texttt{Base 64} & &     \\
+           & \emph{encode} & 45 \\
+           & \emph{decode} & 50 \\
+\hline
+\texttt{SHA1} & &             \\
+           & \emph{hash} & 72 \\
+\hline
+\texttt{Poker} & &                 \\
+           & \emph{rankHand} & 437 \\
+\hline
+\end{tabular}
+\caption{Benchmark methods}
+\label{benchmarktests}
+\end{table}
 
 % \begin{table}[h]
 % \centering
@@ -95,65 +150,15 @@ The \texttt{SHA1} algorithm generates a SHA-1 secure hash of a string. The imple
 \subsection{Poker}
 The benchmark method with the most deeply nested structure is the \texttt{Poker} class's \emph{rankHand} method. It carries out hundreds of comparisons and calculations in order to return the absolute rank of a hand of cards in Texas Hold'em poker. The input thus has to conform to a hand of poker cards, which is defined in the program as a string of five characters. A custom string generator is thus used for that purpose, with the following regular expression: \texttt{[AKQJT98765432]\{5\}}. The code is from \textsf{node-poker}\footnote{"\url{https://github.com/mjhbell/node-poker}"}.
 
-\section{Experiment}
+\section{Experiments}
 
-\begin{table}[h]
-\centering
-\begin{tabular}{|l|l|c|c|}
-\hline
-\textbf{Class} & \textbf{Method} & \textbf{LOC} & \textbf{Code coverage} \\
-\hline
- & & & 50 tests \vline 100 tests \vline 1000 tests \\
-\hline
-\texttt{Triangle} & & \\
-           & \textit{getType} & 38      \\
-\hline
-\texttt{LinkedList} & & \\
-           & \textit{append} & 15       \\
-           & \textit{remove} & 16       \\
-           & \textit{prepend} & 12      \\
-           & \textit{insertAfter} & 8   \\
-           & \textit{insertBefore} & 8  \\
-           & \textit{at} & 6            \\
-\hline
-\texttt{BinarySearchTree} & &     \\
-           & \emph{add} & 49      \\
-           & \emph{contains} & 26 \\
-           & \emph{remove} & 147  \\
-           & \emph{size} & 9      \\
-\hline
-\texttt{RedBlackTree} & &         \\
-           & \emph{insert} & 22   \\
-           & \emph{contains} & 14 \\
-\hline
-\texttt{SplayTree} & &             \\
-           & \emph{splay} & 60 \\
-           & \emph{insert} & 23 \\
-           & \emph{remove} & 23 \\
-           & \emph{findMax} & 10 \\
-           & \emph{findGreatestLessThan} & 17 \\
-\hline
-\texttt{Luhn Algorithm} & &     \\
-           & \emph{isValidIdentifer} & 40 \\
-\hline
-\texttt{Base 64} & &     \\
-           & \emph{encode} & 45 \\
-           & \emph{decode} & 50 \\
-\hline
-\texttt{SHA1} & &             \\
-           & \emph{hash} & 72 \\
-\hline
-\texttt{Poker} & &                 \\
-           & \emph{rankHand} & 437 \\
-\hline
-\end{tabular}
-\caption{Benchmark methods}
-\label{benchmarktests}
-\end{table}
+\subsection{Effect of varying the type inference delay}
 
+\subsection{Effect of varying the length of tests}
 
+\subsection{Coverage results}
 
-% \subsection{Varying minimum parameter use}
-% \subsection{Varying method call sequence length}
 
 \section{Discussion}
+
+

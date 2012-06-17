@@ -78,7 +78,7 @@ The choice of implementation for \textsf{Flycatcher} is dynamic random ATDG for 
 							child { node [level 4,xshift=-2.4cm] {Alternating variable}}
 							child { node [level 4,xshift=-4cm] {...}}
 			      }
-		     	      child {node [level 3,text width=2.5cm,xshift=-0.4cm] {\color{blue}Random}}
+		     	      child {node [level 3,text width=2.5cm,xshift=-0.4cm] {\color{myblue}Random}}
 				}
 			}
 		};
@@ -359,26 +359,24 @@ proxy.treasure // returns "treasure -> It's a trap!"
 The \texttt{receiver} is a handle to the proxy itself, and the \texttt{name} is the name of the property being trapped. The object passed to the Proxy's \texttt{create} function is called its handler and needs to implement a specific API, so that all of the fundamental low-level operations on the object respond. The traps available to Proxies and the code they respectively emulate are laid out in Table \ref{traps}. The \emph{fundamental traps}' implementation is required, but the \emph{derived traps} can be left out as they have a default implementation in terms of the fundamental ones. In the context of \textsf{Flycatcher}, the traps that we will be the most interested in are \texttt{get} and \texttt{set}.
 
 \begin{table}[h]
-\hspace*{-2.1cm}
+\hspace*{-1.8cm}
 \centering
 \begin{tabular}{|l|l|}
 \hline
 \textbf{Trap} & \textbf{Emulated code} \\
 \hline
 \emph{Fundamental Traps} & \\
-\texttt{getOwnPropertyDescriptor(name)} & \texttt{Object.getOwnPropertyDescriptor(proxy, name)} \\
-\texttt{getPropertyDescriptor(name)} & \texttt{Object.getPropertyDescriptor(proxy, name)} \\
+\texttt{getOwnPropertyDescriptor(name)} & \texttt{Object.getOwnPropertyDescriptor(proxy,name)} \\
+\texttt{getPropertyDescriptor(name)} & \texttt{Object.getPropertyDescriptor(proxy,name)} \\
 \texttt{getOwnPropertyNames()} & \texttt{Object.getOwnPropertyNames(proxy)} \\
 \texttt{getPropertyNames()} & \texttt{Object.getPropertyNames(proxy)} \\
 \texttt{defineProperty(name,pd)} & \texttt{Object.defineProperty(proxy,name,pd)} \\
 \texttt{delete(name)} & \texttt{delete proxy.name} \\
-\texttt{fix()} & \texttt{Object.freeze(proxy)} \\
-                        & \texttt{Object.seal(proxy)} \\
-                        & \texttt{Object.preventExtensions)} \\
+\texttt{fix()} & \texttt{Object.[freeze\textbar seal\textbar preventExtensions](proxy)} \\
 \hline
 \emph{Derived Traps} & \\
 \texttt{has(name)} & \texttt{name in proxy} \\
-\texttt{hasOwn(name)} & \texttt{Object.prototype.hasOwnProperty.call(proxy, name)} \\
+\texttt{hasOwn(name)} & \texttt{Object.prototype.hasOwnProperty.call(proxy,name)} \\
 \texttt{get(receiver,name)} & \texttt{proxy.name} \\
 \texttt{set(receiver,name,val)} & \texttt{proxy.name = val} \\
 \texttt{enumerate()} & \texttt{for(prop in proxy){...}} \\

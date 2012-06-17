@@ -4,7 +4,7 @@
 \section{Linked List}
 \label{ll}
 \footnotesize
-\begin{verbatim}
+\begin{code}
 // JavaScript linked list
 // Copyright (c) 2007 James Coglan
 
@@ -40,7 +40,9 @@ LinkedList.prototype = {
     this.length++;
     return true;
   },
+\end{code}
 
+\begin{code}
   remove: function(node) {
     // node not in the list
     if (!node.prev) {return false;}
@@ -89,6 +91,9 @@ LinkedList.prototype = {
       this.length++;
     },
 
+\end{code}
+
+\begin{code}
     insertBefore: function(node, newNode) {
       newNode.prev = node.prev;
       newNode.next = node;
@@ -97,7 +102,7 @@ LinkedList.prototype = {
       if (newNode.next == this.first) { this.first = newNode; }
       this.length++;
     },
-
+    
     at: function(i) {
         i+1;
         if (!(i >= 0 && i < this.length)) { return null; }
@@ -111,7 +116,7 @@ LinkedList.prototype = {
         return this.at(n);
       } 
 }   
-\end{verbatim}
+\end{code}
 
 % \section{Triangle}
 % \label{triangle}
