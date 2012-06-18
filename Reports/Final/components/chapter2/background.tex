@@ -240,7 +240,7 @@ The random test data generation discussed can simply be extended to the task of 
 
 With cloud computing and the ubiquitous shift of desktop applications to the web, web development has taken on a whole new meaning. Along with this shift, the languages of the web have become much more significant to the software world. JavaScript particularly so, due to its powerful multi-paradigm nature (and despite its unanimously condemned defects). As a result, while in the past JavaScript was used for no more than to animate static HTML pages, today it powers 3D game engines and other fast real-time applications on the web. On top of its pervasiveness on the client-side of the web, it has now also reached web servers and desktop scripting environments.
 
-The move that JavaScript seems to be making from the world of scripts to the world of applications means that it is used in more complex and modular code. This in turn comes with the need to test those applications using standard software techniques: unit testing, regression testing \emph{etc.} Due to the relative recency of the surge in popularity of JavaScript, which can be observed in Figure \ref{TIOBEgraph}, no effort has yet been made to automate its testing effort. This is where \textsf{Flycatcher} can make a difference, and this is why JavaScript was chosen for this project: JavaScript is on its way up and there is an opportunity to help its growing community of developers.
+The move that JavaScript seems to be making from the world of scripts to the world of applications means that it is used in more complex and modular code. This in turn comes with the need to test those applications using standard software techniques: unit testing, regression testing \emph{etc.} Due to the relative recency of the surge in popularity of JavaScript, which can be observed in figure \ref{TIOBEgraph}, no effort has yet been made to automate its testing effort. This is where \textsf{Flycatcher} can make a difference, and this is why JavaScript was chosen for this project: JavaScript is on its way up and there is an opportunity to help its growing community of developers.
 
 \begin{figure}
 \hspace*{-1.2cm}
@@ -356,7 +356,7 @@ proxy.treasure = "gold";
 proxy.treasure // returns "treasure -> It's a trap!"
 \end{code}
 
-The \texttt{receiver} is a handle to the proxy itself, and the \texttt{name} is the name of the property being trapped. The object passed to the Proxy's \texttt{create} function is called its handler and needs to implement a specific API, so that all of the fundamental low-level operations on the object respond. The traps available to Proxies and the code they respectively emulate are laid out in Table \ref{traps}. The \emph{fundamental traps}' implementation is required, but the \emph{derived traps} can be left out as they have a default implementation in terms of the fundamental ones. In the context of \textsf{Flycatcher}, the traps that we will be the most interested in are \texttt{get} and \texttt{set}.
+The \texttt{receiver} is a handle to the proxy itself, and the \texttt{name} is the name of the property being trapped. The object passed to the Proxy's \texttt{create} function is called its handler and needs to implement a specific API, so that all of the fundamental low-level operations on the object respond. The traps available to Proxies and the code they respectively emulate are laid out in table \ref{traps}. The \emph{fundamental traps}' implementation is required, but the \emph{derived traps} can be left out as they have a default implementation in terms of the fundamental ones. In the context of \textsf{Flycatcher}, the traps that we will be the most interested in are \texttt{get} and \texttt{set}.
 
 \begin{table}[h]
 \hspace*{-1.8cm}
@@ -411,7 +411,7 @@ new fnproxy(1,2,3) // calls new construct(1,2,3)
 \end{code}
 
 \section{Related work}
-\textsf{Flycatcher} is the first tool to automatically generate unit-test suites for JavaScript programs written in an object-oriented style, where classes are the target unit. In this section, we discuss some similar work in different languages, as well as projects that have applied different techniques for the generation of tests in JavaScript.
+\textsf{Flycatcher} is the first tool to automatically generate unit-test suites for JavaScript programs written in an object-oriented style, where classes are the target unit. In this section, we discuss projects that have applied different techniques for the generation of tests in JavaScript, as well as some similar work in a different language.
 
 \subsection{Kudzu}
 \textsf{Kudzu} \cite{saxena2010symbolic} is a tool that, given a URL for a web application, automatically generates high-coverage test cases to systematically explore its execution space. The aim of the tool is to uncover security vulnerabilities in the browser such as client-side code injection. The symbolic execution is based on a custom constraint solver that supports the specification of boolean, machine integer and string constraints, including regular expressions, over multiple variable-length string inputs.
@@ -436,6 +436,9 @@ Moreover, only primitive parameters are handled. This tool's contributions are t
 \caption{\textsf{JSConTest} contracts}
 \label{contracts}
 \end{figure}
+
+\subsection{Artemis}
+\textsf{Artemis} \cite{artzi2011framework} is a framework for automated test generation in JavaScript which targets scripts in HTML pages. This tool uses feedback-directed random test generation, meaning that execution is monitored to collect information that directs the test generator towards input that yields increased coverage. However, this tool targets a different class of programs than \textsf{Flycatcher} as it focuses on web-specific features such as AJAX, the Document Object Model and its event-driven execution.
 
 \subsection{RuTeG}
 \textsf{RuTeG} \cite{mairhofer2008search} is an automatic unit-test generation tool for the dynamic programming language Ruby. Although it targets a different language, this work is worth mentioning here as the following characteristics are also found in \textsf{Flycatcher}:

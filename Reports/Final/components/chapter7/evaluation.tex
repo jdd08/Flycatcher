@@ -21,9 +21,10 @@ However the constraints imposed to us by the current limitations of the \textsf{
    \item \textsf{Flycatcher} does not handle the inference of \texttt{Function} parameters
 \end{itemize}
 
-The reason why these constraints made it difficult to find benchmark programs is that array parameters are commonplace and because functions are first-class objects in JavaScript, they frequently occur as parameters too. This also indirectly imposed a restriction on the size of the benchmark programs --- most significant libraries and modules make use of either arrays or functions as parameters at some point. Nevertheless, we were still able to evaluate whether we accomplished what we initially set out to do: build an automatic test generator for a comprehensive \emph{subset} of the JavaScript language.
+The reason why these constraints made it difficult to find benchmark programs is that array parameters are commonplace and because functions are first-class objects in JavaScript, they frequently occur as parameters too. This also indirectly imposed a restriction on the size of the benchmark programs --- most significant libraries and modules make use of either arrays or functions as parameters at some point. This is also why established JavaScript benchmark suites such as SunSpider or the V8 benchmark suite couldn't be used.
 
-With these objectives and constraints in mind, the list of methods in Table \ref{benchmarktests} was put together. Some of the programs are custom, many were found using \textsf{Node.js}'s open-source module registry \textsf{npm} and others were taken from the Google V8 performance benchmark suite.
+% Nevertheless, we were still able to evaluate whether we accomplished what we initially set out to do: build an automatic test generator for a comprehensive \emph{subset} of the JavaScript language.
+With these objectives and constraints in mind, the list of methods in table \ref{benchmarktests} was put together. Some of the programs are custom, many were found using \textsf{Node.js}'s open-source module registry \textsf{npm} and others were taken from the V8 performance benchmark suite.
 
 \begin{table}[h]
 \centering
@@ -151,14 +152,68 @@ The \texttt{SHA1} algorithm generates a SHA-1 secure hash of a string. The imple
 The benchmark method with the most deeply nested structure is the \texttt{Poker} class's \emph{rankHand} method. It carries out hundreds of comparisons and calculations in order to return the absolute rank of a hand of cards in Texas Hold'em poker. The input thus has to conform to a hand of poker cards, which is defined in the program as a string of five characters. A custom string generator is thus used for that purpose, with the following regular expression: \texttt{[AKQJT98765432]\{5\}}. The code is from \textsf{node-poker}\footnote{"\url{https://github.com/mjhbell/node-poker}"}.
 
 \section{Experiments}
+All the experiments are carried out on Mac OS X v10.6 with a 2.4GHz Intel Core 2 Duo processor and 4GB of RAM. Any of the configurable parameters are either specified or their default value is used. The noteworthy default values are:
+
+\begin{itemize}
+   \item type inference delay: 20
+   \item maximum sequence length: 10
+   \item number generator: \texttt{\textbackslash d\{10,20\}}
+   \item string generator: \texttt{\textbackslash t\{10,20\}}
+\end{itemize}
 
 \subsection{Effect of varying the type inference delay}
+In this first experiment we analyse the effect of varying the type inference delay discussed in part \ref{typeinference} (see usage in section \ref{usage}). Let us recall that this delay is put in place in order for \textsf{Flycatcher} to make confident type inferences, based on enough data. If there is not enough data when type inference is attempted for a parameter, we consider that the type inference is \emph{unsuccessful}. In figures \ref{trianglebench} and \ref{bstbench}, we observe the relation between the type inference delay and unsuccessful type inferences for two methods from the benchmarking set, using an average over twenty runs.
+
+\begin{figure}[h]
+\hspace*{-0.5cm}
+\centering
+\includegraphics[scale=0.55]{./components/chapter7/triangle.pdf}
+\caption{Results for method \texttt{Triangle.getType}}
+\label{trianglebench}
+\end{figure}
+
+\begin{figure}[h]
+\hspace*{-0.5cm}
+\centering
+\includegraphics[scale=0.55]{./components/chapter7/bst.pdf}
+\caption{Results for method \texttt{BinarySearchTree.add}}
+\label{bstbench}
+\end{figure}
 
 \subsection{Effect of varying the length of tests}
+In the second experiment, we vary the user-configurable variable that sets the length of method call sequences in tests (see usage in section \ref{usage}). We observe what the effect of modifying this variable is for all of the methods in the benchmark set. To give us a more comprehensive set of results to analyse, this process is carried out three times with varying `strict' timeouts of: 1 second, 5 seconds and 20 seconds. The results appear in figures \ref{1s}, \ref{5s} and \ref{20s} and each entry constitutes an average over 20 runs.
 
-\subsection{Coverage results}
+\begin{figure}[h]
+\vspace*{-2.5cm}
+\centering
+\includegraphics[scale=0.56]{./components/chapter7/1sr.pdf}
+\caption{Results with 1s timeout}
+\label{1s}
+\end{figure}
 
+\begin{figure}[h]
+\vspace*{-2.5cm}
+\centering
+\includegraphics[scale=0.56]{./components/chapter7/5sr.pdf}
+\caption{Results with 5s timeout}
+\label{5s}
+\end{figure}
+
+\begin{figure}[h]
+\vspace*{-2.5cm}
+\centering
+\includegraphics[scale=0.56]{./components/chapter7/20sr.pdf}
+\caption{Results with 20s timeout}
+\label{20s}
+\end{figure}
 
 \section{Discussion}
-
-
+% talk about the problem of not having Fuction/Array and why they are difficult + the random has its limits
+\begin{itemize}
+   \item low inference delay leads to unsuccessful type inferences
+   \item sometimes certain coverage simply \emph{cannot} be achieved with a certain length
+   \item however the effect of length is highly variable, it speeds up but after at some point it slows down the test gen process --- hence why a search-based technique should be used as the random is not optimal (the optimal length is highly variable)
+   \item random still achieves good results but it is helped by the custom data generators and the pooling system + our tests lend themselves well to that
+   \item threats to validity: size of programs... + the fact that we don't deal with array or function as they are key js objects. discuss why we don't deal with them
+   \item nonetheless based on what we set out to do, the work can be considered successful as full coverage is achieved for almost all methods in under 20 seconds, with a variety of different types and scenarios
+\end{itemize}

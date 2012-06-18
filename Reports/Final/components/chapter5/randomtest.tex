@@ -143,6 +143,7 @@ Eventually, after enough information has been collected to infer that the type o
 Similarly, when there is enough information to infer that the type of the parameter of the \texttt{Node} constructor is a primitive number, we get the test in example \ref{execformat}.
 
 \subsection{Type inference}
+\label{typeinference}
 The type information that is collected when tests are run by the \textsf{Executor} is stored in the \texttt{ProgramInfo} object introduced in chapter \ref{analyser}. Upon each \textsf{Test Generator}/\textsf{Executor} iteration for a test, we update \texttt{ProgramInfo} using the type information gathered in the latest \textsf{Executor} run. Although we will explain exactly how this information is collected when we describe the \textsf{Executor}, here we describe how that information is used to infer types for the various test parameters.
 
 \subsubsection{Member accesses}

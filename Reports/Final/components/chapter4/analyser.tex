@@ -125,7 +125,7 @@ get: function(rcvr, name) {
 % this is in fact fine? -> we reuse the source code itself in the executor
 It is worth noting that we do not care about the \emph{outcome} of the operations on parameters within the constructor, only that it does not crash. The purpose of this process is to find out the signatures of a class's methods and these cannot be affected by the constructor's parameters --- except for the case where \emph{the class method itself} is passed in as a parameter, which we do not deal with (we do not handle \texttt{Function} type parameters in general).
 
-Tests were run to ensure that the constructor does not crash with the Proxy parameters created. The test cases are summarised in Table \ref{nocrash}, where \texttt{proxy} is the parameter proxy, \texttt{f} is a field and \texttt{m} is a method:
+Tests were run to ensure that the constructor does not crash with the Proxy parameters created. The test cases are summarised in table \ref{nocrash}, where \texttt{proxy} is the parameter proxy, \texttt{f} is a field and \texttt{m} is a method:
 
 \begin{table}[h]
 \centering

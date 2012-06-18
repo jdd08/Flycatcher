@@ -44,7 +44,7 @@ The member accesses are recorded using the \texttt{get} trap of the \texttt{Coll
 However, when a property is accessed, the \texttt{get} must return an appropriate object for execution to carry on. Much like in the \textsf{Analyser}, we return a Function Proxy that can respond to any operation, but this is not to be confused with the \texttt{CollectorProxy} --- the proxy we return no longer stands for a parameter and as such does not collect any type information (its role is simply to avoid crashes). The only difference is that we randomise\footnote{\texttt{0} is returned more often as it is often a significant value in path exploration} the primitives returned by that proxy, so as to diversify the code exploration achieved by invalid candidate tests. Doing so diversifies our collection of type information in the early stages of the test generation process.
 
 \subsection{Accumulating primitive scores}
-The operators in Table \ref{primitiveops}, when applied to operands, translate at a lower level into the internal function \texttt{[[getValue]]} being called on the operands. This function in turn calls the \texttt{valueOf} method on the members if they are objects, which instances of the \texttt{CollectorProxy} are. This enables the \texttt{CollectorProxys} to trap the requests to get the \texttt{valueOf} method, as they would any other method. Note that the operators: \texttt{\&\&, \textbar\textbar, !, =, === \textrm{and} !==} are missing from the table as they do not yield a \texttt{valueOf} call and thus cannot be trapped.
+The operators in table \ref{primitiveops}, when applied to operands, translate at a lower level into the internal function \texttt{[[getValue]]} being called on the operands. This function in turn calls the \texttt{valueOf} method on the members if they are objects, which instances of the \texttt{CollectorProxy} are. This enables the \texttt{CollectorProxys} to trap the requests to get the \texttt{valueOf} method, as they would any other method. Note that the operators: \texttt{\&\&, \textbar\textbar, !, =, === \textrm{and} !==} are missing from the table as they do not yield a \texttt{valueOf} call and thus cannot be trapped.
 
 \begin{table}[h]
 \centering
@@ -104,6 +104,8 @@ Table \ref{scoringtable} shows the hints that are looked out for and the corresp
 
 Other operators or hints have been purposely omitted, since they do not tip the balance in any particular direction. For example, the \texttt{+} operator is used with strings as much as it is used with numbers, and thus does not constitute a helpful hint.
 
+Step 4 of the above algorithm is carried out using regular expression matching. However, when searching for the hints in table \ref{scoringtable}, one must be careful not to match prefixes of other operators. For example, if the symbol found is a \texttt{\textendash\textendash} one must be careful not to match a single \texttt{\textendash}. The problem is that although the JavaScript RegExp syntax allows for \emph{negative lookahead} (matching unless the match is followed by something), it does not allow for \emph{negative lookbehind} (matching unless the match is preceded by something). Thankfully, the \textsf{XRegExp}\footnote{\url{"http://xregexp.com/"}} library compensates for that and provides the missing functionality.\\
+
 In summary, the resulting primitive scores correspond, like the collection of member accesses, to information concerning the type of a particular parameter. This information is stored in the \texttt{ProgramInfo} object, and the \textsf{Test Generator} uses it to try and infer a type for that parameter.
 
 \subsection{Trap threshold}
@@ -138,13 +140,13 @@ In order to do so, the following steps are necessary:
 Wrapping the MUT statements is done with the help of another \textsf{Node.js} package: \textsf{burrito}\footnote{\url{https://github.com/substack/node-burrito}}. Wrapping with that package is done like so:
 
 \begin{code}[caption=Wrapping with \textsf{burrito},label=burrito]
-   var burrito = require("burrito");
-   
-   var wrapped = burrito("foo()", function (node) {
-       node.wrap("callback(%s)");
-   });
-   
-   console.log(wrapped); // prints callback(foo());
+var burrito = require("burrito");
+
+var wrapped = burrito("foo()", function (node) {
+    node.wrap("callback(%s)");
+});
+
+console.log(wrapped); // prints callback(foo());
 \end{code}
 
 However, in our case we are interested in attributing indices to statements such that when that portion of code executes, the callback registers that the statement with that index has been covered. The wrapping statement thus looks like this instead:

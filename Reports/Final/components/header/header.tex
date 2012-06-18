@@ -9,9 +9,9 @@
 
 \usepackage{listings}
 
-\usepackage{caption}
+\usepackage[labelfont=it,
+            labelsep=endash]{caption}
 \usepackage{subfig}
-
 % \usepackage{shaded}
 
 % \usepackage[margin=3.2cm]{geometry}
@@ -77,7 +77,8 @@
   morestring=[b]",
   stringstyle=\color{mygreen},         % string literal style
   escapeinside={\%*}{*)},            % if you want to add a comment within your code
-  morekeywords={*,new,var,return,function,if,else,false,true,...}               % if you want to add more keywords to the set
+  morekeywords={*,new,var,return,function,if,else,false,true,...},               % if you want to add more keywords to the set
+  framexbottommargin=40pt
 }
 
 \lstnewenvironment{code}[1][]%
