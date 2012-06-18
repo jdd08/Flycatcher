@@ -58,7 +58,6 @@ With these objectives and constraints in mind, the list of methods in table \ref
            & \emph{insert} & 23 \\
            & \emph{remove} & 23 \\
            & \emph{findMax} & 10 \\
-           & \emph{findGreatestLessThan} & 17 \\
 \hline
 \texttt{Luhn Algorithm} & &     \\
            & \emph{isValidIdentifer} & 40 \\
@@ -158,11 +157,11 @@ All the experiments are carried out on Mac OS X v10.6 with a 2.4GHz Intel Core 2
    \item type inference delay: 20
    \item maximum sequence length: 10
    \item number generator: \texttt{\textbackslash d\{10,20\}}
-   \item string generator: \texttt{\textbackslash t\{10,20\}}
+   \item string generator: \texttt{\textbackslash w\{10,20\}}
 \end{itemize}
 
 \subsection{Effect of varying the type inference delay}
-In this first experiment we analyse the effect of varying the type inference delay discussed in part \ref{typeinference} (see usage in section \ref{usage}). Let us recall that this delay is put in place in order for \textsf{Flycatcher} to make confident type inferences, based on enough data. If there is not enough data when type inference is attempted for a parameter, we consider that the type inference is \emph{unsuccessful}. In figures \ref{trianglebench} and \ref{bstbench}, we observe the relation between the type inference delay and unsuccessful type inferences for two methods from the benchmarking set, using an average over twenty runs.
+In this first experiment we analyse the effect of varying the type inference delay discussed in part \ref{typeinference} (see usage in section \ref{usage}). Let us recall that this delay is put in place in order for \textsf{Flycatcher} to make confident type inferences, based on enough data. If there is not enough data when type inference is attempted for a parameter, we consider that the type inference is \emph{unsuccessful}. In this trial, we observe the relation between the type inference delay and unsuccessful type inferences for the methods from the benchmarking set, using an average over twenty runs and displaying the results for two of the methods in figures \ref{trianglebench} and \ref{bstbench}.
 
 \begin{figure}[h]
 \hspace*{-0.5cm}
@@ -181,6 +180,7 @@ In this first experiment we analyse the effect of varying the type inference del
 \end{figure}
 
 \subsection{Effect of varying the length of tests}
+\label{exp2}
 In the second experiment, we vary the user-configurable variable that sets the length of method call sequences in tests (see usage in section \ref{usage}). We observe what the effect of modifying this variable is for all of the methods in the benchmark set. To give us a more comprehensive set of results to analyse, this process is carried out three times with varying `strict' timeouts of: 1 second, 5 seconds and 20 seconds. The results appear in figures \ref{1s}, \ref{5s} and \ref{20s} and each entry constitutes an average over 20 runs.
 
 \begin{figure}[h]
@@ -208,8 +208,47 @@ In the second experiment, we vary the user-configurable variable that sets the l
 \end{figure}
 
 \section{Discussion}
+% \subsection{Results}
+\subsection{Effect of varying the type inference delay}
+From the first experiment, we can observe that there is a clear relation between unsuccessful type inferences and type inference delay\footnote{to reiterate, the type inference delay variable is expressed in terms of the minimum number of uses of a parameter before type inference}: the smaller the type inference delay, the higher the number of unsuccessful type inferences. Hence, this user-configurable parameter which reflects the confidence of the type inference estimates \emph{does} effect test generation results and thus deserves careful consideration.
+
+As we can see from the results, the number of unsuccessful type inferences tends to zero as the type inference delay increases. This led to a choice of 20 for the default value of this variable within the application, such that by default, highly confident type estimates are made by the test generator. Although the results are displayed for only 2 of the 22 benchmark methods for conciseness, the experiment was carried out for all of the methods, with equivalent results.
+
+\subsection{Effect of varying the maximum length of tests}
+The second experiment teaches us that the length of method call sequences in generated tests also has a significant impact on test generation. First of all, in some cases we observe that if the maximum length of tests is too small, certain parts of a MUT may be \emph{unreachable}. For example, when the method sequence length is 1, the code coverage for method \texttt{LinkedList.append} stays stuck around 60\%, no matter how long the timeout.
+
+Next, we also observe that although one may initially think that longer tests are synonymous of more efficient code coverage, the results in this experiment proves this wrong. Due to the impact of generating and running very large tests, it is \emph{not} always the case that bigger tests yield better coverage. In fact we can observe a trend among the benchmark methods whereby the code coverage peaks for lengths between 5 and 20 but drops afterwards. This is particularly observable in figure \ref{1s}, for methods \texttt{LinkedList.remove}, \texttt{LinkedList.insertAfter} or \texttt{SlapyTree.insert}.
+
+Finally, the effect of modifying the maximum length of tests is not always predictable as can be seen in figure \ref{1s} with the \texttt{SplayTree} methods \texttt{splay}, \texttt{remove} and \texttt{findMax}. In those cases, increasing the maximum length of method call sequences has a varying effect on coverage efficiency. It is not exactly clear what the best approach is to get the most efficient code coverage.
+
+All of the above observations point to the same fact: finding the optimal length of tests for efficient coverage of a MUT is not only \emph{necessary} for performance, but its unpredictability means that it is no task for humans. This leads us to one of the clear limitations of \textsf{Flycatcher}: the randomness of the test generation process, particularly when it comes to the length of tests, is restrictive.
+
+\subsection{Code coverage}
+Experiment in section \ref{exp2}, on top of showing the effect of the length of tests, revealed \textsf{Flycatcher}'s success in terms of overall code coverage. Table \ref{covresults} shows a summary of the proportion of methods for which full coverage is achieved. The results are highly promising: only 2 out of the 22 methods are not fully covered in under 20 seconds and 100\% coverage is reached for 14 of them in under a second.
+
+In structural testing, the major indicator of the quality of a test is the amount of code coverage achieved, which by extension is also a sound indicator of the quality of a test generation tool. It would thus be fair to say that full coverage for 91\% of the methods in a benchmark is evidence of a successful test generation tool.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Timeout} & \textbf{100\% coverage} \\
+\hline
+1s & 14/22 \\
+5s & 20/22 \\
+20s & 20/22 \\
+\hline
+\end{tabular}
+\caption{Proportion of methods with full coverage}
+\label{covresults}
+\end{table}
+
+
+\subsection{Threat to validity}
+
 % talk about the problem of not having Fuction/Array and why they are difficult + the random has its limits
 \begin{itemize}
+   \item autonomy
    \item low inference delay leads to unsuccessful type inferences
    \item sometimes certain coverage simply \emph{cannot} be achieved with a certain length
    \item however the effect of length is highly variable, it speeds up but after at some point it slows down the test gen process --- hence why a search-based technique should be used as the random is not optimal (the optimal length is highly variable)

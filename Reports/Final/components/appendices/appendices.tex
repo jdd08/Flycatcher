@@ -44,8 +44,7 @@ LinkedList.prototype = {
 
 \begin{code}
   remove: function(node) {
-    // node not in the list
-    if (!node.prev) {return false;}
+    if (!node.prev) return false;
     if (this.length > 1) {
       node.prev.next = node.next;
       node.next.prev = node.prev;

@@ -151,7 +151,7 @@ console.log(wrapped); // prints callback(foo());
 
 However, in our case we are interested in attributing indices to statements such that when that portion of code executes, the callback registers that the statement with that index has been covered. The wrapping statement thus looks like this instead:
 
-\begin{code}
+\begin{code}[caption=Wrapping in \textsf{Flycatcher}]
 node.wrap("callback(" + index + "); %s;");
 // where index is incremented when a new node is wrapped
 \end{code}
