@@ -244,15 +244,41 @@ In structural testing, the major indicator of the quality of a test is the amoun
 \end{table}
 
 
-\subsection{Threat to validity}
+\subsection{Limitations}
+Despite producing satisfying results with the chosen benchmark suite, \textsf{Flycatcher} presents certain limitations. A major design decision behind \textsf{Flycatcher} was to make the tool as autonomous and convenient as possible. To a certain extent, this has been achieved, as the minimal input a tester has to provide to get a suite of unit-tests for an entire class is:
+
+\begin{itemize}
+   \item the name of the file with the class
+   \item the name of the class
+\end{itemize}
+
+In the best case scenario, providing only those two arguments will supply the tester with a full suite of unit tests for the class as well as a log of the tests that failed. However, this level of autonomy does have its drawbacks: by entrusting decisions such as the optimal length of tests or the seed for data generators to \textsf{Flycatcher}, the tester might lose on efficiency or accuracy. The high overall accuracy and efficiency of the results in the experiments in this chapter owe in part to the explicit specification of the maximum length of tests and custom data generators. For example, the method \texttt{Poker.rankHand} cannot achieve \emph{any} coverage under 20 seconds by using the default string generator, as it expects a particular string format --- the odds are simply too low. However, because we \emph{do} value autonomy in such a tool, as we know how much programmers prefer programming to testing, we feel that the solution is not to ask more input from the user, but to make \textsf{Flycatcher} better. In other words, \textsf{Flycatcher} is restricted by its use of random test generation, be it for data itself or the test cases. Although this can be partly remediated with input from the user, as in the experiments, in order to be meaningfully autonomous without compromising accuracy or efficiency, \textsf{Flycatcher} needs to become more `clever' in its exploration of the search space of possible tests going forward.\\
+
+Another major limitation of \textsf{Flycatcher} is the lack of support for the standard objects \texttt{Function} and \texttt{Array}. Arrays are commonplace function parameters in programs and in JavaScript, so are function objects. As a result, not handling these constructs imposes strong limitations on the programs that can be tested by \textsf{Flycatcher}. This was evident in the benchmark suite selection stage, where we were precluded by this limitation from using any of the established benchmark suites or substantial JavaScript libraries. This in turn represents a threat to the validity of our results as we face a selection bias --- the lack of support for \texttt{Array} and \texttt{Function} impacts the size of programs that can be tested. Because they have such implications, we feel that it is worth outlining why supporting these types is a challenge.
+
+\textbf{\underline{Functions}}: When automatically generating tests, all we have to begin with is the program under test. With regard to a function parameter, this is what can \emph{possibly} be learnt from the program:
+
+\begin{enumerate}
+   \item finding out that it is a function (initially)
+   \item what types its parameters belong to
+   \item what type its return value belongs to
+\end{enumerate}
+
+However, as far as we understand, it is not possible to determine what the function in question is or does from this information.
+
+\textbf{\underline{Arrays}}: Arrays are known to pose problems in automatic test data generation \cite{tahbildar2automated}. In \textsf{Flycatcher}, the fact that we use proxies which return random values when called with a primitive operator, means that we cannot have `faith' in any of the primitives inside the program while generating tests. This makes it difficult to discover the length of arrays. Moreover, because arrays allow for heterogenous types in JavaScript, every entry has to be inferred and generated separately, which adds to the challenge and is likely to be an expensive process.
+
+\textsf{Flycatcher} also does not currently support other standard types for parameters such as \texttt{RegExp} or \texttt{Date} but these have less serious implications and their implementation poses less problems.\\
+
+In summary, \textsf{Flycatcher} is limited by the fact that it uses random test generation. Despite that this can be alleviated by input from the user, the fact remains that the application would benefit from using search-based heuristics to guide the exploration for test cases. Moreover, the lack of support from certain crucial types of programming constructs, albeit for good reasons, means that \textsf{Flycatcher} can only be used with a certain class of programs, and thus lacks generality.
 
 % talk about the problem of not having Fuction/Array and why they are difficult + the random has its limits
-\begin{itemize}
-   \item autonomy
-   \item low inference delay leads to unsuccessful type inferences
-   \item sometimes certain coverage simply \emph{cannot} be achieved with a certain length
-   \item however the effect of length is highly variable, it speeds up but after at some point it slows down the test gen process --- hence why a search-based technique should be used as the random is not optimal (the optimal length is highly variable)
-   \item random still achieves good results but it is helped by the custom data generators and the pooling system + our tests lend themselves well to that
-   \item threats to validity: size of programs... + the fact that we don't deal with array or function as they are key js objects. discuss why we don't deal with them
-   \item nonetheless based on what we set out to do, the work can be considered successful as full coverage is achieved for almost all methods in under 20 seconds, with a variety of different types and scenarios
-\end{itemize}
+% \begin{itemize}
+%    \item autonomy
+%    \item low inference delay leads to unsuccessful type inferences
+%    \item sometimes certain coverage simply \emph{cannot} be achieved with a certain length
+%    \item however the effect of length is highly variable, it speeds up but after at some point it slows down the test gen process --- hence why a search-based technique should be used as the random is not optimal (the optimal length is highly variable)
+%    \item random still achieves good results but it is helped by the custom data generators and the pooling system + our tests lend themselves well to that
+%    \item threats to validity: size of programs... + the fact that we don't deal with array or function as they are key js objects. discuss why we don't deal with them
+%    \item nonetheless based on what we set out to do, the work can be considered successful as full coverage is achieved for almost all methods in under 20 seconds, with a variety of different types and scenarios
+% \end{itemize}

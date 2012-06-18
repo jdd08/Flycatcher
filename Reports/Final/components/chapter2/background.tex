@@ -133,6 +133,7 @@ Random test data generation consists in producing inputs at random in the hope o
 % TODO GENETIC and is considered to have the lowest acceptance rate \cite{edvardsson1999survey}, it forms the basis of the \textsf{Flycatcher} application.
 
 \subsubsection{Search-based approach}
+\ref{searchbased}
 % more on search-based approach using mairhofer's stuff?
 
 Search-based test data generation uses heuristics to guide the generation of input data so that the inputs execute paths that contribute to the overall test coverage objective. This involves modelling the test coverage objective as a heuristic function or \emph{objective function}, that evaluates the fitness of a chosen set of inputs with respect to a coverage objective. Based on those fitness values, many search techniques exist to find optimal inputs in order to achieve the desired coverage. Various objective functions exist and they are dependent on the ATDG method used. Some of the well-known search-based ATDG techniques are \emph{alternating variable} (local search optimisation) \cite{korel1990automated, gallagher1997adtest}, \emph{simulated annealing} \cite{tracey1998automated,tracey1998way}, \emph{iterative relaxation} \cite{gupta1998automated} and \emph{genetic algorithms} \cite{michael1998automated,michael2001generating}.
