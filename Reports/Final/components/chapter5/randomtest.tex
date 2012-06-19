@@ -1,6 +1,9 @@
+\newpage
+\mbox{}
+
 \chapter{Generating candidate tests}
 \label{randomtest}
-In this chapter, we detail the process by which \textsf{Flycatcher} generates random candidate tests, in the hope of eventually generating some that can be used to achieve good code coverage of the CUT. First, we explain the structure of a test and some characteristics of that structure. Then we describe the mechanism for trying to generate tests in which the types of the parameters are accurate. Finally, we introduce the concept of custom data generators, for seeding primitive type values inside our tests.
+In this chapter, we detail the process by which \textsf{Flycatcher} generates random candidate tests, in the hope of eventually generating some that can be used to achieve good code coverage of the CUT. First, we explain the structure of a test and some characteristics of that structure. Then we describe the mechanism for trying to generate tests in which the types of the parameters are accurate. Finally, we introduce the concept of custom data generators, for generating primitive type values inside our tests.
 
 % Finally we discuss the formatting of those tests, with regard to whether they are intended for the \textsf{Executor} or as final output.
 
@@ -179,7 +182,7 @@ The primitive scoring object thus corresponds to:
 When type inference takes place for a parameter that is suspected of being a primitive, the most likely primitive type is chosen based on the scores in the accumulator object.
 
 \subsubsection{Delaying type inference}
-Because we do not want to jump to conclusions too quickly when inferring types using the member accesses and primitive scores, we do not start updating the \texttt{ProgramInfo} object until a sufficient number of constructor or method calls \emph{involving} that parameter have been made (during the \textsf{Test Generator/Executor} iterations). For example in the following code, the parameter of the \texttt{LinkedList.add} method is involved or `used' in \emph{two} calls.
+Because we do not want to jump to conclusions too quickly when inferring the type for a parameter using the member accesses and primitive scores, we do not start updating the \texttt{ProgramInfo} object until a sufficient number of constructor or method calls \emph{involving} that parameter have been made (during the \textsf{Test Generator/Executor} iterations). For example in the following code, the parameter of the \texttt{LinkedList.add} method is involved or `used' in \emph{two} calls.
 
 \begin{code}[caption=Parameter uses,label=uses]
 var linkedList = new LinkedList();
@@ -192,7 +195,7 @@ linkedList.add(unknown2); // second `use' of add's parameter
 linkedList.size();
 \end{code}
 
-This delay, characterised as a minimum number of parameter uses, is user-configurable, as an optimal value for it is highly dependent on the program under test. For example, if a user \emph{knows} that a parameter is only active in a path that is executed infrequently, they may set a high value for the delay before type inference. By making sure that a parameter has had an \emph{adequate} number of opportunities to collect type information, the user can ensure that type inference does not take place too early, when it has a higher chance of being inaccurate. On the other hand, if the user knows that a parameter is active \emph{every time} its function gets called \emph{i.e.} it lies on every path inside that function, the user may want to give the `minimum number of uses' variable a low value to save time.
+This delay, characterised as a minimum number of parameter uses, is user-configurable, as an optimal value for it is highly dependent on the program under test. For example, if a user \emph{knows} that a parameter is only active in a path that is executed infrequently, they may set the \emph{type inference delay}\footnote{note that this is not a duration but a number of parameter uses, but we feel that \emph{type inference delay} is the most concise way of referring to that variable} to a high value. By making sure that a parameter has had an \emph{adequate} number of opportunities to collect type information, the user can ensure that type inference does not take place too early, when it has a higher chance of being inaccurate. On the other hand, if the user knows that a parameter is active \emph{every time} its function gets called \emph{i.e.} it lies on every path inside that function, the user may want to give the \emph{type inference delay} variable a low value to save time.
 
 At first it seemed that a more telling and intuitive measure of confidence about inferring a type for a parameter was how many member accesses had been recorded, or how good the best primitive score was for it. However, any lower limit on such variables makes \emph{too strong assumptions} about the program under test. For example, in a scenario where it is decided that three member accesses provide enough information to make a confident type choice: what if a class only has one or two members?
 
