@@ -1,5 +1,27 @@
 \chapter{Conclusion}
 
+We have presented \textsf{Flycatcher}, an automatic unit test generation tool for and in JavaScript. \textsf{Flycatcher} is capable of generating accurately typed tests by inferring the types of parameters based on how these parameters are used within the programs under test. In doing so, \textsf{Flycatcher} overcomes the major obstacle associated with automatic test generation in a dynamic language: discovering parameter types in the absence of static types. Yet, with respect to what categories of types \emph{can} be discovered, \textsf{Flycatcher} presents limitations. User-defined types (including polymorphic ones) as well as primitive types can successfully be inferred by \textsf{Flycatcher}, but there is a hindering lack of support for the JavaScript types \texttt{Array} and \texttt{Function}. However, this does fit in with our early objective of designing an automatic test generation tool for a comprehensive subset of the JavaScript language. With regard to that subset, the high code coverage results achieved by \textsf{Flycatcher} for our 22 benchmark methods are promising and indicative of a valuable automatic test generation tool.
+
+Another essential feature of our application, is that it works autonomously. This is largely the case, as it \emph{can} produce results without the need for user input. However, in many cases the absence of this information can drastically impact coverage results. This is due to the fact that the test generation process in \textsf{Flycatcher} is largely \emph{random}, and thus unlikely to exercise low probability paths in the program. It is therefore fair to say that full autonomy is only possible with \textsf{Flycatcher} in the best scenarios, when the programs under test do not contain improbable paths. In other cases, specifying variables such as custom data generators or an adequate length for tests, is necessary. Despite that, \textsf{Flycatcher} does constitute a considerable gain in autonomy compared to the existing JavaScript test generation tools \cite{saxena2010symbolic, alshraideh2008complete, contract-driven, artzi2011framework}. Indeed, it is less work to specify a custom data generator for a class using a regular expression on the command line, than to annotate every method with an additional `contract'.
+
+To conclude, we contribute to the field of automatic test generation by proposing a powerful testing tool and offering new insights into dealing with dynamically-typed languages in that field. Furthermore, we also feel that our project has the potential of being meaningful for the development of the JavaScript language as a whole. Due to the extensive and critical use of state-of-the-art features proposed in the latest version of the ECMAScript standard, it seems that our project also acts as a strong endorsement of these features by demonstrating their wide-ranging and powerful applications.
+
+\subsubsection{Future Work}
+
+Much of the further work that is needed for \textsf{Flycatcher} is aimed towards tackling the limitations that have been discussed and as such include:
+
+\begin{itemize}
+   \item Researching ways of adding support for type inference of the JavaScript standard constructs \texttt{Function} and \texttt{Array}
+   \item Building upon the \textsf{Flycatcher} system by developing a more `clever' candidate test generator. The improved test generator could use search-based heuristics as opposed to a random strategy to explore the search space of possible tests, as is implemented in \textsc{RuTeG} \cite{mairhofer2008search}.
+\end{itemize}
+
+An other interesting extension would be to generate tests that allow for inaccessible user-defined classes. This could be implemented using the \emph{Proxy} object discussed at length in this report to substitute the missing classes by trapping all of the expected methods (but only those) and responding with the expected behaviour. However, using this strategy to implement this feature assumes that the tester would run their tests in an environment that supports Harmony \emph{Proxies}.
+
+Lastly, so that early adopters can try out the tool's current functionality and in order for this future work to materialise, we aim to release \textsf{Flycatcher} as open-source within the large and enthusiastic \textsf{Node.js} community.
+
+
+% Reflecting upon this project's achievements, 
+
 % what was a success
 % - tool starting point for a powerful test generator + works as expected
 % - demonstrating capabilities of proxies

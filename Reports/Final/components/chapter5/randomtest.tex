@@ -32,13 +32,13 @@ linkedList.add(node3);
 assert(linkedList.size() = 3);
 \end{code}
 
-Note that the format shown in \ref{final} differs from the format of tests that are destined to be run in the \textsf{Executor}. The same test in the \textsf{Executor} needs a structure to keep track of MUT call results, in order to later construct assertions if the test is selected. Example \ref{execformat} illustrates the format of tests in the \textsf{Executor}. In the rest of the examples however, we omit the \texttt{results} structure to keep the examples clear and concise.
+Note that the format shown in example \ref{final} differs from the format of tests that are destined to be run in the \textsf{Executor}. The same test in the \textsf{Executor} needs a structure to keep track of MUT call results, in order to later construct assertions if the test is selected. Example \ref{execformat} illustrates the format of tests in the \textsf{Executor}. In the rest of the examples however, we omit the anonymous function and the \texttt{results} structure to keep the examples clear and concise.
 
 % \subsubsection{Executor format}
 % 
 % For all the results of calling the MUT in a candidate test to be recorded, so that the assertions seen in example \ref{final} can be created, the format of test \ref{final} in the \textsf{Executor} is in fact:
 % 
-\begin{code}[caption=Executor format,label=execformat]
+\begin{code}[caption=\textsf{Executor} format,label=execformat]
 (function() {
    var results = [];
    var linkedList = new LinkedList();
@@ -62,9 +62,9 @@ Note that the format shown in \ref{final} differs from the format of tests that 
 The tests are built using recursion, in the sense that when a method call or a constructor call (a declaration) is added to a candidate test, any parameters of that call are declared beforehand. The recursion stops when a constructor call has no parameters \emph{e.g.} in the case of primitives. For the sake of conciseness primitives are in fact inlined as can be seen in the example \ref{final}. So, in the example \ref{final}, the \texttt{LinkedList.add} calls each prompt the declaration of a \texttt{Node} object, which in turn prompts an inline declaration of a number.
 The tests \emph{always} start with a declaration of the CUT, and therefore with any declarations that are needed for its constructor's parameters.
 
-The number of method calls made in an attempt to modify the state of the CUT instance is chosen \emph{at random}, with a user-configurable maximum. As we will see in the experimental evaluation, this maximum with regard to the length of method call sequences is significant: it has an effect on code coverage and test readability. However, there must be at least one occurrence of the MUT in the \emph{overall} method call sequence, since the sole purpose of the test is to evaluate that method. Note that if there is only one MUT call, it will be at the end, as there is no use in calling more methods \emph{after} we have finished evaluating the MUT.
+The number of method calls made in an attempt to modify the state of the CUT instance is chosen \emph{at random}, with a user-configurable maximum. As we will see in the experimental evaluation, this maximum with regard to the length of method call sequences is significant: it has an effect on code coverage (as well as on test readability, which may or may not be a concern). However, there must be at least one occurrence of the MUT in the \emph{overall} method call sequence, since the sole purpose of the test is to evaluate that method. Note that if there is only one MUT call, it will be at the end, as there is no use in calling more methods \emph{after} we have finished evaluating the MUT.
 
-We initially made the mistake of making only one MUT call in total, but later realised that this could preclude certain portions of the code from being covered. For example, if \texttt{LinkedList.add} is the MUT, it needs to be called at least twice for a test to exercise full coverage, as the branches taken in the MUT depend on whether the linked list is empty or not.
+We initially made the mistake of making only one MUT call in total, but later realised that this could preclude certain portions of the code from being covered. For example, if \texttt{LinkedList.add} is the MUT, it needs to be called at least twice for a test to exercise full coverage of that method, as the branches taken in the MUT depend on whether the linked list is empty or not.
 
 Aside from its recursive construction, another feature of the tests' structure is the pooling of parameters.
 
