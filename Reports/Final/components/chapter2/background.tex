@@ -215,7 +215,9 @@ Most of the research on test generation focuses on testing imperative functions,
 	\item Assert that the method under test returns the expected answer
 \end{enumerate}
 
-Because it is impossible to know how the application will use the class/object under test in practice, as many relevant test cases as possible must be tried in order to maximise the likelihood of finding a bug inside the class in question. Coverage, the assessment measure that is often used for test \emph{data} generation, is an equally good indicator of the relevance of test \emph{cases}. Hence, this measure can be used, as for the generation of input \emph{data}, as a search objective to guide the generation of \emph{method call sequences} for our test cases. Tonella was one of the first to use search-based methods for the generation of adequate object-oriented test cases, using genetic algorithms as the search heuristics method \cite{tonella2004evolutionary}. Indeed, the procedure of using genetic algorithms to generate input test data for \textsf{Flycatcher} described in~\ref{subsubsec:ga_application} can simply be extended to the generation of object-oriented tests by adapting individuals so that they represent the structure of a test case.
+Because it is impossible to know how the application will use the class/object under test in practice, as many relevant test cases as possible must be tried in order to maximise the likelihood of finding a bug inside the class in question. Coverage, the assessment measure that is often used for test \emph{data} generation, is an equally good indicator of the relevance of test \emph{cases}. Hence, this measure will be used to assess the quality of test cases as a whole.
+
+% Hence, this measure can be used, as for the generation of input \emph{data}, as a search objective to guide the generation of \emph{method call sequences} for our test cases.Tonella was one of the first to use search-based methods for the generation of adequate object-oriented test cases, using genetic algorithms as the search heuristics method \cite{tonella2004evolutionary}. Indeed, the procedure of using genetic algorithms to generate input test data for \textsf{Flycatcher} described in~\ref{subsubsec:ga_application} can simply be extended to the generation of object-oriented tests by adapting individuals so that they represent the structure of a test case.
 
 The code example below illustrates in pseudocode the type of object-oriented structural unit test that we aim to generate with \textsf{Flycatcher}. It assumes a standard linked list implementation, \texttt{LinkedList} is the class under test and \texttt{size} is the method under test:
 
@@ -346,7 +348,7 @@ The JavaScript language and its derivatives JScript, ActionScript \emph{etc.} we
 Nevertheless, there is a very interesting and landmark edition in progress called \emph{Harmony}, with many new exciting language features. Among those features is a meta-programming API, which, although currently non-standard, is already implemented by major browser engines such as Google's V8 engine and Firefox's SpiderMonkey. The meta-programming API presents a new type of object which is extremely powerful and helpful for the development of \textsf{Flycatcher}: the \emph{Proxy} object.
 
 \subsubsection{Object Proxies}
-Proxies are special objects that let the programmer define the \emph{behaviour} of an object \emph{i.e.} how it responds to low-level operations. This is done through a `catch-all' mechanism, which \emph{traps} or \emph{intercepts} low-level operations on the proxy and allows us to redefine their outcome. To illustrate this, we define a simple Proxy that overrides the \texttt{[[Get]]} low-level operation and traps property accesses of the form \texttt{proxy.name} in the context of \emph{getting} a property's value. We override that behaviour and return the string \texttt{''It's a trap!''} instead:
+\emph{Proxies} are special objects that let the programmer define the \emph{behaviour} of an object \emph{i.e.} how it responds to low-level operations. This is done through a `catch-all' mechanism, which \emph{traps} or \emph{intercepts} low-level operations on the proxy and allows us to redefine their outcome. To illustrate this, we define a simple \emph{Proxy} that overrides the \texttt{[[Get]]} low-level operation and traps property accesses of the form \texttt{proxy.name} in the context of \emph{getting} a property's value. We override that behaviour and return the string \texttt{''It's a trap!''} instead:
 
 \begin{code}[caption=Object Proxy,label=objproxy]
 var proxy = Proxy.create({
@@ -359,15 +361,16 @@ proxy.treasure = "gold";
 proxy.treasure // returns "treasure -> It's a trap!"
 \end{code}
 
-The \texttt{receiver} is a handle to the proxy itself, and the \texttt{name} is the name of the property being trapped. The object passed to the Proxy's \texttt{create} function is called its handler and needs to implement a specific API, so that all of the fundamental low-level operations on the object respond. The traps available to Proxies and the code they respectively emulate are laid out in table \ref{traps}. The \emph{fundamental traps}' implementation is required, but the \emph{derived traps} can be left out as they have a default implementation in terms of the fundamental ones. In the context of \textsf{Flycatcher}, the traps that we will be the most interested in are \texttt{get} and \texttt{set}.
+The \texttt{receiver} is a handle to the proxy itself, and the \texttt{name} is the name of the property being trapped. The object passed to the \emph{Proxy}'s \texttt{create} function is called its handler and needs to implement a specific API, so that all of the fundamental low-level operations on the object respond. The traps available to Proxies and the code they respectively emulate are laid out in table \ref{traps}. The \emph{fundamental traps}' implementation is required, but the \emph{derived traps} can be left out as they have a default implementation in terms of the fundamental ones. In the context of \textsf{Flycatcher}, the traps that we will be the most interested in are \texttt{get} and \texttt{set}.
 
 \begin{table}[h]
-\hspace*{-1.8cm}
+\hspace*{-0.6cm}
 \centering
-\begin{tabular}{|l|l|}
-\hline
+\footnotesize
+\begin{tabular}{ll}
+\toprule
 \textbf{Trap} & \textbf{Emulated code} \\
-\hline
+\toprule
 \emph{Fundamental Traps} & \\
 \texttt{getOwnPropertyDescriptor(name)} & \texttt{Object.getOwnPropertyDescriptor(proxy,name)} \\
 \texttt{getPropertyDescriptor(name)} & \texttt{Object.getPropertyDescriptor(proxy,name)} \\
@@ -386,7 +389,7 @@ The \texttt{receiver} is a handle to the proxy itself, and the \texttt{name} is 
 \texttt{keys()} & \texttt{Object.keys(proxy)} \\
 \hline
 \end{tabular}
-\caption{\texttt{Proxy} traps}
+\caption{Proxy traps}
 \label{traps}
 \end{table}
 

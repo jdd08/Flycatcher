@@ -100,7 +100,7 @@ Given the sandbox, retrieving a class's constructor is straightforward but to re
 \subsubsection{Creating parameters that will not crash the constructor}
 At this point we may want to remind the reader that \emph{JavaScript function parameters bear no type information whatsoever}. Hence, at this stage, we have no idea what parameters to create to pass to the constructor. If we do pass wrong parameters to it however, such as a number when an object is expected, the constructor will crash and we will not be any closer to retrieving information about a class's methods.
 
-This leads to our first use of the Proxy object proposed by ECMA-262 Harmony, introduced in section \ref{js}. In order for the constructor not to crash, we pass Proxy objects to it, which have the ability to respond to any operation: Proxies that return other Proxies. Hence, even if property accesses are made on the \emph{result} of a property access, the constructor will continue executing, as the \texttt{get} trap of the Proxy returns a reference to itself. However, we must account for the fact that the trapped function may expect \emph{a function} in return, and we must therefore return a Function Proxy. The Function Proxy has the same behaviour as the Proxy but can \emph{additionally} trap attempts to invoke or instantiate it.
+This leads to our first use of the Proxy object proposed by ECMA-262 Harmony, introduced in section \ref{js}. In order for the constructor not to crash, we pass Proxy objects to it, which have the ability to respond to any operation: Proxies that return other Proxies. Hence, even if property accesses are made on the \emph{result} of a property access, the constructor will continue executing, as the \texttt{get} trap of the Proxy returns a reference to itself. However, we must account for the fact that the trapped function may expect \emph{a function} in return, and we must therefore return a \emph{Function Proxy}. The Function Proxy has the same behaviour as the Proxy but can \emph{additionally} trap attempts to invoke or instantiate it.
 
 The catch is that primitive operations are also trapped by the \texttt{get} trap, as they translate into the function \texttt{valueOf} being called. If we return a Proxy when \texttt{valueOf} is trapped, the engine will try to apply a primitive operator, such as \texttt{++}, to an object, and throw a type error. Hence, the Proxy's \texttt{get} trap must return a \emph{primitive} whenever the method trapped is \texttt{valueOf}. Returning a number is a sound choice as it does not make any of the primitive operators effect a crash (but for instance \texttt{''string''++} would). The Proxy API offers many more traps than the \texttt{get} trap, but we focus on the \texttt{get} trap for clarity's sake, as the other traps simply implement idle behaviour. To summarise, we lay out the implementation of the \texttt{get} trap that we have explained:
 
@@ -113,8 +113,8 @@ get: function(rcvr, name) {
         }
     }
     else {
-        return Proxy.createFunction(proxyHandle, // Object Proxy part
-                                    function() { // Function Proxy part
+        return Proxy.createFunction(proxyHandle, // Object Proxy
+                                    function() { // Function Proxy
                                         return Proxy.create(proxyHandle)
                                     });
     }
@@ -123,16 +123,17 @@ get: function(rcvr, name) {
 
 % TODO: problem with methods that are closures on one of the parameters
 % this is in fact fine? -> we reuse the source code itself in the executor
-It is worth noting that we do not care about the \emph{outcome} of the operations on parameters within the constructor, only that it does not crash. The purpose of this process is to find out the signatures of a class's methods and these cannot be affected by the constructor's parameters --- except for the case where \emph{the class method itself} is passed in as a parameter, which we do not deal with (we do not handle \texttt{Function} type parameters in general).
+It is worth noting that we do not care about the \emph{outcome} of the operations on parameters within the constructor, only that it does not crash. The purpose of this process is to find out the signatures of a class's methods and these cannot be affected by the constructor's parameters --- except for the case where \emph{the class method itself} is passed in as a parameter, which we do not deal with (we do not handle \textit{Function} type parameters in general).
 
 Tests were run to ensure that the constructor does not crash with the Proxy parameters created. The test cases are summarised in table \ref{nocrash}, where \texttt{proxy} is the parameter proxy, \texttt{f} is a field and \texttt{m} is a method:
 
+% \setlength{\tabcolsep}{10pt}
 \begin{table}[h]
 \centering
-\begin{tabular}{|l|c|c|}
-\hline
+\begin{tabular}{lcc}
+\toprule
 \textbf{Operation} & \textbf{Code} \\
-\hline
+\toprule
 \texttt{valueOf} call on proxy itself & \texttt{proxy + 1}\\
 \texttt{toString()} call on proxy itself & \texttt{proxy.toString()}\\
 Field access & \texttt{proxy.f} \\
@@ -148,7 +149,6 @@ Method call of method call & \texttt{proxy.m().m()} \\
 Overriding method & \texttt{proxy.m = function()\{\}} \\
 \texttt{valueOf} call on method & \texttt{proxy.m.valueOf()} \\
 \texttt{toString} call on field & \texttt{proxy.m.toString()} \\
-\hline
 \end{tabular}
 \caption{Testing proxy parameters}
 \label{nocrash}
@@ -157,7 +157,7 @@ Overriding method & \texttt{proxy.m = function()\{\}} \\
 \subsubsection{Using the proxy parameters to initialise the class}
 Once the appropriate number of Function Proxies have been created, which we can find out from the retrieved constructor's definition, we need to initialise the class with them. One would think that JavaScript, given its first-class functions, would have a way to do that --- we have the constructor function and we have the parameters for it. Unfortunately, the \texttt{Function.apply} and \texttt{Function.call} library functions both simply \emph{invoke} functions, they cannot \emph{instantiate} a new object with them, which is what we want to do. Thankfully, this is easily resolved with a small closure:
 
-\begin{code}[caption=Instantiating a \texttt{Function} object,label=instantiatingfn]
+\begin{code}[caption=Instantiating a \textit{Function} object,label=instantiatingfn]
 // ctr is the constructor of the class we want to instantiate
 var construct = (function() {
     function Copy(args) {

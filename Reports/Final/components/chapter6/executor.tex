@@ -41,25 +41,26 @@ The type information collected at runtime takes two forms:
 \subsection{Recording member accesses}
 The member accesses are recorded using the \texttt{get} trap of the \texttt{CollectorProxy}: the trap translates to \texttt{handler.get(receiver,name)} where name is the name of the property that was accessed. And we know from the initialisation of the \texttt{CollectorProxy}'s handler, where in \texttt{ProgramInfo} to store that information.
 
-However, when a property is accessed, the \texttt{get} must return an appropriate object for execution to carry on. Much like in the \textsf{Analyser}, we return a Function Proxy that can respond to any operation, but this is not to be confused with the \texttt{CollectorProxy} --- the proxy we return no longer stands for a parameter and as such does not collect any type information (its role is simply to avoid crashes). The only difference is that we randomise\footnote{\texttt{0} is returned more often as it is often a significant value in path exploration} the primitives returned by that proxy, so as to diversify the code exploration achieved by invalid candidate tests. Doing so diversifies our collection of type information in the early stages of the test generation process.
+However, when a property is accessed, the \texttt{get} must return an appropriate object for execution to carry on. Much like in the \textsf{Analyser}, we return a \emph{Function Proxy} that can respond to any operation, but this is not to be confused with the \texttt{CollectorProxy} --- the proxy we return no longer stands for a parameter and as such does not collect any type information (its role is simply to avoid crashes). The only difference is that we randomise\footnote{\texttt{0} is returned more often as it is often a significant value in path exploration} the primitives returned by that proxy, so as to diversify the code exploration achieved by invalid candidate tests. Doing so diversifies our collection of type information in the early stages of the test generation process.
 
 \subsection{Accumulating primitive scores}
 The operators in table \ref{primitiveops}, when applied to operands, translate at a lower level into the internal function \texttt{[[getValue]]} being called on the operands. This function in turn calls the \texttt{valueOf} method on the members if they are objects, which instances of the \texttt{CollectorProxy} are. This enables the \texttt{CollectorProxys} to trap the requests to get the \texttt{valueOf} method, as they would any other method. Note that the operators: \texttt{\&\&, \textbar\textbar, !, =, === \textrm{and} !==} are missing from the table as they do not yield a \texttt{valueOf} call and thus cannot be trapped.
 
 \begin{table}[h]
+\hspace*{-0.5cm}
 \centering
-\begin{tabular}{|l|c|}
-\hline
+\begin{tabular}{lc}
+\toprule
 \emph{Arithmetic operators} & \texttt{+, -, *, /, \%, ++, \textendash\textendash, unary \textendash, unary +}\\
-\hline
+% \hline
 \emph{Assignment Operators} & \texttt{*=, /=, \%=, +=, -=, \(\ll\)=, \(\gg\)=, \(\ggg\)=, \&=, \textasciicircum=, \textbar=}\\
-\hline
+% \hline
 \emph{Bitwise Operators} & \texttt{\&, \textbar, \textasciicircum, \textasciitilde, \(\ll\), \(\gg\), \(\ggg\)}\\
-\hline
+% \hline
 \emph{Comparison Operators} & \texttt{==, !=, >, >=, <, <=}\\
-\hline
+% \hline
 \emph{String Operators} & \texttt{+, +=}\\
-\hline
+\bottomrule
 \end{tabular}
 \caption{Operators yielding \texttt{valueOf}}
 \label{primitiveops}
@@ -85,16 +86,16 @@ Table \ref{scoringtable} shows the hints that are looked out for and the corresp
 
 \begin{table}[h]
 \centering
-\begin{tabular}{|l|c|c|}
-\hline
+\begin{tabular}{lcc}
+\toprule
 \textbf{Hint} & \emph{number} & \emph{string}\\
-\hline
+\toprule
 \texttt{++, \textendash\textendash}  & 10 & 0\\
 \texttt{>, <}    & 2 & 1\\
 \texttt{-, *, /, \%, \(\ll\), \(\gg\), \(\ggg\), \textasciicircum, \textbar, \&, \textasciitilde} & 2 & 0\\
 \[[0 - 9]\]^{+}  & 5 & 0\\
-\emph{double quotes}\footnotemark & 0 & 5\\
-\hline
+double quotes\footnotemark & 0 & 5\\
+\bottomrule
 \end{tabular}
 \caption{Primitive scoring}
 \label{scoringtable}
