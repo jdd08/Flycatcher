@@ -163,7 +163,7 @@ All the experiments are carried out on Mac OS X v10.6 with a 2.4GHz Intel Core 2
 \end{itemize}
 
 \subsection{Effect of varying the type inference delay}
-In this first experiment we analyse the effect of varying the type inference delay discussed in part \ref{typeinference} (see usage in section \ref{usage}). Let us recall that this delay is put in place in order for \textsf{Flycatcher} to make confident type inferences, based on enough data. If there is not enough data when type inference is attempted for a parameter, we consider that the type inference is \emph{unsuccessful}. In this trial, we observe the relation between the type inference delay and unsuccessful type inferences for the methods from the benchmarking set, using an average over twenty runs and displaying the results for two of the methods in figures \ref{trianglebench} and \ref{bstbench}.
+In this first experiment we analyse the effect of varying the type inference delay discussed in section \ref{typeinference} (see usage in section \ref{usage}). Let us recall that this delay is put in place in order for \textsf{Flycatcher} to make confident type inferences, based on enough data. If there is not enough data when type inference is attempted for a parameter, we consider that the type inference is \emph{unsuccessful}. In this trial, we observe the relation between the type inference delay and unsuccessful type inferences for the methods from the benchmarking set, using an average over twenty runs and displaying the results for two of the methods in figures \ref{trianglebench} and \ref{bstbench}.
 
 \begin{figure}[h]
 \hspace*{-0.5cm}
@@ -181,7 +181,7 @@ In this first experiment we analyse the effect of varying the type inference del
 \label{bstbench}
 \end{figure}
 
-\subsection{Effect of varying the length of tests}
+\subsection{Effect of varying the maximum length of tests}
 \label{exp2}
 In the second experiment, we vary the user-configurable variable that sets the length of method call sequences in tests (see usage in section \ref{usage}). We observe what the effect of modifying this variable is for all of the methods in the benchmark set. To give us a more comprehensive set of results to analyse, this process is carried out three times with varying `strict' timeouts of: 1 second, 5 seconds and 20 seconds. The results appear in figures \ref{1s}, \ref{5s} and \ref{20s} and each entry constitutes an average over 20 runs.
 
@@ -260,7 +260,7 @@ Once more however, this comparison is nothing more than an indicator that our to
 
 
 \subsection{Limitations}
-Despite producing satisfying results with the chosen benchmark suite, \textsf{Flycatcher} presents certain limitations. A major design decision behind \textsf{Flycatcher} was to make the tool as autonomous and convenient as possible. To a certain extent, this has been achieved, as the minimal input a tester has to provide to get a suite of unit-tests for an entire class is:
+Despite producing satisfying results with the chosen benchmark suite, \textsf{Flycatcher} presents certain limitations. A major design decision behind \textsf{Flycatcher} was to make the tool as autonomous and convenient as possible. To a certain extent, this has been achieved, as the minimal input a tester has to provide to get a suite of unit tests for an entire class is:
 
 \begin{itemize}
    \item the name of the file with the class

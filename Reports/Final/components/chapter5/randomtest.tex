@@ -17,7 +17,7 @@ To recapitulate, an object-oriented test targets a particular method of the CUT,
 % \subsubsection{Unit test format}
 Assuming that the MUT is the method \texttt{size}, the final output of a valid unit test might therefore look like:
 
-\begin{code}[caption=Unit test,label=final]
+\begin{code}[caption=Output format,label=final]
 var linkedList = new LinkedList();
 
 var node1 = new Node(123);
@@ -231,7 +231,7 @@ The role of the \textsf{Test Generator} is to generate \emph{candidate} tests, b
    \item It is valid \emph{i.e.} it contains no \texttt{Unknowns}
 \end{itemize}
 
-If a test fulfils those two criteria it is added to the suite of unit tests, which is output in a chosen format among a choice of JavaScript unit-testing frameworks. The current unit-testing formats available are \textsf{node-unit}, \textsf{expresso} and \textsf{Node.js}'s \textsf{assert} module. More framework formats may be available in the future. If none of these frameworks suit the user, the unit tests are output by default in simple JavaScript code with assertions. The unit-test suite output is meant to be a regression test suite. That is to say, all the tests in it pass when run with the current program under test. They are useful to uncover errors if the program under test changes and \emph{breaks} any of the unit-tests.
+If a test fulfils those two criteria it is added to the suite of unit tests, which is output in a chosen format among a choice of JavaScript unit testing frameworks. The current unit testing formats available are \textsf{node-unit}, \textsf{expresso} and \textsf{Node.js}'s \textsf{assert} module. More framework formats may be available in the future. If none of these frameworks suit the user, the unit tests are output by default in simple JavaScript code with assertions. The unit test suite output is meant to be a regression test suite. That is to say, all the tests in it pass when run with the current program under test. They are useful to uncover errors if the program under test changes and \emph{breaks} any of the unit tests.
 
 However, valid tests that failed inside the \textsf{Executor} due to an exception being thrown, are added to a log file for the user's attention. If the tests failed due to bugs or a lack of defensive programming, the user can use this feedback to fix these defects. If the tests failed because of an incorrect type inference, the user can adjust the delay before type inference, such that a better, more confident estimate is made.
 

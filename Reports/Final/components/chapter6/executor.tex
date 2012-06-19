@@ -129,7 +129,7 @@ Having discussed the collection of type information and its caveats, we now move
 
 When doing \emph{structural testing} \emph{i.e.} testing the internal workings of a program, we are interested in executing as many paths as possible in that program, regardless of whether they are likely to be used in practice. The quality measure of a test in the context of structural testing, also known as \emph{white-box testing}, is therefore \emph{code coverage}, which reflects how error-free a program is. In practice, generating tests to cover every single possible execution path in a program is infeasible. Hence, in \textsf{Flycatcher}, we resort to a weaker measure of coverage: \emph{statement coverage}, which tracks the statements that are executed.
 
-In \textsf{Flycatcher} the target of the output unit-testing suite is the CUT, as by default all of its methods are tested one by one. But as these methods each become the MUT, it is \emph{their} individual coverage that we are interested in. In other words, the candidate tests generated are geared towards a particular method each time, and it is the coverage achieved \emph{in that method} that can give us the quality of a test. Coverage in some other remote part of the program is not relevant to how well we are testing a particular method. Hence, code coverage needs to be tracked and reported for each MUT independently.\\
+In \textsf{Flycatcher} the target of the output unit testing suite is the CUT, as by default all of its methods are tested one by one. But as these methods each become the MUT, it is \emph{their} individual coverage that we are interested in. In other words, the candidate tests generated are geared towards a particular method each time, and it is the coverage achieved \emph{in that method} that can give us the quality of a test. Coverage in some other remote part of the program is not relevant to how well we are testing a particular method. Hence, code coverage needs to be tracked and reported for each MUT independently.\\
 
 In order to do so, the following steps are necessary:
 \begin{enumerate}
@@ -209,7 +209,7 @@ The \textsf{Executor} must implement the coverage callback which is called when 
 As a result of this coverage mechanism, the \textsf{Executor} can report:
 
 \begin{itemize}
-   \item Whether a test achieves any \emph{new} coverage for a MUT, and is therefore a useful test to be output in the unit-test suite
+   \item Whether a test achieves any \emph{new} coverage for a MUT, and is therefore a useful test to be output in the unit test suite
    \item What the current total code coverage for a MUT is, which is used to inform the user of coverage progress, and terminate upon full coverage
 \end{itemize}
 
