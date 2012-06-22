@@ -1,0 +1,24 @@
+   
+   LinkedList = function() {
+   }
+   LinkedList.prototype.add = ...
+   LinkedList.prototype.remove = ...
+   LinkedList.prototype.size = ...
+   
+   {LinkedList :
+      constructorInfo : [Object],
+      methodsInfo : [
+         add : [Object],
+         remove : [Object],
+         size : [Object]
+      ]
+   }
+   
+   var l = new LinkedList();
+   var node = new Node();
+   l.add(node);
+   l.remove(node);
+   assert(l.size() === 0);
+   
+   
+   
