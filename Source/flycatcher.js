@@ -25,12 +25,16 @@ cmd
 .version('1.0')
 .usage('<file path> <class name> [options]')
 .option('-m, --method <name>', 'generate tests for a specific method')
-.option('-t, --timeout <num>', 'timeout after a number of valid tests with no coverage', Number, Number.MAX_INT)
-.option('-u, --minimum-uses <num>', 'number of parameter uses required before attempting type inference', Number, 20)
-.option('-n, --custom-numbers <name>', 'JavaScript RegExp describing a custom set of numbers to use e.g \'[1-4]\'')
-.option('-s, --custom-strings <name>', 'JavaScript RegExp describing a custom set of strings to use e.g. \'[a-d]+\'')
-.option('-l, --sequence-length <num>', 'maximum length of method call sequence in tests', Number, 20)
 .option('-N, --namespace <name>', 'specify a namespace for your class')
+.option('-o, --output-format [expresso|node-unit]', 'specify a unit test suite output format')
+.option('-f, --test-suite-file <name>', 'specify a destination file to output the test suite')
+.option('-b, --bug-report-file <name>', 'specify a destination file to output the bug report')
+.option('-s, --custom-strings <re>', 'JavaScript RegExp describing a custom set of strings to use e.g. \'[a-d]+\'')
+.option('-n, --custom-numbers <re>', 'JavaScript RegExp describing a custom set of numbers to use e.g \'[1-4]\'')
+.option('-t, --timeout <num>', 'timeout after <num> tests are generated with no coverage', Number, Number.MAX_INT)
+.option('-T, --strict-timeout <num>', 'timeout after <num> seconds')
+.option('-l, --max-sequence-length <num>', 'maximum length of method call sequence in tests', Number, 10)
+.option('-d, --type-inference-delay <num>', 'min number of calls involving a parameter before its type inference', Number, 20)
 .parse(process.argv);
 
 (function main(cmd) {
@@ -57,12 +61,6 @@ cmd
     var classContext = {};
     Object.defineProperty(classContext,"log", {get : function() {return console.log},
                                                enumerable : false});
-    // Object.defineProperty(classContext,"util", {get : function() {return util},
-    //                                             enumerable : false});
-    // Object.defineProperty(classContext,"EventEmitter", {get : function() {return EventEmitter},
-    //                                                     enumerable : false});
-    // Object.defineProperty(classContext,"crypto", {get : function() {return require('crypto')},
-    //                                               enumerable : false});
     try {
         vm.runInNewContext(src, classContext);
     }
@@ -97,11 +95,10 @@ cmd
     
     if(!MUTdefined) {
         console.error("Error: specified method <" + cmdMethod + "> was not found in class <" + CUTname +">");
-        console.error("(see README for information on recognised class definitions)");
         console.log(cmd.helpInformation());
     }
     
-    outputTests(src, pgmInfo, unitTests, failingTests);
+    outputTests(src, pgmInfo, unitTests, failingTests, cmd.testSuiteFile, cmd.bugReportFile);
 })(cmd);
 
 function Timeout(){
@@ -115,7 +112,8 @@ function Timeout(){
 function generateTests(src, pgmInfo, unitTests, failingTests) {
     try {
         var noCoverage = 0;
-        var exec = new Executor(src, pgmInfo);
+        var start = Date.now();        
+        var exec = new Executor(src, pgmInfo, start, cmd.strictTimeout);
 
         var MUTname = pgmInfo.MUT.name;
         var CUTname = pgmInfo.CUTname;
@@ -126,12 +124,21 @@ function generateTests(src, pgmInfo, unitTests, failingTests) {
             var test = RandomTest.generate(pgmInfo);            
             exec.setTest(test);
             // exec.showMUT();
-            // exec.showTest(test);
+            // exec.showTest();
             var testRun = exec.run();
             
             if(!test.hasUnknowns()) {
                 if (testRun.newCoverage) {
-                    unitTests.push(test.toUnitTestFormat(testRun.results, ++count));
+                    if (cmd.outputFormat === "expresso")
+                        unitTests.push(test.toExpressoFormat(testRun.results, ++count));
+                    else if (cmd.outputFormat === "node-unit")
+                        unitTests.push(test.toNodeUnitFormat(testRun.results, ++count));
+                    else if (cmd.outputFormat) {
+                        console.error("ERROR:".red + " Unit test suite format specified is unsupported.");
+                        process.exit(1);
+                    }
+                    else
+                        unitTests.push(test.toAssertFormat(testRun.results, ++count));
                 }
                 // the timeout is to avoid looping forever in the case
                 // that the generated tests cannot achieve any further
@@ -157,10 +164,11 @@ function generateTests(src, pgmInfo, unitTests, failingTests) {
     }
 }
 
-function outputTests(src, pgmInfo, unitTests, failingTests) {
+function outputTests(src, pgmInfo, unitTests, failingTests, testsFile, errorsFile) {
     var CUTname = pgmInfo.CUTname;
     if (unitTests.length) {
-        var unitTestsFile = "./results/Flycatcher_" + CUTname + ".js";
+        var unitTestsFile = testsFile ?
+                            testsFile : "./Flycatcher_" + CUTname + ".js";
         console.log(("\n--> Unit tests can be found in " + unitTestsFile).good);
         fs.writeFileSync(unitTestsFile,
             generateUnitTests(src, CUTname, unitTests)
@@ -169,7 +177,8 @@ function outputTests(src, pgmInfo, unitTests, failingTests) {
     else console.log("\n--> No unit tests were generated.".bad);
 
     if (failingTests.length) {
-        var failingTestsFile = "./results/Flycatcher_" + CUTname + ".log";
+        var failingTestsFile = errorsFile ?
+                               errorsFile : "./Flycatcher_" + CUTname + ".log";
         console.log(("--> Failings tests can be found in " + failingTestsFile).bad);
         fs.writeFileSync(failingTestsFile,
             generateFailingTests(src, CUTname, failingTests)

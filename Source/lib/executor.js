@@ -40,12 +40,15 @@ const OBJECT_HIDDEN_PROPS = ["__defineGetter__", "__defineSetter__",
                              "propertyIsEnumerable", "watch", "unwatch",
                              "inspect", "constructor"];
 
-var Executor = module.exports.Executor = function(src, pgmInfo) 
+var Executor = module.exports.Executor = function(src, pgmInfo, start, stop) 
 {
     this.test = {};
     this.coverage = {};
     this.currentCov = 0;
+    this.start = start;
+    this.stop = start + stop*1000;
     this.MUTname = pgmInfo.MUT.name;
+    this.namespace = pgmInfo.ns;
     this.source = src;
     this.context = this.createContext(pgmInfo);
     this.wrappedMUT = this.wrapMUT(pgmInfo);
@@ -87,10 +90,12 @@ Executor.prototype.updateCoverage = function(currentCoverage, good) {
     if (good) {
         this.currentCov = Math.round((currentCoverage / _.size(this.coverage) * 100) *
         Math.pow(10, 2) / Math.pow(10, 2));
-        if (this.currentCov === 100) 
+        if (this.currentCov === 100) {
             console.log((this.currentCov + "% coverage.").good);
-        else
+        }
+        else {
             console.log((this.currentCov + "% coverage...").info2);
+        }
     }
 };
 
@@ -145,7 +150,9 @@ Executor.prototype.wrapMUT = function(pgmInfo) {
         }
     }    
     var MUT = pgmInfo.MUT;
-    var MUTdeclaration = pgmInfo.CUTname + ".prototype." + MUT.name + " = " + MUT.def;
+    var MUTdeclaration = "";
+    if (this.namespace) MUTdeclaration += this.namespace + ".";
+    MUTdeclaration += pgmInfo.CUTname + ".prototype." + MUT.name + " = " + MUT.def;
     var wrapped = burrito(MUTdeclaration, wrapper);
     var coverage = this.coverage;
     _.forEach(wrapped.nodeIndexes,function(num){
@@ -304,7 +311,7 @@ function createExecHandler(pgmInfo) {
                 return function() {
                     // if valueOf is important it will be implemented and not trapped
                     return (function() {
-                        const MAX_INT = (1 << 15);
+                        const MAX_INT = (1 << 5);
                         // returns a number from 0 to 65535
                         if(Math.random() > 0.2) return Math.floor(Math.random()*MAX_INT);
                         // we need more 0s as they are significant for covering branches
@@ -348,7 +355,7 @@ Executor.prototype.createContext = function(pgmInfo) {
             };
         },
         
-        log : console.log,
+        log : console.log,  
         
         proxy : function(className, methodName, paramIndex) {
             var ExecHandler = createExecHandler(pgmInfo);
@@ -405,14 +412,12 @@ Executor.prototype.run = function() {
     var results = [];
     try {
         results = vm.runInNewContext(this.vmSource, this.context);
-        var after = this.covered();
-        var newCoverage = after > before;
-        this.updateCoverage(after, newCoverage);
-        return {
-            newCoverage: newCoverage,
-            results: results,
-            coverage: this.currentCov,
-        };
+        var t = Date.now();
+        // console.log((t-this.start)/1000);
+        if (t > this.stop) {
+            console.log('TIMEOUT: ', (t-this.start)/1000);
+            process.exit(0);
+        }
     }
     catch(err) {
         // If the test run yields an error, this test will not become a unit test
@@ -452,7 +457,7 @@ Executor.prototype.run = function() {
             // the line of code for the error err.toString() + name
             try {
                 var methodName = trace.methodName === "MUT" ?
-                                 this.MUTname : trace.methodName;                
+                                 this.MUTname : trace.methodName;
             }
             catch (err) {
                 console.log(stackTrace.parse(err));
@@ -460,12 +465,29 @@ Executor.prototype.run = function() {
                 process.exit(0);
             }
             */
+            var trace = _.find(stackTrace.parse(err), function(value){
+                // we want the line number to correspond the line in
+                // the vm script, not the one in the Flycatcher source,
+                // nor within any native code: the first entry with
+                // the fileName set to evalmachine.<anonymous> will
+                // return that line
+                return value.fileName && // ignore if it is null
+                       value.fileName.indexOf("evalmachine") !== -1;
+            });
             return {
-                msg: err.toString(),
+                msg: err.toString() + " in method <" + trace.methodName + ">",
                 error: true
             }
         }
     }
+    var after = this.covered();
+    var newCoverage = after > before;
+    this.updateCoverage(after, newCoverage);
+    return {
+        newCoverage: newCoverage,
+        results: results,
+        coverage: this.currentCov,
+    };
 };
 
 

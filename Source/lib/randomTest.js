@@ -95,13 +95,13 @@ Test.prototype.toExecutorFormat = function() {
     return test.join('\n');
 }
 
-Test.prototype.toUnitTestFormat = function(results, testIndex) {
+Test.prototype.toAssertFormat = function(results, testIndex) {
     var test = [];
     test.push("// MUT <" + this.MUTname + "> #" + testIndex);
     for (var i = 0; i<this.stack.length; ++i) {
         var testElement = this.stack[i];
         test.push(
-            testElement.statement.toUnitTestFormat(testElement.paramIds, results));
+            testElement.statement.toAssertFormat(testElement.paramIds, results));
     }
     return test.join('\n');
 }
@@ -111,7 +111,7 @@ Test.prototype.toFailingTestFormat = function(msg) {
     test.push("// MUT " + this.MUTname);
     for (var i = 0; i<this.stack.length; ++i) {
         var testElement = this.stack[i];
-        test.push(testElement.statement.toUnitTestFormat(testElement.paramIds));
+        test.push(testElement.statement.toAssertFormat(testElement.paramIds));
     }
     test.push(msg);
     return test.join('\n');
@@ -133,13 +133,13 @@ function Unknown(identifier, parentType, parentMethod, index) {
 
 function Declaration(identifier, type, params) {
     this.identifier = identifier;
-    this.type = type;
+    this.type = Test.ns ? Test.ns + "." + type : type;
     this.params = params;
     this.toExecutorFormat = function(paramIds) {
         return "var " + this.identifier + " = new " + this.type + "(" +
                 toParams(paramIds) + ");";
     };
-    this.toUnitTestFormat = function(paramIds) {
+    this.toAssertFormat = function(paramIds) {
         return "var " + this.identifier + " = new " + this.type + "(" +
                 toParams(paramIds) + ");";
     };
@@ -150,7 +150,7 @@ function Call(receiver, methodName, params, type) {
     this.methodName = methodName;
     this.params = params;
     this.type = type;
-    this.toExecutorFormat = this.toUnitTestFormat = function(paramIds) {
+    this.toExecutorFormat = this.toAssertFormat = function(paramIds) {
         var r = receiver + "." + this.methodName;
             r += "(" + toParams(paramIds) + ");"
         return r;
@@ -169,7 +169,7 @@ function MUTcall(receiver, methodName, params, type, number) {
                   + "(" + toParams(paramIds) + ");"
         return ret;
     }
-    this.toUnitTestFormat = function(paramIds, results) {
+    this.toAssertFormat = function(paramIds, results) {
 
                 var ret = "";
                 if (results) {
@@ -219,27 +219,24 @@ exports.generate = function(pgmInfo) {
     var MUTname = pgmInfo.MUT.name;
 
     pgmInfo.makeInferences();
-
+    Test.ns = pgmInfo.ns;
     var test = new Test(MUTname);
     var ctrParams = pgmInfo.getConstructorParams(CUTname);
-    
-    // FIXME: updating usage counters this way only updates it for the ctr
-    // params but not for the params of the other ctr that this ctr provokes
-    // the call of through pushes on the stack
-    updateUsageCounters(ctrParams);
+
+    updateUseCounters(ctrParams);
     var receiver = new Declaration(CUTname.toLowerCase() + _.uniqueId(), CUTname,
         pgmInfo.getRecursiveParams(_.pluck(ctrParams, "inferredType")));
     test.push(receiver);
 
     var callSequence = [];
     // -1 because MUT is added at the end
-    randomSequenceLength = Math.ceil(Math.random()*pgmInfo.sequenceLength-1);
+    randomSequenceLength = Math.ceil(Math.random()*pgmInfo.maxSequenceLength-1);
     var CUTmethods = pgmInfo.getMethods(CUTname);
     for (var j = 0; j<randomSequenceLength;j++) {
         var randomMethod = Math.floor(Math.random()*CUTmethods.length);
         var CUTmethod = CUTmethods[randomMethod];
 
-        updateUsageCounters(CUTmethod.params);
+        updateUseCounters(CUTmethod.params);
         if (CUTmethod === pgmInfo.MUT) {
             // test.MUTcalls used to collect results inside the vm environment
             test.push(new MUTcall(receiver.identifier, CUTmethod.name,
@@ -252,16 +249,16 @@ exports.generate = function(pgmInfo) {
         }
     }
     var MUT = pgmInfo.MUT;
-    updateUsageCounters(MUT.params);
+    updateUseCounters(MUT.params);
     test.push(new MUTcall(receiver.identifier, MUT.name,
                           pgmInfo.getRecursiveParams(_.pluck(MUT.params, "inferredType")),
                           CUTname, test.MUTcalls++));
     return test;
 }
 
-function updateUsageCounters(params) {
+function updateUseCounters(params) {
     _.forEach(params, function(param) {
-        param.usageCounter++;
+        param.useCounter++;
     });
 }
 

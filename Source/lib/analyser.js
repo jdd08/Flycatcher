@@ -43,10 +43,11 @@ const STRING_INSTANCE_PROPS = [
     "trimRight"
 ]
 
-function ProgramInfo(CUTname, sequenceLength) {
+function ProgramInfo(CUTname, maxSequenceLength, ns) {
     this.classes = {};
     this.CUTname = CUTname;
-    this.sequenceLength = sequenceLength;
+    this.maxSequenceLength = maxSequenceLength;
+    this.ns = ns;
 }
 
 ProgramInfo.prototype.setMUT = function(method) {
@@ -65,7 +66,6 @@ ProgramInfo.prototype.makeInferences = function() {
 // retrieves the ParamInfo objects for a class
 // returns [] for primitive types
 ProgramInfo.prototype.getConstructorParams = function(className) {
-//    console.log(util.inspect(this.classes, false, null));
     switch(className) {
         case "number":
         case "string":
@@ -78,13 +78,12 @@ ProgramInfo.prototype.getConstructorParams = function(className) {
 // obtains a hierarchy of inferred types for a parameter,
 // in order to generate that hierarchy of objects for a test
 ProgramInfo.prototype.getRecursiveParams = function(inferences) {
-//    console.log(inferences);
     var recursiveParams = [];
     for (var p=0; p < inferences.length; p++) {
         var inference = inferences[p];
         var inferenceParams = this.getConstructorParams(inference);
         _.forEach(inferenceParams, function(param) {
-            param.usageCounter++;
+            param.useCounter++;
         });        
         recursiveParams.push({
             type: inference,
@@ -116,25 +115,25 @@ ProgramInfo.prototype.getMethods = function(className) {
 
 // public method used to initialise the ProgramInfo object for a run of Flycatcher
 exports.getProgramInfo = function(cmd, classContext, CUTname) {
-    var pgmInfo = new ProgramInfo(CUTname, cmd.sequenceLength);
-    
-    ParamInfo.minUsesRequired = cmd.minimumUses;
-
-    if (!classContext[CUTname]){
+    var ns = cmd.namespace;
+    var pgmInfo = new ProgramInfo(CUTname, cmd.maxSequenceLength, ns);
+    ParamInfo.typeInferenceDelay = cmd.typeInferenceDelay;
+    var context = ns ? classContext[ns] : classContext;
+    if (!context || !context[CUTname]){
         console.error("Error: specified class <" + CUTname + "> was not found");
-        console.error("(see README for information on recognised class definitions)");
+        if(ns) console.error("       in specified namespace <" + ns + ">");
         console.info(cmd.helpInformation());
         process.exit(1);
     }
     var mutDefined = false;
-    for (var className in classContext) {
+    for (var className in context) {
         // the convention is to name constructors with a capital
         // letter, this avoid trying to construct functions which
         // are not meant to be constructed
-        if(typeof classContext[className] === "function" &&
-           className[0] === className[0].toUpperCase()) {
+        if(typeof context[className] === "function") {
+           // className[0] === className[0].toUpperCase()) {
             // retrieving constructor for the class under test
-            var constructor = classContext[className];
+            var constructor = context[className];
             
             var ctrParams = [];
             for (var i = 0; i<constructor.length; i++) {
@@ -239,7 +238,7 @@ function ParamInfo(name, methodName) {
         string : 0,
         bool : 0        
     }
-    this.usageCounter = 0;
+    this.useCounter = 0;
     // if we try random primitives out of lack of
     // information, we set this flag to true
     this.unsure = false;
@@ -250,7 +249,7 @@ function sumValues(obj) {
         function(memo, num){ return memo + num; }, 0);
 }
 
-ParamInfo.prototype.hasSufficientUsage = function() {
+ParamInfo.prototype.hasSufficientUses = function() {
     // We do not start inferring types for the parameters straight
     // away: we wait until they have been used in a certain # of
     // method calls/constructors, so that we can make a stronger
@@ -262,7 +261,7 @@ ParamInfo.prototype.hasSufficientUsage = function() {
     //   we use a number instead
     // * If there are mistakes in the types, the user may want to adjust
     //   this variable, such that estimates are made with even more confidence.
-    return this.usageCounter >= ParamInfo.minUsesRequired;
+    return this.useCounter >= ParamInfo.typeInferenceDelay;
 };
 
 ParamInfo.prototype.isUnknown = function() {
@@ -274,9 +273,9 @@ ParamInfo.prototype.makeInferences = function(pgmInfo) {
     // in the names only not the number of calls
     var membersAccessed = _.uniq(this.membersAccessed);
     this.membersAccessed = membersAccessed;
-    if (this.hasSufficientUsage()) {
+    if (this.hasSufficientUses()) {
         if (!this.unsure) {
-            console.log("INFO: ".info1 + "Inferring a type for parameter " +
+            console.log("INFO: " + "Inferring a type for parameter " +
             this.name + " of method " + this.methodName + "...");
         }
         // this if statement comes before the operator inference
@@ -362,38 +361,10 @@ ParamInfo.prototype.makeInferences = function(pgmInfo) {
             }
             this.inferredType = Math.random() > 0.5 ? 'number' : 'string';
             this.unsure = true;
-            // this.inferredType = "number";
-            // console.warn("         The following options are available:");
-            // console.warn("         (1) The type of this parameter is not important in this context, use anything");
-            // console.warn("         (2) The type of this parameter matters, keep trying");
-            // console.warn("         Enter 1 or 2:");
-            // var i = rl.createInterface(process.stdin, process.stdout, null);
-            // i.question("What do you think of node.js?", function(answer) {
-            //   // TODO: Log the answer in a database
-            //   console.log("Thank you for your valuable feedback.");
-            // 
-            //   // These two lines together allow the program to terminate. Without
-            //   // them, it would run forever.
-            //   i.close();
-            //   process.stdin.destroy();
-            // });
-            // 
-            // // var a = i.question("What do you think of node.js?", function(answer) {
-            // //   // TODO: Log the answer in a database
-            // //   console.log("Thank you for your valuable feedback.");
-            // // 
-            // //   // These two lines together allow the program to terminate. Without
-            // //   // them, it would run forever.
-            // //   i.close();
-            // //   process.stdin.destroy();
-            // //   return true;
-            // // });
-            
         }
     }
 }
 
-// AUXILLIARY
 const TRAP_THRESHOLD = 50;
 var TrapThresholdExceeded = function (){};
 
