@@ -4,8 +4,9 @@ var beautify = require('beautify').js_beautify;
 var colors = require('colors');
 var Randexp = require('randexp');
 
-function Test(MUTname) {
+function Test(CUTname, MUTname) {
     this.unknowns = false;
+    this.CUTname = CUTname;
     this.MUTname = MUTname;
     this.stack = [];
     this.pool = {};
@@ -97,12 +98,26 @@ Test.prototype.toExecutorFormat = function() {
 
 Test.prototype.toAssertFormat = function(results, testIndex) {
     var test = [];
-    test.push("// MUT <" + this.MUTname + "> #" + testIndex);
+    var name = "Test " + this.CUTname + "." + this.MUTname + " #" + testIndex;
+    test.push("// " + name);
     for (var i = 0; i<this.stack.length; ++i) {
         var testElement = this.stack[i];
         test.push(
             testElement.statement.toAssertFormat(testElement.paramIds, results));
     }
+    test.push("console.log('"+ name + " passed')")
+    return test.join('\n');
+}
+
+Test.prototype.toExpressoFormat = function(results, testIndex) {
+    var test = [];
+    test.push("exports['Test " + this.CUTname + "." + this.MUTname + " #" + testIndex + "'] = function(){");
+    for (var i = 0; i<this.stack.length; ++i) {
+        var testElement = this.stack[i];
+        test.push(
+            testElement.statement.toExpressoFormat(testElement.paramIds, results));
+    }
+    test.push('}')
     return test.join('\n');
 }
 
@@ -139,7 +154,8 @@ function Declaration(identifier, type, params) {
         return "var " + this.identifier + " = new " + this.type + "(" +
                 toParams(paramIds) + ");";
     };
-    this.toAssertFormat = function(paramIds) {
+    this.toAssertFormat = 
+    this.toExpressoFormat = function(paramIds) {
         return "var " + this.identifier + " = new " + this.type + "(" +
                 toParams(paramIds) + ");";
     };
@@ -150,7 +166,9 @@ function Call(receiver, methodName, params, type) {
     this.methodName = methodName;
     this.params = params;
     this.type = type;
-    this.toExecutorFormat = this.toAssertFormat = function(paramIds) {
+    this.toExecutorFormat =
+    this.toAssertFormat =
+    this.toExpressoFormat = function(paramIds) {
         var r = receiver + "." + this.methodName;
             r += "(" + toParams(paramIds) + ");"
         return r;
@@ -169,19 +187,16 @@ function MUTcall(receiver, methodName, params, type, number) {
                   + "(" + toParams(paramIds) + ");"
         return ret;
     }
-    this.toAssertFormat = function(paramIds, results) {
+    this.toAssertFormat =
+    this.toExpressoFormat = function(paramIds, results) {
 
                 var ret = "";
                 if (results) {
                     var result = results[this.number];
-        //            result = "\"" + r + "\"";
-//        console.log(typeof result);
-//                if (typeof result === "string") result = "\"" + result + "\"";
-        //            else result = util.inspect(result, false, null);
                     var assertOp = typeof result === "object" ? "deepEqual" : "equal"
                     var assertion = this.receiver + "." + this.methodName + "(";
                     assertion += toParams(paramIds) + "), " + beautify(util.inspect(result, false, null));
-                    ret = "assert." + assertOp + "(" + assertion + ")";
+                    ret = "assert." + assertOp + "(" + assertion + ");";
                 }
                 else {
                     ret = receiver + "." + this.methodName + "(" + toParams(paramIds) + ");";
@@ -220,7 +235,7 @@ exports.generate = function(pgmInfo) {
 
     pgmInfo.makeInferences();
     Test.ns = pgmInfo.ns;
-    var test = new Test(MUTname);
+    var test = new Test(CUTname, MUTname);
     var ctrParams = pgmInfo.getConstructorParams(CUTname);
 
     updateUseCounters(ctrParams);

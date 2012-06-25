@@ -43,6 +43,8 @@ const STRING_INSTANCE_PROPS = [
     "trimRight"
 ]
 
+const TRAP_THRESHOLD = 50;
+
 function ProgramInfo(CUTname, maxSequenceLength, ns) {
     this.classes = {};
     this.CUTname = CUTname;
@@ -127,14 +129,10 @@ exports.getProgramInfo = function(cmd, classContext, CUTname) {
     }
     var mutDefined = false;
     for (var className in context) {
-        // the convention is to name constructors with a capital
-        // letter, this avoid trying to construct functions which
-        // are not meant to be constructed
         if(typeof context[className] === "function") {
-           // className[0] === className[0].toUpperCase()) {
             // retrieving constructor for the class under test
             var constructor = context[className];
-            
+
             var ctrParams = [];
             for (var i = 0; i<constructor.length; i++) {
                 ctrParams.push(new ParamInfo(getParamNames(constructor)[i],
@@ -156,9 +154,7 @@ exports.getProgramInfo = function(cmd, classContext, CUTname) {
             var len = constructor.length;
             for (var i = 0; i < len; i++) {
                 // we use empty proxy parameters because we are not interested in
-                // what the constructor methods achieve atm, just the class's methods
-                
-                // TODO: should be Function Proxy
+                // what the constructor methods achieve atm, just the class's methods                
                 emptyParams[i] = Proxy.create(new IdleHandler());
             }
 
@@ -196,7 +192,6 @@ exports.getProgramInfo = function(cmd, classContext, CUTname) {
                                                        fields);
         }
     }
-    // console.log(util.inspect(pgmInfo, false, null));
     return pgmInfo;
 }
 
@@ -258,9 +253,10 @@ ParamInfo.prototype.hasSufficientUses = function() {
     // When we start to try and infer:
     // * If there isn't any data to work with we issue a warning -
     //   the parameter might never be used. To avoid looping
-    //   we use a number instead
+    //   we use a primitive instead
     // * If there are mistakes in the types, the user may want to adjust
-    //   this variable, such that estimates are made with even more confidence.
+    //   the type inference delay variable, such that estimates can be
+    //   made with even more confidence
     return this.useCounter >= ParamInfo.typeInferenceDelay;
 };
 
@@ -278,10 +274,8 @@ ParamInfo.prototype.makeInferences = function(pgmInfo) {
             console.log("INFO: " + "Inferring a type for parameter " +
             this.name + " of method " + this.methodName + "...");
         }
-        // this if statement comes before the operator inference
-        // because even having just one member function call
-        // rules out the possibility that the type is a primitive
-        // TODO: look at native types and their member function calls
+        // this if statement comes before the operator inference because
+        // it may rule out the possibility that the type is a primitive
         if (membersAccessed.length) {
             var currentMatches = 0;
             var name = "";
@@ -350,8 +344,7 @@ ParamInfo.prototype.makeInferences = function(pgmInfo) {
             this.inferredType = t;
             console.log("=> " + this.inferredType.yellow);            
         }
-        // if we cannot infer a type, simply issue a warning
-        // and keep trying until one of the timeouts happens
+        // if we cannot infer a type, issue a warning and try with a random primitive
         else {
             if (!this.unsure) {
                 console.warn("WARNING: ".warn + "No information to infer param " +
@@ -365,9 +358,7 @@ ParamInfo.prototype.makeInferences = function(pgmInfo) {
     }
 }
 
-const TRAP_THRESHOLD = 50;
 var TrapThresholdExceeded = function (){};
-
 var IdleHandler = exports.IdleHandler = function(){
     this.trapCount = 0;
 };
@@ -381,27 +372,23 @@ IdleHandler.prototype = {
     
     // trapped: Object.getOwnPropertyDescriptor(proxy, name)
     getOwnPropertyDescriptor: function(name) {
-        // console.log("INSIDE ANALYSER GET OWN PROP",name);
         return undefined;
     },
     
     // Not in ES5!    
     // trapped: Object.getPropertyDescriptor(proxy, name)
     getPropertyDescriptor: function(name) {
-        // console.log("INSIDE ANALYSER GET PROP",name);
         return undefined;
     },
 
     // trapped: Object.getOwnPropertyNames(proxy)
     getOwnPropertyNames: function() {
-        // console.log("INSIDE ANALYSER GET OWN PROPERTY NAMES");
         return [];
     },
 
     // Not in ES5!
     // trapped: Object.getPropertyNames(proxy)
     getPropertyNames: function() {
-        // console.log("INSIDE ANALYSER GET PROPERTY NAMES");
         return [];
     },
     
@@ -410,14 +397,11 @@ IdleHandler.prototype = {
     
     // trapped: Object.defineProperty(proxy,name,pd)
     defineProperty: function(name, pd) {
-        // console.log("INSIDE ANALYSER DEFINE PROPERTY",name);
         return true;
     },
 
     // trapped: delete proxy.name
     delete: function(name) {
-        // console.log("INSIDE ANALYSER DELETE",name);            
-        // pretend to succeed
         return true; // to avoid throw in strict mode
     },
     
@@ -440,11 +424,7 @@ IdleHandler.prototype = {
         if (name === "valueOf") {
             return function() {
                 return (function() {
-                    const MAX_INT = (1 << 15);
-                    // returns a number from 0 to 65535
-                    if(Math.random() > 0.2) return Math.floor(Math.random()*MAX_INT);
-                    // we need more 0s as they are significant for covering branches
-                    else return 0;
+                    return 1;
                 })();
             }
         }
@@ -460,10 +440,11 @@ IdleHandler.prototype = {
     // return true to avoid throw in strict mode
     // trap: proxy.name = value
     set: function(receiver, name, value) {
-        // console.log("INSIDE ANALYSER SET PROP",name);
         return true;
     }
 };
+
+// AUXILLARIES
 
 function getParamNames(func) {
     var reg = /\(([\s\S]*?)\)/;

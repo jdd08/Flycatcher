@@ -17,7 +17,7 @@ proxy.m().f;
 proxy.m().m();
 proxy.m.valueOf();
 proxy.m.toString();
-// /proxy.m = function(){};
+proxy.m = function(){};
 
 // TESTING FUNDAMENTAL TRAPS (the ones in ES5)
 

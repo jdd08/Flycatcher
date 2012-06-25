@@ -3,6 +3,7 @@
 var Analyser = require('./lib/analyser.js');
 var RandomTest = require('./lib/randomTest.js');
 var Executor = require('./lib/executor.js').Executor;
+var StrictTimeout = require('./lib/executor.js').StrictTimeout;
 
 var util = require('util');
 var fs = require('fs');
@@ -10,8 +11,6 @@ var vm = require('vm');
 
 var _ = require('underscore');
 var colors = require('colors');
-var cmd = require('commander');
-
 colors.setTheme({
   info1: 'blue',
   info2: 'yellow',  
@@ -20,7 +19,7 @@ colors.setTheme({
   error: 'red',
   bad: 'red'
 });
-
+var cmd = require('commander');
 cmd
 .version('1.0')
 .usage('<file path> <class name> [options]')
@@ -54,13 +53,11 @@ cmd
         console.info(cmd.helpInformation());
         process.exit(1);
     }
-
-    // TODO remove log from the classContext and add options to specify the type
-    // of environment that the test programs should be run, adding the appropriate
-    // context objects
-    var classContext = {};
-    Object.defineProperty(classContext,"log", {get : function() {return console.log},
-                                               enumerable : false});
+    
+    var classContext = {exports : {}};
+    // console.log(exports);
+    // Object.defineProperty(classContext,"exports", {get : function() {return {}},
+    //                                                      enumerable : false});    
     try {
         vm.runInNewContext(src, classContext);
     }
@@ -71,7 +68,7 @@ cmd
     }
     
     var pgmInfo = Analyser.getProgramInfo(cmd, classContext, CUTname);
-    
+
     // initialising custom primitive data generators if need be
     var numRE = cmd.customNumbers;
     if (numRE) RandomTest.DataGenerator.setNumbers(numRE);
@@ -123,8 +120,10 @@ function generateTests(src, pgmInfo, unitTests, failingTests) {
         while (exec.getCoverage() < 100) {
             var test = RandomTest.generate(pgmInfo);            
             exec.setTest(test);
-            // exec.showMUT();
             // exec.showTest();
+            // exec.showSource();
+            // exec.showMUT();
+            // exec.showCoverage();
             var testRun = exec.run();
             
             if(!test.hasUnknowns()) {
@@ -148,11 +147,10 @@ function generateTests(src, pgmInfo, unitTests, failingTests) {
                 // if the timeout expires we can see what the failing tests were
                 if (testRun.error) failingTests.push(test.toFailingTestFormat(testRun.msg));
             }
-            // exec.showCoverage();
         }
     }
     catch(err) {
-        if(err instanceof Timeout) {
+        if(err instanceof Timeout || err instanceof StrictTimeout) {
             console.log(err.toString());
         }
         else {
@@ -167,8 +165,7 @@ function generateTests(src, pgmInfo, unitTests, failingTests) {
 function outputTests(src, pgmInfo, unitTests, failingTests, testsFile, errorsFile) {
     var CUTname = pgmInfo.CUTname;
     if (unitTests.length) {
-        var unitTestsFile = testsFile ?
-                            testsFile : "./Flycatcher_" + CUTname + ".js";
+        var unitTestsFile = testsFile || "./Flycatcher_" + CUTname + ".js";
         console.log(("\n--> Unit tests can be found in " + unitTestsFile).good);
         fs.writeFileSync(unitTestsFile,
             generateUnitTests(src, CUTname, unitTests)
@@ -177,8 +174,7 @@ function outputTests(src, pgmInfo, unitTests, failingTests, testsFile, errorsFil
     else console.log("\n--> No unit tests were generated.".bad);
 
     if (failingTests.length) {
-        var failingTestsFile = errorsFile ?
-                               errorsFile : "./Flycatcher_" + CUTname + ".log";
+        var failingTestsFile = errorsFile || "./Flycatcher_" + CUTname + ".log";
         console.log(("--> Failings tests can be found in " + failingTestsFile).bad);
         fs.writeFileSync(failingTestsFile,
             generateFailingTests(src, CUTname, failingTests)
@@ -187,12 +183,9 @@ function outputTests(src, pgmInfo, unitTests, failingTests, testsFile, errorsFil
     else console.log("--> No candidate tests failed".good);
     
     function generateFailingTests(src, CUTname, tests) {
-        var header = "/*****************************************\n\n";
-        header += "                  FLYCATCHER\n";
-        header += "                 FAILING TEST LOG\n";
-        header += "        ------------------------------\n\n";
-        header += "        CLASS: " + CUTname + "\n";
-        header += "*******************************************/\n\n"
+        var header = "------------------------------------------\n";
+        header += " FLYCATCHER BUG REPORT for " + CUTname + "\n";
+        header += "---------------------------------------------\n\n";
         var res = "";
         for (var t=0; t < tests.length; t++) {
             res += tests[t];
@@ -202,16 +195,20 @@ function outputTests(src, pgmInfo, unitTests, failingTests, testsFile, errorsFil
     }
 
     function generateUnitTests(src, CUTname, tests) {
-        var header = "/*****************************************\n\n";
-        header += "                  FLYCATCHER\n";
-        header += "        AUTOMATIC UNIT TEST GENERATION\n";
-        header += "        ------------------------------\n\n";
-        header += "        CLASS: " + CUTname + "\n";
-        header += "*******************************************/\n\n"
+        var header = "// ---------------------------------------------\n";
+        header += "// FLYCATCHER TEST SUITE for " + CUTname + "\n";
+        header += "// ---------------------------------------------\n\n";
         header += "var assert = require('assert');\n\n";
         var success = "console.log(\"Unit test suite completed with success!\")";
-        var content = header + src +"\n\ntry {\n\n" + tests.join('\n\n') + "\n\n"+ success; 
-        content += "\n}\ncatch(err) {\n    console.log(err.name,err.message)\n}";
+        var content = header;
+        var classes = _.pluck(pgmInfo.classes, 'name');
+        for (var i in classes) {
+            var c = classes[i];
+            content += "var " + c + " = require('" + __dirname + "/" + cmd.args[0] + "')." + c + ";\n";
+        }
+        if(!cmd.outputFormat) content += "\ntry {\n\n";
+        content += "\n" + tests.join('\n\n') + "\n\n"; 
+        if(!cmd.outputFormat) content += success + "\n}\ncatch(err) {\n    console.log(err.toString())\n}";
         return content;
     }
 }
