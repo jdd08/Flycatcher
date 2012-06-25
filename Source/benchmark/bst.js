@@ -293,7 +293,7 @@ BinarySearchTree.prototype = {
             }
         
         }
-        
+        return true;
     },
     
     /**
@@ -368,3 +368,5 @@ BinarySearchTree.prototype = {
         inOrder(this._root);    
     }
 };
+
+exports.BinarySearchTree = BinarySearchTree;

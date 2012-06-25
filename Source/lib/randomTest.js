@@ -29,7 +29,6 @@ Test.prototype.push = function(statement) {
     for (var p=0; p < params.length; p++) {
         var paramId;
         var paramType = params[p].type;
-        // console.log('ParamType',paramType);
         this.pool[paramType] = this.pool[paramType] || [];
         var paramPool = this.pool[paramType];
         var reuse = paramPool &&
@@ -43,7 +42,6 @@ Test.prototype.push = function(statement) {
             // itself becomes the identifier
             if (!isPrimitive(paramType)) {
                 paramId = paramType.toLowerCase() + _.uniqueId();
-                //console.log(paramId);
             }
             else {
                 paramId = dataGenerator.get(paramType);
@@ -71,9 +69,7 @@ Test.prototype.push = function(statement) {
                  this.push(new Declaration(paramId, paramType, params[p].params));
              }
         }
-        // console.log('Pushing onto paramIds: paramId ' + paramId);
         paramIds.push(paramId);
-        // console.log(paramIds);
     };
     if (isDeclaration) this.pool[parentType].push(parentId);
     this.stack.push({statement: statement,
@@ -121,6 +117,19 @@ Test.prototype.toExpressoFormat = function(results, testIndex) {
     return test.join('\n');
 }
 
+Test.prototype.toNodeUnitFormat = function(results, testIndex) {
+    var test = [];
+    test.push("exports.test" + this.CUTname + "_" + this.MUTname + "_" + testIndex + " = function(test){");
+    for (var i = 0; i<this.stack.length; ++i) {
+        var testElement = this.stack[i];
+        test.push(
+            testElement.statement.toNodeUnitFormat(testElement.paramIds, results));
+    }
+    test.push('test.done();')
+    test.push('}')
+    return test.join('\n');
+}
+
 Test.prototype.toFailingTestFormat = function(msg) {
     var test = [];
     test.push("// MUT " + this.MUTname);
@@ -154,8 +163,9 @@ function Declaration(identifier, type, params) {
         return "var " + this.identifier + " = new " + this.type + "(" +
                 toParams(paramIds) + ");";
     };
-    this.toAssertFormat = 
-    this.toExpressoFormat = function(paramIds) {
+    this.toAssertFormat =
+    this.toExpressoFormat =
+    this.toNodeUnitFormat = function(paramIds) {
         return "var " + this.identifier + " = new " + this.type + "(" +
                 toParams(paramIds) + ");";
     };
@@ -168,7 +178,8 @@ function Call(receiver, methodName, params, type) {
     this.type = type;
     this.toExecutorFormat =
     this.toAssertFormat =
-    this.toExpressoFormat = function(paramIds) {
+    this.toExpressoFormat = 
+    this.toNodeUnitFormat = function(paramIds) {
         var r = receiver + "." + this.methodName;
             r += "(" + toParams(paramIds) + ");"
         return r;
@@ -189,19 +200,26 @@ function MUTcall(receiver, methodName, params, type, number) {
     }
     this.toAssertFormat =
     this.toExpressoFormat = function(paramIds, results) {
-
-                var ret = "";
-                if (results) {
-                    var result = results[this.number];
-                    var assertOp = typeof result === "object" ? "deepEqual" : "equal"
-                    var assertion = this.receiver + "." + this.methodName + "(";
-                    assertion += toParams(paramIds) + "), " + beautify(util.inspect(result, false, null));
-                    ret = "assert." + assertOp + "(" + assertion + ");";
-                }
-                else {
-                    ret = receiver + "." + this.methodName + "(" + toParams(paramIds) + ");";
-                }
+        var ret = "";
+        // AssertFormat is also used in failing tests (no results)
+        if (results) {
+            var result = results[this.number];
+            var assertOp = typeof result === "object" ? "deepEqual" : "equal"
+            var assertion = this.receiver + "." + this.methodName + "(";
+            assertion += toParams(paramIds) + "), " + beautify(util.inspect(result, false, null));
+            ret = "assert." + assertOp + "(" + assertion + ");";
+        }
+        else {
+            ret = this.receiver + "." + this.methodName + "(" + toParams(paramIds) + ");";
+        }
         return ret;
+    }
+    this.toNodeUnitFormat = function(paramIds, results) {
+        var result = results[this.number];
+        var assertOp = typeof result === "object" ? "deepEqual" : "equal"
+        var assertion = this.receiver + "." + this.methodName + "(";
+        assertion += toParams(paramIds) + "), " + beautify(util.inspect(result, false, null));
+        return "test." + assertOp + "(" + assertion + ");";
     }
 }
 

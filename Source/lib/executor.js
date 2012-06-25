@@ -361,7 +361,6 @@ Executor.prototype.showTest = function() {
     console.log('-------------- TEST -------------------');
     console.log(beautify(this.test.toExecutorFormat()));
     console.log('---------------------------------------');
-
 }
 
 Executor.prototype.covered = function() {

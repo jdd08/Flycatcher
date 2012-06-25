@@ -1,4 +1,3 @@
-
 function Triangle(a,b,c) {
     this.a = a;
     this.b = b;
@@ -7,7 +6,7 @@ function Triangle(a,b,c) {
 
 Triangle.prototype.setA = function(a) {
     this.a = a;
-    return this;
+    return a;
 }
 
 Triangle.prototype.setB = function(b) {
@@ -20,13 +19,7 @@ Triangle.prototype.setC = function(c) {
     return c;
 }
 
-Triangle.prototype.getType = function() {
-    function swap(a,b) {
-        var tmp = a;
-        a = b;
-        b = tmp;
-    }
-    
+Triangle.prototype.getType = function() {    
     var type = 'PLAIN';
     var a = this.a;
     var b = this.b;
@@ -34,28 +27,32 @@ Triangle.prototype.getType = function() {
     // swap sides such that a, b and c
     // are ranked from longest to smallest
     if (a<b) {
-        swap(a,b);
+        var tmp = a;
+        a = b;
+        b = tmp;
     }
     if (a<c) {
-        swap(a,c);
+        var tmp = a;
+        a = c;
+        c = tmp;
     }
     if (b<c) {
-        swap(b,c);
+        var tmp = b;
+        b = c;
+        c = tmp;
     }
     
     // checking triangle inequality i.e. making sure
     // that the longest side is smaller than the sum
     // of the other two
     if (a<(b+c)) {
-        if (a === b && b === c) {
-                type = 'EQUILATERAL';
-        }
-        else if (a === b || b === c) {
-            type = 'ISOCELES';
-        }
+        if (a === b && b === c) type = 'EQUILATERAL';
+        else if (a === b || b === c) type = 'ISOCELES';
     }
     else {
         type = 'INVALID';
     }
     return type;
 }
+
+exports.Triangle = Triangle;

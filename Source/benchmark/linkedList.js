@@ -4,8 +4,7 @@
 // It's MIT-licensed, do whatever you want with it.
 // http://www.opensource.org/licenses/mit-license.php
 
-var Node = function(data) {
-  data.valueOf();
+function Node(data) {
   this.prev = null; this.next = null;
   this.data = data;
 };
@@ -36,7 +35,7 @@ LinkedList.prototype = {
 
   remove: function(node) {
     // node not in the list
-    // if (!node.prev) {return false;}
+    if (!node.prev) {return false;}
     if (this.length > 1) {
       node.prev.next = node.next;
       node.next.prev = node.prev;
@@ -102,6 +101,8 @@ LinkedList.prototype = {
       randomNode: function() {
         var n = Math.floor(Math.random() * this.length);
         return this.at(n);
-      }
-  
+      } 
 }
+
+exports.LinkedList = LinkedList;
+exports.Node = Node;

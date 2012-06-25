@@ -25,7 +25,7 @@ cmd
 .usage('<file path> <class name> [options]')
 .option('-m, --method <name>', 'generate tests for a specific method')
 .option('-N, --namespace <name>', 'specify a namespace for your class')
-.option('-o, --output-format [expresso|node-unit]', 'specify a unit test suite output format')
+.option('-o, --output-format [expresso|nodeunit]', 'specify a unit test suite output format')
 .option('-f, --test-suite-file <name>', 'specify a destination file to output the test suite')
 .option('-b, --bug-report-file <name>', 'specify a destination file to output the bug report')
 .option('-s, --custom-strings <re>', 'JavaScript RegExp describing a custom set of strings to use e.g. \'[a-d]+\'')
@@ -55,9 +55,6 @@ cmd
     }
     
     var classContext = {exports : {}};
-    // console.log(exports);
-    // Object.defineProperty(classContext,"exports", {get : function() {return {}},
-    //                                                      enumerable : false});    
     try {
         vm.runInNewContext(src, classContext);
     }
@@ -68,7 +65,6 @@ cmd
     }
     
     var pgmInfo = Analyser.getProgramInfo(cmd, classContext, CUTname);
-
     // initialising custom primitive data generators if need be
     var numRE = cmd.customNumbers;
     if (numRE) RandomTest.DataGenerator.setNumbers(numRE);
@@ -120,17 +116,12 @@ function generateTests(src, pgmInfo, unitTests, failingTests) {
         while (exec.getCoverage() < 100) {
             var test = RandomTest.generate(pgmInfo);            
             exec.setTest(test);
-            // exec.showTest();
-            // exec.showSource();
-            // exec.showMUT();
-            // exec.showCoverage();
             var testRun = exec.run();
-            
             if(!test.hasUnknowns()) {
                 if (testRun.newCoverage) {
                     if (cmd.outputFormat === "expresso")
                         unitTests.push(test.toExpressoFormat(testRun.results, ++count));
-                    else if (cmd.outputFormat === "node-unit")
+                    else if (cmd.outputFormat === "nodeunit")
                         unitTests.push(test.toNodeUnitFormat(testRun.results, ++count));
                     else if (cmd.outputFormat) {
                         console.error("ERROR:".red + " Unit test suite format specified is unsupported.");
@@ -202,10 +193,14 @@ function outputTests(src, pgmInfo, unitTests, failingTests, testsFile, errorsFil
         var success = "console.log(\"Unit test suite completed with success!\")";
         var content = header;
         var classes = _.pluck(pgmInfo.classes, 'name');
-        for (var i in classes) {
-            var c = classes[i];
-            content += "var " + c + " = require('" + __dirname + "/" + cmd.args[0] + "')." + c + ";\n";
+        if(!cmd.namespace) {
+            for (var i in classes) {
+                var c = classes[i];
+                content += "var " + c + " = require('" + __dirname + "/" + cmd.args[0] + "')." + c + ";\n";
+            }            
         }
+        else content += "var " + cmd.namespace + " = require('" + __dirname
+                     + "/" + cmd.args[0] + "')." + cmd.namespace + ";\n";
         if(!cmd.outputFormat) content += "\ntry {\n\n";
         content += "\n" + tests.join('\n\n') + "\n\n"; 
         if(!cmd.outputFormat) content += success + "\n}\ncatch(err) {\n    console.log(err.toString())\n}";
