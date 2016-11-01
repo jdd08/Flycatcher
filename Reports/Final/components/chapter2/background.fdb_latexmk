@@ -1,9 +1,0 @@
-# Fdb version 2
-["latex"] 0 "background.tex" "background.dvi" "background" 
-  "background.tex" 1338647089 36881 bc8fac3c319d1e28f8dd99b42e0d5f07 ""
-["pdflatex"] 1338647222 "background.tex" "background.pdf" "background" 
-  "background.aux" 1338645570 5498 85989472e1c28a3f99a8d883d30e2796 ""
-  "background.tex" 1338647089 36881 bc8fac3c319d1e28f8dd99b42e0d5f07 ""
-  "e.g., `I\hbox'" 0 -1 0 ""
-  "e.g., `\hobx'" 0 -1 0 ""
-  "job aborted, no legal \end found" 0 -1 0 ""
